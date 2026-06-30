@@ -9,9 +9,6 @@ export default function HomePage() {
     <Container className="py-10 sm:py-16">
       <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">
         <AppLogo size="xl" />
-        <div className="inline-flex items-center rounded-full border border-border/70 bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-          PWA · Mobile-first · Para qualquer grupo
-        </div>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Listas de compras compartilhadas com quem você quiser
         </h1>
