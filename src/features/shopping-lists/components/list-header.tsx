@@ -1,0 +1,140 @@
+"use client"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { ArrowLeft, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
+import { useForm } from "react-hook-form"
+import { toast } from "sonner"
+import { deleteListAction, renameListAction } from "@/actions/shopping-list.actions"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import {
+  type ShoppingListNameValues,
+  shoppingListNameSchema,
+} from "@/features/shopping-lists/schemas"
+
+type ListHeaderProps = {
+  listId: string
+  name: string
+}
+
+export function ListHeader({ listId, name }: ListHeaderProps) {
+  const router = useRouter()
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const form = useForm<ShoppingListNameValues>({
+    resolver: zodResolver(shoppingListNameSchema),
+    defaultValues: { name },
+  })
+
+  async function onRename(values: ShoppingListNameValues) {
+    const result = await renameListAction(listId, values)
+    if (!result.success) {
+      toast.error(result.error)
+      return
+    }
+    setRenameOpen(false)
+    toast.success("Lista renomeada")
+    router.refresh()
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteListAction(listId)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast.success("Lista excluída")
+      router.push("/dashboard")
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Voltar"
+        onClick={() => router.push("/dashboard")}
+      >
+        <ArrowLeft className="size-4" />
+      </Button>
+      <h1 className="text-page-title min-w-0 flex-1 truncate text-xl sm:text-2xl">{name}</h1>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" size="icon-sm" aria-label="Opções">
+                <MoreVertical className="size-4" />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DialogTrigger
+              render={
+                <DropdownMenuItem>
+                  <Pencil className="size-4" />
+                  Renomear
+                </DropdownMenuItem>
+              }
+            />
+            <DropdownMenuItem variant="destructive" disabled={isPending} onClick={handleDelete}>
+              <Trash2 className="size-4" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear lista</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onRename)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input autoFocus {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                Salvar
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

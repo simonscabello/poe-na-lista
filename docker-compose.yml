@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: mercado-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mercado
+      MYSQL_USER: mercado
+      MYSQL_PASSWORD: mercado
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:

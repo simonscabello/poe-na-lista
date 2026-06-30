@@ -1,0 +1,47 @@
+---
+description: Padrões de features e UI (shadcn, forms, toasts, React Query)
+globs: src/features/**,src/components/**
+alwaysApply: false
+---
+
+# Features e UI
+
+## Estrutura de feature (`src/features/<domain>/`)
+
+- `components/` para UI do domínio, `schemas.ts` para validação, `hooks/` para lógica client.
+- Schemas Zod: sufixo `*Schema` e tipo inferido `*Values` (`z.infer`); mensagens em pt-BR.
+
+## Formulários
+
+- `react-hook-form` + `zodResolver` + componentes `Form` do shadcn (`@/components/ui/form`).
+- Submeter chamando a action e tratando `ActionResult`:
+
+```tsx
+async function onSubmit(values: ShoppingListNameValues) {
+  const result = await createListAction(householdId, values)
+  if (!result.success) {
+    toast.error(result.error)
+    return
+  }
+  // sucesso: fechar dialog, router.refresh(), toast.success(...)
+}
+```
+
+## Componentes
+
+- shadcn style **base-nova**; primitivos em `src/components/ui/` usam `@base-ui/react`.
+- Variants com `cva`; combinar classes com `cn()` de `@/lib/utils`. Ícones: `lucide-react`.
+- Feedback com `sonner` (`toast.error` / `toast.success`).
+- Skeletons em arquivos `*-skeleton.tsx`; estados vazios via `@/components/common/empty-state`.
+
+## React Query (hooks client)
+
+Chamar a action e lançar erro quando `!result.success`:
+
+```ts
+queryFn: async () => {
+  const result = await searchProductsAction(householdId, query)
+  if (!result.success) throw new Error(result.error)
+  return result.data
+}
+```

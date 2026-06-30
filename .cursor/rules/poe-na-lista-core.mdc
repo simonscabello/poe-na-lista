@@ -1,0 +1,34 @@
+---
+description: Convenções gerais do projeto Põe na Lista (stack, arquitetura, idioma)
+alwaysApply: true
+---
+
+# Põe na Lista — Regras Gerais
+
+App de listas de compras compartilhadas. Stack: Next.js 16 (App Router), React 19,
+Prisma 7 + MariaDB, NextAuth v5, shadcn (base-nova) + `@base-ui/react`, Tailwind v4, Biome.
+
+## Arquitetura em camadas
+
+Fluxo: `page` → `feature` → `action` → `service` → Prisma.
+
+| Camada | Onde | Responsabilidade |
+|--------|------|------------------|
+| Pages | `src/app/` | Auth, fetch server-side, Suspense, `notFound`/`redirect` |
+| Features | `src/features/<domain>/` | UI de domínio, schemas Zod, hooks client |
+| Actions | `src/actions/*.actions.ts` | Validação, permissões, `revalidatePath`, `ActionResult` |
+| Services | `src/services/*.service.ts` | Prisma, mapeamento para DTOs |
+| UI shared | `src/components/{ui,layout,common}/` | Primitivos, layout, empty states |
+
+Features existentes: `shopping-lists`, `households`, `products`.
+
+## Regras
+
+- Toda UI e mensagem de erro em **português (pt-BR)**.
+- Usar alias `@/*` → `src/*` nos imports.
+- Importar Prisma client de `@/generated/prisma/client` e a instância de `@/lib/prisma`.
+- **Nunca** editar `src/generated/` (código gerado).
+- Lint/format com **Biome** (`npm run lint`, `npm run format`) — não usar ESLint/Prettier.
+- Mutações sempre via **Server Actions**. Não criar API routes para domínio;
+  a única API route é `src/app/api/auth/[...nextauth]/`.
+- Minimizar o escopo das mudanças e seguir os padrões já presentes nas features.

@@ -1,0 +1,37 @@
+---
+description: Convenções de Next.js 16 (App Router, Suspense, proxy, cache)
+globs: src/app/**,src/proxy.ts,next.config.ts
+alwaysApply: false
+---
+
+# Next.js 16 — App Router
+
+Esta versão tem breaking changes. Consulte `node_modules/next/dist/docs/` antes de
+usar APIs novas e respeite avisos de deprecação.
+
+## Padrões
+
+- `params` e `searchParams` são **Promise**. Resolva com Suspense + child async:
+
+```tsx
+type Props = { params: Promise<{ listId: string }> }
+
+export default function Page({ params }: Props) {
+  return (
+    <Suspense fallback={<Skeleton />}>
+      {params.then(({ listId }) => <Content listId={listId} />)}
+    </Suspense>
+  )
+}
+```
+
+- `cacheComponents: true` (`next.config.ts`): shell estático servido na hora,
+  dados dinâmicos (auth/DB) sob `<Suspense>`.
+- Server Components por padrão. `"use client"` só para interatividade
+  (forms, hooks, React Query, Jotai).
+- Proteção de rota fica em `src/proxy.ts` — Next 16 renomeou `middleware` → `proxy`.
+  **Não** criar `middleware.ts`.
+- Auth em páginas: `await auth()` + `redirect("/login?callbackUrl=...")`; use
+  `notFound()` para recursos inexistentes ou sem acesso.
+- Um `loading.tsx` e `error.tsx` por segmento quando fizer sentido.
+- Build usa `--webpack` (necessário para o service worker Serwist/PWA).

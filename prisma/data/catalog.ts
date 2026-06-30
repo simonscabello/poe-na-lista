@@ -1,0 +1,347 @@
+export type ProductSeed = {
+  name: string
+  categorySlug: string
+}
+
+/**
+ * Catálogo global oficial. Nomes padronizados (Title Case, acentuação correta) e
+ * autoexplicativos, já que não há subcategorias na UI. Os comentários abaixo
+ * apenas refletem o agrupamento de origem da lista — não são persistidos.
+ */
+export const catalog: ProductSeed[] = [
+  // ── Mercearia ──────────────────────────────────────────────
+  // Grãos e cereais
+  { name: "Arroz", categorySlug: "mercearia" },
+  { name: "Feijão", categorySlug: "mercearia" },
+  { name: "Lentilha", categorySlug: "mercearia" },
+  { name: "Grão-de-Bico", categorySlug: "mercearia" },
+  { name: "Ervilha Seca", categorySlug: "mercearia" },
+  { name: "Milho de Pipoca", categorySlug: "mercearia" },
+  { name: "Quinoa", categorySlug: "mercearia" },
+  // Farinhas
+  { name: "Farinha de Trigo", categorySlug: "mercearia" },
+  { name: "Farinha de Mandioca", categorySlug: "mercearia" },
+  { name: "Farinha de Rosca", categorySlug: "mercearia" },
+  { name: "Farinha de Aveia", categorySlug: "mercearia" },
+  { name: "Fubá", categorySlug: "mercearia" },
+  { name: "Polvilho Doce", categorySlug: "mercearia" },
+  { name: "Polvilho Azedo", categorySlug: "mercearia" },
+  { name: "Tapioca", categorySlug: "mercearia" },
+  { name: "Cuscuz", categorySlug: "mercearia" },
+  // Massas
+  { name: "Macarrão Espaguete", categorySlug: "mercearia" },
+  { name: "Macarrão Parafuso", categorySlug: "mercearia" },
+  { name: "Macarrão Penne", categorySlug: "mercearia" },
+  { name: "Macarrão Talharim", categorySlug: "mercearia" },
+  { name: "Nhoque", categorySlug: "mercearia" },
+  { name: "Massa de Lasanha", categorySlug: "mercearia" },
+  // Molhos
+  { name: "Molho de Tomate", categorySlug: "mercearia" },
+  { name: "Passata de Tomate", categorySlug: "mercearia" },
+  { name: "Extrato de Tomate", categorySlug: "mercearia" },
+  { name: "Molho Barbecue", categorySlug: "mercearia" },
+  { name: "Molho Shoyu", categorySlug: "mercearia" },
+  // Óleos e gorduras
+  { name: "Óleo de Soja", categorySlug: "mercearia" },
+  { name: "Óleo de Girassol", categorySlug: "mercearia" },
+  { name: "Óleo de Milho", categorySlug: "mercearia" },
+  { name: "Azeite de Oliva", categorySlug: "mercearia" },
+  { name: "Óleo de Coco", categorySlug: "mercearia" },
+  { name: "Banha", categorySlug: "mercearia" },
+  // Temperos
+  { name: "Sal", categorySlug: "mercearia" },
+  { name: "Sal Grosso", categorySlug: "mercearia" },
+  { name: "Açúcar", categorySlug: "mercearia" },
+  { name: "Açúcar Mascavo", categorySlug: "mercearia" },
+  { name: "Adoçante", categorySlug: "mercearia" },
+  { name: "Pimenta-do-Reino", categorySlug: "mercearia" },
+  { name: "Páprica", categorySlug: "mercearia" },
+  { name: "Colorau", categorySlug: "mercearia" },
+  { name: "Curry", categorySlug: "mercearia" },
+  { name: "Orégano", categorySlug: "mercearia" },
+  { name: "Cominho", categorySlug: "mercearia" },
+  { name: "Louro", categorySlug: "mercearia" },
+  { name: "Chimichurri", categorySlug: "mercearia" },
+  { name: "Alho em Pó", categorySlug: "mercearia" },
+  { name: "Cebola em Pó", categorySlug: "mercearia" },
+  // Conservas
+  { name: "Milho em Conserva", categorySlug: "mercearia" },
+  { name: "Ervilha em Conserva", categorySlug: "mercearia" },
+  { name: "Atum em Conserva", categorySlug: "mercearia" },
+  { name: "Sardinha em Lata", categorySlug: "mercearia" },
+  { name: "Palmito", categorySlug: "mercearia" },
+  { name: "Azeitona", categorySlug: "mercearia" },
+  { name: "Pepino em Conserva", categorySlug: "mercearia" },
+  { name: "Seleta de Legumes", categorySlug: "mercearia" },
+  // Café da manhã
+  { name: "Café", categorySlug: "mercearia" },
+  { name: "Café em Cápsula", categorySlug: "mercearia" },
+  { name: "Chá", categorySlug: "mercearia" },
+  { name: "Achocolatado", categorySlug: "mercearia" },
+  { name: "Mel", categorySlug: "mercearia" },
+  { name: "Geleia", categorySlug: "mercearia" },
+  { name: "Aveia", categorySlug: "mercearia" },
+  { name: "Granola", categorySlug: "mercearia" },
+  { name: "Cereal Matinal", categorySlug: "mercearia" },
+
+  // ── Laticínios ─────────────────────────────────────────────
+  // Leites
+  { name: "Leite Integral", categorySlug: "laticinios" },
+  { name: "Leite Semidesnatado", categorySlug: "laticinios" },
+  { name: "Leite Desnatado", categorySlug: "laticinios" },
+  { name: "Leite Sem Lactose", categorySlug: "laticinios" },
+  { name: "Leite Vegetal", categorySlug: "laticinios" },
+  // Cremes
+  { name: "Creme de Leite", categorySlug: "laticinios" },
+  { name: "Leite Condensado", categorySlug: "laticinios" },
+  { name: "Requeijão", categorySlug: "laticinios" },
+  { name: "Cream Cheese", categorySlug: "laticinios" },
+  { name: "Ricota", categorySlug: "laticinios" },
+  { name: "Manteiga", categorySlug: "laticinios" },
+  { name: "Margarina", categorySlug: "laticinios" },
+  // Queijos
+  { name: "Queijo Muçarela", categorySlug: "laticinios" },
+  { name: "Queijo Prato", categorySlug: "laticinios" },
+  { name: "Queijo Minas", categorySlug: "laticinios" },
+  { name: "Queijo Parmesão", categorySlug: "laticinios" },
+  { name: "Queijo Provolone", categorySlug: "laticinios" },
+  { name: "Queijo Cheddar", categorySlug: "laticinios" },
+  { name: "Queijo Coalho", categorySlug: "laticinios" },
+  // Iogurtes
+  { name: "Iogurte Natural", categorySlug: "laticinios" },
+  { name: "Iogurte Grego", categorySlug: "laticinios" },
+  { name: "Bebida Láctea", categorySlug: "laticinios" },
+  { name: "Petit Suisse", categorySlug: "laticinios" },
+  { name: "Flan", categorySlug: "laticinios" },
+
+  // ── Açougue ────────────────────────────────────────────────
+  // Bovina
+  { name: "Alcatra", categorySlug: "acougue" },
+  { name: "Contrafilé", categorySlug: "acougue" },
+  { name: "Picanha", categorySlug: "acougue" },
+  { name: "Maminha", categorySlug: "acougue" },
+  { name: "Acém", categorySlug: "acougue" },
+  { name: "Patinho", categorySlug: "acougue" },
+  { name: "Coxão Mole", categorySlug: "acougue" },
+  { name: "Carne Moída", categorySlug: "acougue" },
+  { name: "Costela Bovina", categorySlug: "acougue" },
+  // Frango
+  { name: "Peito de Frango", categorySlug: "acougue" },
+  { name: "Sobrecoxa de Frango", categorySlug: "acougue" },
+  { name: "Coxa de Frango", categorySlug: "acougue" },
+  { name: "Asa de Frango", categorySlug: "acougue" },
+  { name: "Coxinha da Asa", categorySlug: "acougue" },
+  { name: "Coração de Frango", categorySlug: "acougue" },
+  { name: "Frango Inteiro", categorySlug: "acougue" },
+  // Suína
+  { name: "Lombo Suíno", categorySlug: "acougue" },
+  { name: "Pernil Suíno", categorySlug: "acougue" },
+  { name: "Costelinha Suína", categorySlug: "acougue" },
+  { name: "Bacon", categorySlug: "acougue" },
+  { name: "Linguiça Toscana", categorySlug: "acougue" },
+  // Embutidos
+  { name: "Presunto", categorySlug: "acougue" },
+  { name: "Peito de Peru", categorySlug: "acougue" },
+  { name: "Mortadela", categorySlug: "acougue" },
+  { name: "Salame", categorySlug: "acougue" },
+  { name: "Linguiça Calabresa", categorySlug: "acougue" },
+  { name: "Salsicha", categorySlug: "acougue" },
+  // Peixes
+  { name: "Tilápia", categorySlug: "acougue" },
+  { name: "Salmão", categorySlug: "acougue" },
+  { name: "Merluza", categorySlug: "acougue" },
+  { name: "Atum Fresco", categorySlug: "acougue" },
+  { name: "Bacalhau", categorySlug: "acougue" },
+  { name: "Camarão", categorySlug: "acougue" },
+
+  // ── Hortifrúti ─────────────────────────────────────────────
+  // Frutas
+  { name: "Banana", categorySlug: "hortifruti" },
+  { name: "Maçã", categorySlug: "hortifruti" },
+  { name: "Pera", categorySlug: "hortifruti" },
+  { name: "Laranja", categorySlug: "hortifruti" },
+  { name: "Limão", categorySlug: "hortifruti" },
+  { name: "Mamão", categorySlug: "hortifruti" },
+  { name: "Manga", categorySlug: "hortifruti" },
+  { name: "Abacaxi", categorySlug: "hortifruti" },
+  { name: "Uva", categorySlug: "hortifruti" },
+  { name: "Morango", categorySlug: "hortifruti" },
+  { name: "Melancia", categorySlug: "hortifruti" },
+  { name: "Melão", categorySlug: "hortifruti" },
+  { name: "Kiwi", categorySlug: "hortifruti" },
+  { name: "Abacate", categorySlug: "hortifruti" },
+  // Legumes
+  { name: "Batata", categorySlug: "hortifruti" },
+  { name: "Batata-Doce", categorySlug: "hortifruti" },
+  { name: "Cenoura", categorySlug: "hortifruti" },
+  { name: "Beterraba", categorySlug: "hortifruti" },
+  { name: "Tomate", categorySlug: "hortifruti" },
+  { name: "Cebola", categorySlug: "hortifruti" },
+  { name: "Alho", categorySlug: "hortifruti" },
+  { name: "Chuchu", categorySlug: "hortifruti" },
+  { name: "Abobrinha", categorySlug: "hortifruti" },
+  { name: "Berinjela", categorySlug: "hortifruti" },
+  { name: "Pimentão", categorySlug: "hortifruti" },
+  { name: "Pepino", categorySlug: "hortifruti" },
+  { name: "Mandioca", categorySlug: "hortifruti" },
+  // Verduras
+  { name: "Alface", categorySlug: "hortifruti" },
+  { name: "Rúcula", categorySlug: "hortifruti" },
+  { name: "Couve", categorySlug: "hortifruti" },
+  { name: "Couve-Flor", categorySlug: "hortifruti" },
+  { name: "Brócolis", categorySlug: "hortifruti" },
+  { name: "Repolho", categorySlug: "hortifruti" },
+  { name: "Agrião", categorySlug: "hortifruti" },
+  { name: "Espinafre", categorySlug: "hortifruti" },
+  // Ovos
+  { name: "Ovo Branco", categorySlug: "hortifruti" },
+  { name: "Ovo Vermelho", categorySlug: "hortifruti" },
+  { name: "Ovo Caipira", categorySlug: "hortifruti" },
+  { name: "Ovo de Codorna", categorySlug: "hortifruti" },
+
+  // ── Padaria ────────────────────────────────────────────────
+  // Pães
+  { name: "Pão Francês", categorySlug: "padaria" },
+  { name: "Pão de Forma", categorySlug: "padaria" },
+  { name: "Pão Integral", categorySlug: "padaria" },
+  { name: "Pão de Hambúrguer", categorySlug: "padaria" },
+  { name: "Pão de Cachorro-Quente", categorySlug: "padaria" },
+  { name: "Bisnaguinha", categorySlug: "padaria" },
+  { name: "Torrada", categorySlug: "padaria" },
+  // Salgados
+  { name: "Pão de Queijo", categorySlug: "padaria" },
+  { name: "Coxinha", categorySlug: "padaria" },
+  { name: "Quibe", categorySlug: "padaria" },
+  { name: "Esfiha", categorySlug: "padaria" },
+  { name: "Folheado", categorySlug: "padaria" },
+  // Doces
+  { name: "Bolo", categorySlug: "padaria" },
+  { name: "Pudim", categorySlug: "padaria" },
+  { name: "Torta", categorySlug: "padaria" },
+  { name: "Sonho", categorySlug: "padaria" },
+  { name: "Carolina", categorySlug: "padaria" },
+
+  // ── Congelados ─────────────────────────────────────────────
+  { name: "Pizza Congelada", categorySlug: "congelados" },
+  { name: "Hambúrguer Congelado", categorySlug: "congelados" },
+  { name: "Nuggets", categorySlug: "congelados" },
+  { name: "Lasanha Congelada", categorySlug: "congelados" },
+  { name: "Batata Frita Congelada", categorySlug: "congelados" },
+  { name: "Mandioca Congelada", categorySlug: "congelados" },
+  { name: "Legumes Congelados", categorySlug: "congelados" },
+  { name: "Polpa de Fruta", categorySlug: "congelados" },
+  { name: "Sorvete", categorySlug: "congelados" },
+  { name: "Picolé", categorySlug: "congelados" },
+  { name: "Açaí", categorySlug: "congelados" },
+
+  // ── Biscoitos e Petiscos ───────────────────────────────────
+  // Biscoitos
+  { name: "Biscoito Água e Sal", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Biscoito Cream Cracker", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Biscoito Recheado", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Cookie", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Rosquinha", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Wafer", categorySlug: "biscoitos-e-petiscos" },
+  // Doces
+  { name: "Chocolate", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Bombom", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Bala", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Chiclete", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Gelatina", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Paçoca", categorySlug: "biscoitos-e-petiscos" },
+  // Petiscos
+  { name: "Batata Chips", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Salgadinho", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Amendoim", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Castanhas", categorySlug: "biscoitos-e-petiscos" },
+  { name: "Pipoca", categorySlug: "biscoitos-e-petiscos" },
+
+  // ── Bebidas ────────────────────────────────────────────────
+  // Não alcoólicas
+  { name: "Água", categorySlug: "bebidas" },
+  { name: "Água com Gás", categorySlug: "bebidas" },
+  { name: "Refrigerante", categorySlug: "bebidas" },
+  { name: "Suco", categorySlug: "bebidas" },
+  { name: "Água de Coco", categorySlug: "bebidas" },
+  { name: "Energético", categorySlug: "bebidas" },
+  { name: "Isotônico", categorySlug: "bebidas" },
+  // Alcoólicas
+  { name: "Cerveja", categorySlug: "bebidas" },
+  { name: "Vinho Tinto", categorySlug: "bebidas" },
+  { name: "Vinho Branco", categorySlug: "bebidas" },
+  { name: "Espumante", categorySlug: "bebidas" },
+  { name: "Vodca", categorySlug: "bebidas" },
+  { name: "Whisky", categorySlug: "bebidas" },
+  { name: "Gin", categorySlug: "bebidas" },
+  { name: "Cachaça", categorySlug: "bebidas" },
+
+  // ── Higiene ────────────────────────────────────────────────
+  // Banho
+  { name: "Sabonete", categorySlug: "higiene" },
+  { name: "Sabonete Líquido", categorySlug: "higiene" },
+  { name: "Shampoo", categorySlug: "higiene" },
+  { name: "Condicionador", categorySlug: "higiene" },
+  { name: "Máscara Capilar", categorySlug: "higiene" },
+  { name: "Creme para Pentear", categorySlug: "higiene" },
+  // Higiene bucal
+  { name: "Creme Dental", categorySlug: "higiene" },
+  { name: "Escova de Dentes", categorySlug: "higiene" },
+  { name: "Fio Dental", categorySlug: "higiene" },
+  { name: "Enxaguante Bucal", categorySlug: "higiene" },
+  // Cuidados pessoais
+  { name: "Desodorante", categorySlug: "higiene" },
+  { name: "Hidratante", categorySlug: "higiene" },
+  { name: "Protetor Solar", categorySlug: "higiene" },
+  { name: "Perfume", categorySlug: "higiene" },
+  // Barbear
+  { name: "Lâmina de Barbear", categorySlug: "higiene" },
+  { name: "Espuma de Barbear", categorySlug: "higiene" },
+  { name: "Aparelho de Barbear", categorySlug: "higiene" },
+  // Cuidados íntimos
+  { name: "Papel Higiênico", categorySlug: "higiene" },
+  { name: "Absorvente", categorySlug: "higiene" },
+  { name: "Protetor Diário", categorySlug: "higiene" },
+  { name: "Lenço Umedecido", categorySlug: "higiene" },
+
+  // ── Limpeza ────────────────────────────────────────────────
+  // Lavanderia
+  { name: "Sabão em Pó", categorySlug: "limpeza" },
+  { name: "Sabão Líquido", categorySlug: "limpeza" },
+  { name: "Sabão em Barra", categorySlug: "limpeza" },
+  { name: "Amaciante", categorySlug: "limpeza" },
+  { name: "Alvejante", categorySlug: "limpeza" },
+  // Cozinha
+  { name: "Detergente", categorySlug: "limpeza" },
+  { name: "Esponja", categorySlug: "limpeza" },
+  { name: "Palha de Aço", categorySlug: "limpeza" },
+  { name: "Desengordurante", categorySlug: "limpeza" },
+  // Casa
+  { name: "Desinfetante", categorySlug: "limpeza" },
+  { name: "Multiuso", categorySlug: "limpeza" },
+  { name: "Limpa Piso", categorySlug: "limpeza" },
+  { name: "Limpa Vidro", categorySlug: "limpeza" },
+  { name: "Álcool", categorySlug: "limpeza" },
+  // Utensílios
+  { name: "Saco de Lixo", categorySlug: "limpeza" },
+  { name: "Pano de Prato", categorySlug: "limpeza" },
+  { name: "Pano de Chão", categorySlug: "limpeza" },
+  { name: "Vassoura", categorySlug: "limpeza" },
+  { name: "Rodo", categorySlug: "limpeza" },
+  { name: "Pá de Lixo", categorySlug: "limpeza" },
+
+  // ── Bebê ───────────────────────────────────────────────────
+  { name: "Fralda", categorySlug: "bebe" },
+  { name: "Lenço Umedecido Infantil", categorySlug: "bebe" },
+  { name: "Pomada para Assaduras", categorySlug: "bebe" },
+  { name: "Shampoo Infantil", categorySlug: "bebe" },
+  { name: "Sabonete Infantil", categorySlug: "bebe" },
+  { name: "Fórmula Infantil", categorySlug: "bebe" },
+
+  // ── Pet Shop ───────────────────────────────────────────────
+  { name: "Ração para Cães", categorySlug: "pet-shop" },
+  { name: "Sachê para Cães", categorySlug: "pet-shop" },
+  { name: "Bifinho", categorySlug: "pet-shop" },
+  { name: "Ração para Gatos", categorySlug: "pet-shop" },
+  { name: "Sachê para Gatos", categorySlug: "pet-shop" },
+  { name: "Areia Sanitária", categorySlug: "pet-shop" },
+]

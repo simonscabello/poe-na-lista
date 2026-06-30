@@ -1,0 +1,40 @@
+---
+description: Camada de dados — services e schema Prisma
+globs: src/services/**,prisma/**
+alwaysApply: false
+---
+
+# Services e Prisma
+
+A camada de dados isola o Prisma. Actions e pages chamam services, nunca o Prisma direto.
+
+## Services (`src/services/*.service.ts`)
+
+- Funções com nomes verbais: `getListDetail`, `createShoppingList`, `getListsByHousehold`.
+- Usar a instância `prisma` de `@/lib/prisma`.
+- Retornar **DTOs** de `@/types/domain` (ex.: `ShoppingListDetail`), nunca models Prisma crus.
+  Mapeie campos explicitamente e serialize datas com `.toISOString()`.
+
+```ts
+export async function getListsByHousehold(householdId: string): Promise<ShoppingListSummary[]> {
+  const lists = await prisma.shoppingList.findMany({
+    where: { householdId },
+    orderBy: { updatedAt: "desc" },
+    include: { items: { select: { checked: true } } },
+  })
+  return lists.map((list) => ({
+    id: list.id,
+    name: list.name,
+    totalItems: list.items.length,
+    checkedItems: list.items.filter((item) => item.checked).length,
+    updatedAt: list.updatedAt.toISOString(),
+  }))
+}
+```
+
+## Schema (`prisma/schema.prisma`)
+
+- IDs `String @id @default(cuid())`; campos `createdAt @default(now())` e `updatedAt @updatedAt`.
+- Definir os dois lados de cada relação com `@relation`; `@@index` em campos consultados.
+- Client gerado em `src/generated/prisma` (não editar).
+- Migrations: `npm run db:migrate`; client: `npm run db:generate`; seed em `prisma/seed.ts`.

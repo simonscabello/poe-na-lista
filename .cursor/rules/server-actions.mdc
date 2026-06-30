@@ -1,0 +1,39 @@
+---
+description: Padrão de Server Actions (ActionResult, Zod, permissões)
+globs: src/actions/**
+alwaysApply: false
+---
+
+# Server Actions
+
+Toda mutação é uma Server Action em `src/actions/*.actions.ts`.
+
+## Padrão obrigatório
+
+- `"use server"` no topo do arquivo; função com sufixo `*Action`.
+- Receber `input: unknown` e validar com `schema.parse(input)` no servidor.
+- Retornar sempre `ActionResult<T>` via `actionOk` / `actionError` — **nunca** lançar erro ao client.
+- Checar acesso com `requireAuth()` ou `requireHouseholdMember(householdId)` de `@/lib/permissions`.
+- Converter erros com `getActionErrorMessage(error)` de `@/lib/errors`.
+- Chamar `revalidatePath(...)` após mutações que afetam o cache da rota.
+
+```ts
+"use server"
+
+export async function createListAction(
+  householdId: string,
+  input: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { user } = await requireHouseholdMember(householdId)
+    const { name } = shoppingListNameSchema.parse(input)
+    const id = await createShoppingList(householdId, user.id, name)
+    revalidatePath("/dashboard")
+    return actionOk({ id })
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+```
+
+A action orquestra (valida, autoriza, revalida); o acesso ao banco fica no service.

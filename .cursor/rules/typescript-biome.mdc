@@ -1,0 +1,25 @@
+---
+description: Convenções de TypeScript e formatação Biome
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript e Biome
+
+## Nomenclatura
+
+- Arquivos em **kebab-case** (`create-list-dialog.tsx`, `shopping-list.service.ts`).
+- Componentes e tipos em **PascalCase**; funções e variáveis com nomes claros e autoexplicativos.
+- Actions com sufixo `*Action`; schemas `*Schema` + tipo `*Values`; DTOs `*DTO`/`*Summary`/`*Detail`.
+
+## TypeScript
+
+- `strict: true`. Tipos de domínio compartilhados em `src/types/`.
+- Evitar barrel exports desnecessários — preferir imports diretos.
+- Não usar `else` após um `return` que já encerra o fluxo.
+
+## Biome
+
+- 2 espaços, line width 100, aspas duplas, semicolons `asNeeded` (ver `biome.json`).
+- `npm run lint` (check) e `npm run format` (write). Imports são organizados pelo Biome.
+- Não adicionar testes ou comentários redundantes salvo solicitação explícita.
