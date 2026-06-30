@@ -50,7 +50,7 @@ async function LoginContent({ searchParams }: LoginPageProps) {
 
   return (
     <Container className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center gap-6 py-10">
-      <AppLogo size="lg" className="size-16" />
+      <AppLogo size="xl" />
       <Card className="mx-auto w-full max-w-md">
         <CardHeader>
           <CardTitle>Entrar no Põe na Lista</CardTitle>

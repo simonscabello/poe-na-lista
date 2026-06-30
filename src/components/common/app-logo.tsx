@@ -5,6 +5,7 @@ const sizeMap = {
   sm: 20,
   md: 28,
   lg: 48,
+  xl: 64,
 } as const
 
 type AppLogoProps = {
@@ -21,6 +22,7 @@ export function AppLogo({ size = "md", className }: AppLogoProps) {
       alt="Põe na Lista"
       width={px}
       height={px}
+      unoptimized
       priority
       className={cn("rounded-[22%]", className)}
     />

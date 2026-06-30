@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -81,14 +80,10 @@ export function ListCard({ list }: ListCardProps) {
               }
             />
             <DropdownMenuContent align="end">
-              <DialogTrigger
-                render={
-                  <DropdownMenuItem variant="destructive">
-                    <Trash2 className="size-4" />
-                    Excluir
-                  </DropdownMenuItem>
-                }
-              />
+              <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
+                <Trash2 className="size-4" />
+                Excluir
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

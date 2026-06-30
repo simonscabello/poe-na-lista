@@ -8,7 +8,7 @@ export default function HomePage() {
   return (
     <Container className="py-10 sm:py-16">
       <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">
-        <AppLogo size="lg" className="size-16" />
+        <AppLogo size="xl" />
         <div className="inline-flex items-center rounded-full border border-border/70 bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
           PWA · Mobile-first · Para qualquer grupo
         </div>

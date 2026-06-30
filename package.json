@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "icons:generate": "node scripts/generate-icons.mjs",
+    "icons:resize": "node scripts/resize-icons.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {

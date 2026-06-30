@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -94,14 +93,10 @@ export function ListHeader({ listId, name }: ListHeaderProps) {
             }
           />
           <DropdownMenuContent align="end">
-            <DialogTrigger
-              render={
-                <DropdownMenuItem>
-                  <Pencil className="size-4" />
-                  Renomear
-                </DropdownMenuItem>
-              }
-            />
+            <DropdownMenuItem onClick={() => setRenameOpen(true)}>
+              <Pencil className="size-4" />
+              Renomear
+            </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" disabled={isPending} onClick={handleDelete}>
               <Trash2 className="size-4" />
               Excluir
