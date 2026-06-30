@@ -1,6 +1,9 @@
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 
+const authUrl = process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL
+const useSecureCookies = authUrl?.startsWith("https://") ?? false
+
 export const authConfig = {
   providers: [
     Google({
@@ -15,6 +18,7 @@ export const authConfig = {
     strategy: "jwt",
   },
   trustHost: true,
+  useSecureCookies,
   callbacks: {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user
