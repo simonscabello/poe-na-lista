@@ -4,6 +4,7 @@ import { Check, type LucideIcon, Plus, Search, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { createProductAction } from "@/actions/product.actions"
+import { HorizontalScrollArea } from "@/components/common/horizontal-scroll-area"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -199,7 +200,7 @@ export function ProductCatalogSheet({
 
           {/* Category chips — fixed below search so the sheet height stays stable */}
           {categories.length > 0 && (
-            <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <HorizontalScrollArea className="-mx-4 mt-3 pb-1">
               <CategoryChip
                 label="Todos"
                 active={effectiveCategory === ALL_CATEGORIES}
@@ -214,7 +215,7 @@ export function ProductCatalogSheet({
                   onClick={() => selectCategory(item.id)}
                 />
               ))}
-            </div>
+            </HorizontalScrollArea>
           )}
         </div>
 
@@ -224,7 +225,7 @@ export function ProductCatalogSheet({
           {frequentMatches.length > 0 && (
             <section className="mb-4">
               <SectionTitle>Comprados recentemente</SectionTitle>
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <HorizontalScrollArea className="-mx-4 pb-1">
                 {frequentMatches.map((product) => (
                   <FrequentPill
                     key={product.id}
@@ -234,7 +235,7 @@ export function ProductCatalogSheet({
                     onRemove={handleRemove}
                   />
                 ))}
-              </div>
+              </HorizontalScrollArea>
             </section>
           )}
 
