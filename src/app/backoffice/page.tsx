@@ -13,6 +13,7 @@ import { ActivityChart } from "@/features/backoffice/components/activity-chart"
 import { AdminOverviewSkeleton } from "@/features/backoffice/components/admin-overview-skeleton"
 import { AdminStatCard } from "@/features/backoffice/components/admin-stat-card"
 import { UserGrowthChart } from "@/features/backoffice/components/user-growth-chart"
+import { auth } from "@/lib/auth"
 import { formatCurrency } from "@/lib/format-currency"
 import { getAdminOverview } from "@/services/admin-stats.service"
 
@@ -25,6 +26,7 @@ export default function BackofficePage() {
 }
 
 async function BackofficeContent() {
+  await auth()
   const overview = await getAdminOverview()
 
   return (
