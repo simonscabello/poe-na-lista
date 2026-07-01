@@ -1,12 +1,22 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { Suspense } from "react"
 import { Container } from "@/components/layout/container"
+import { BackofficeLayoutSkeleton } from "@/features/backoffice/components/backoffice-layout-skeleton"
 import { BackofficeNav } from "@/features/backoffice/components/backoffice-nav"
 import { isAdminEmail } from "@/lib/admin"
 import { auth } from "@/lib/auth"
 
-export default async function BackofficeLayout({ children }: { children: React.ReactNode }) {
+export default function BackofficeLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<BackofficeLayoutSkeleton />}>
+      <BackofficeLayoutContent>{children}</BackofficeLayoutContent>
+    </Suspense>
+  )
+}
+
+async function BackofficeLayoutContent({ children }: { children: React.ReactNode }) {
   const session = await auth()
 
   if (!session?.user) {
