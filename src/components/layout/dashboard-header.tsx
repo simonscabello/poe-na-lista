@@ -13,6 +13,7 @@ type DashboardHeaderProps = {
   user: { name: string | null; email: string | null; image: string | null }
   notifications: NotificationDTO[]
   unreadCount: number
+  isAdmin?: boolean
 }
 
 export function DashboardHeader({
@@ -21,6 +22,7 @@ export function DashboardHeader({
   user,
   notifications,
   unreadCount,
+  isAdmin = false,
 }: DashboardHeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -42,7 +44,7 @@ export function DashboardHeader({
             />
           )}
           <ThemeToggle />
-          <UserMenu name={user.name} email={user.email} image={user.image} />
+          <UserMenu name={user.name} email={user.email} image={user.image} isAdmin={isAdmin} />
         </div>
       </Container>
     </header>

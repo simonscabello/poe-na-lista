@@ -1,4 +1,5 @@
 import { HouseholdRole } from "@/generated/prisma/enums"
+import { isAdminEmail } from "@/lib/admin"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
@@ -30,6 +31,16 @@ export async function requireAuth() {
   }
 
   return session.user
+}
+
+export async function requireAdmin() {
+  const user = await requireAuth()
+
+  if (!isAdminEmail(user.email)) {
+    throw new ForbiddenError("Acesso restrito ao administrador")
+  }
+
+  return user
 }
 
 export async function requireHouseholdMember(

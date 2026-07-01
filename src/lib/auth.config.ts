@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
+import { isAdminEmail } from "@/lib/admin"
 
 const authUrl = process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL
 const useSecureCookies = authUrl?.startsWith("https://") ?? false
@@ -22,9 +23,13 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user
-      const isProtected = request.nextUrl.pathname.startsWith("/dashboard")
+      const { pathname } = request.nextUrl
 
-      if (isProtected) {
+      if (pathname.startsWith("/backoffice")) {
+        return isLoggedIn && isAdminEmail(auth?.user?.email)
+      }
+
+      if (pathname.startsWith("/dashboard")) {
         return isLoggedIn
       }
 
