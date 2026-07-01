@@ -192,3 +192,31 @@ export type NotificationDTO = {
   read: boolean
   createdAt: string
 }
+
+export type AdminUserGrowthPointDTO = {
+  month: string
+  label: string
+  newUsers: number
+  cumulativeUsers: number
+}
+
+export type AdminActivityPointDTO = {
+  month: string
+  label: string
+  listsCreated: number
+  purchasesFinalized: number
+}
+
+export type AdminOverviewDTO = {
+  totalUsers: number
+  newUsersLast30Days: number
+  totalHouseholds: number
+  totalActiveLists: number
+  totalCompletedLists: number
+  totalListItems: number
+  totalPantryItems: number
+  totalPurchases: number
+  totalPurchaseAmount: number
+  userGrowthSeries: AdminUserGrowthPointDTO[]
+  activitySeries: AdminActivityPointDTO[]
+}

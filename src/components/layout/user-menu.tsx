@@ -1,6 +1,6 @@
 "use client"
 
-import { LogOut, User } from "lucide-react"
+import { LogOut, Shield, User } from "lucide-react"
 import Link from "next/link"
 import { signOut } from "next-auth/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,9 +19,10 @@ type UserMenuProps = {
   name: string | null
   email: string | null
   image: string | null
+  isAdmin?: boolean
 }
 
-export function UserMenu({ name, email, image }: UserMenuProps) {
+export function UserMenu({ name, email, image, isAdmin = false }: UserMenuProps) {
   const initials = (name ?? email ?? "U").slice(0, 1).toUpperCase()
 
   return (
@@ -48,6 +49,12 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
           <User className="size-4" />
           Perfil
         </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem render={<Link href="/backoffice" />}>
+            <Shield className="size-4" />
+            Backoffice
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => signOut({ callbackUrl: "/" })}>
           <LogOut className="size-4" />

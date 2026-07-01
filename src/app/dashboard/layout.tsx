@@ -4,6 +4,7 @@ import { BottomNav, BottomNavFallback } from "@/components/layout/bottom-nav"
 import { DashboardHeader } from "@/components/layout/dashboard-header"
 import { DashboardHeaderSkeleton } from "@/components/layout/dashboard-header-skeleton"
 import { resolveActiveHousehold } from "@/lib/active-household"
+import { isAdminEmail } from "@/lib/admin"
 import { auth } from "@/lib/auth"
 import { getUserHouseholds } from "@/services/household.service"
 import { getNotifications, getUnreadNotificationCount } from "@/services/notification.service"
@@ -50,6 +51,7 @@ async function DashboardHeaderSection() {
       }}
       notifications={notifications}
       unreadCount={unreadCount}
+      isAdmin={isAdminEmail(session.user.email)}
     />
   )
 }
