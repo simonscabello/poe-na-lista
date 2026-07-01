@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { localDateString } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
+import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
 import type { ShoppingListItemDTO } from "@/types/domain"
 
@@ -52,7 +53,10 @@ export function FinalizePurchaseSheet({
 
   const itemsTotal = useMemo(
     () =>
-      items.reduce((sum, item) => (item.price != null ? sum + item.price * item.quantity : sum), 0),
+      items.reduce(
+        (sum, item) => sum + (computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0),
+        0,
+      ),
     [items],
   )
   const allPriced = items.length > 0 && items.every((item) => item.price != null)

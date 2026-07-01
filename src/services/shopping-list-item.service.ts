@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import type { PriceModeDTO } from "@/types/domain"
 
 export async function getItemListId(itemId: string): Promise<string | null> {
   const item = await prisma.shoppingListItem.findUnique({
@@ -55,8 +56,12 @@ export async function setItemChecked(itemId: string, checked: boolean): Promise<
   await prisma.shoppingListItem.update({ where: { id: itemId }, data: { checked } })
 }
 
-export async function setItemPrice(itemId: string, price: number | null): Promise<void> {
-  await prisma.shoppingListItem.update({ where: { id: itemId }, data: { price } })
+export async function setItemPrice(
+  itemId: string,
+  price: number | null,
+  priceMode: PriceModeDTO,
+): Promise<void> {
+  await prisma.shoppingListItem.update({ where: { id: itemId }, data: { price, priceMode } })
 }
 
 export async function updateItemQuantity(

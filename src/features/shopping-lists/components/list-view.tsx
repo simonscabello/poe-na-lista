@@ -29,8 +29,10 @@ import {
   nextQuantityDown,
   nextQuantityUp,
 } from "@/lib/measure"
+import { computeLineTotal } from "@/lib/pricing"
 import type {
   CategoryDTO,
+  PriceModeDTO,
   ProductDTO,
   ShoppingListDetail,
   ShoppingListItemDTO,
@@ -42,6 +44,7 @@ type OptimisticAction =
   | { type: "remove"; id: string }
   | { type: "setQty"; id: string; quantity: number }
   | { type: "setPrice"; id: string; price: number | null }
+  | { type: "setPriceMode"; id: string; priceMode: PriceModeDTO }
   | { type: "add"; product: ProductDTO; quantity: number; unit: string | null }
 
 function reducer(state: ShoppingListItemDTO[], action: OptimisticAction): ShoppingListItemDTO[] {
@@ -58,6 +61,10 @@ function reducer(state: ShoppingListItemDTO[], action: OptimisticAction): Shoppi
       )
     case "setPrice":
       return state.map((item) => (item.id === action.id ? { ...item, price: action.price } : item))
+    case "setPriceMode":
+      return state.map((item) =>
+        item.id === action.id ? { ...item, priceMode: action.priceMode } : item,
+      )
     case "add": {
       const index = state.findIndex((item) =>
         itemsMatchForMerge(item.productId, item.unit, action.product.id, action.unit),
@@ -81,6 +88,7 @@ function reducer(state: ShoppingListItemDTO[], action: OptimisticAction): Shoppi
           checked: false,
           notes: null,
           price: null,
+          priceMode: "UNIT",
         },
       ]
     }
@@ -112,7 +120,7 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
   const checkedCount = items.filter((item) => item.checked).length
   const allChecked = items.length > 0 && checkedCount === items.length
   const itemsTotal = items.reduce(
-    (sum, item) => (item.price != null ? sum + item.price * item.quantity : sum),
+    (sum, item) => sum + (computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0),
     0,
   )
 
@@ -216,7 +224,25 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
   function changePrice(item: ShoppingListItemDTO, nextPrice: number | null) {
     startTransition(async () => {
       applyOptimistic({ type: "setPrice", id: item.id, price: nextPrice })
-      const result = await updateItemPriceAction(item.id, { price: nextPrice })
+      const result = await updateItemPriceAction(item.id, {
+        price: nextPrice,
+        priceMode: item.priceMode,
+      })
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  function changePriceMode(item: ShoppingListItemDTO, nextPriceMode: PriceModeDTO) {
+    startTransition(async () => {
+      applyOptimistic({ type: "setPriceMode", id: item.id, priceMode: nextPriceMode })
+      const result = await updateItemPriceAction(item.id, {
+        price: item.price,
+        priceMode: nextPriceMode,
+      })
       if (!result.success) {
         toast.error(result.error)
         return
@@ -263,6 +289,7 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
           onRemove={remove}
           onChangeQuantity={changeQuantity}
           onChangePrice={changePrice}
+          onChangePriceMode={changePriceMode}
           readOnly={isCompleted}
         />
 

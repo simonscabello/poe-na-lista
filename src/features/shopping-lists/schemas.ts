@@ -17,6 +17,7 @@ export const addItemSchema = z.object({
 
 export const itemPriceSchema = z.object({
   price: z.coerce.number().min(0, "Preço inválido").max(999999).nullable(),
+  priceMode: z.enum(["UNIT", "TOTAL"]),
 })
 
 export type ShoppingListNameValues = z.infer<typeof shoppingListNameSchema>

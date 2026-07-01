@@ -13,8 +13,9 @@ import {
   nextQuantityDown,
   nextQuantityUp,
 } from "@/lib/measure"
+import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
-import type { ProductDTO, ShoppingListItemDTO } from "@/types/domain"
+import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
 const THRESHOLD = 72
 const MAX_TRAVEL = 100
@@ -26,6 +27,7 @@ type SwipeableItemRowProps = {
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
   onChangePrice: (item: ShoppingListItemDTO, nextPrice: number | null) => void
+  onChangePriceMode: (item: ShoppingListItemDTO, nextPriceMode: PriceModeDTO) => void
 }
 
 export function SwipeableItemRow({
@@ -35,6 +37,7 @@ export function SwipeableItemRow({
   onRemove,
   onChangeQuantity,
   onChangePrice,
+  onChangePriceMode,
 }: SwipeableItemRowProps) {
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -46,6 +49,9 @@ export function SwipeableItemRow({
   const wasChecked = useRef(item.checked)
 
   const measure = getMeasureConfigForItem(product, item.unit)
+  const unitLabel = item.unit || "un"
+  const priceLabel = item.priceMode === "TOTAL" ? "preço total" : measure.pricePlaceholder
+  const lineTotal = computeLineTotal(item.price, item.quantity, item.priceMode)
 
   useEffect(() => {
     setPriceInput(item.price != null ? String(item.price) : "")
@@ -229,7 +235,7 @@ export function SwipeableItemRow({
           )}
         </div>
 
-        <div className="flex items-center gap-2 pl-9">
+        <div className="flex flex-wrap items-center gap-2 pl-9">
           <div className="relative">
             <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 text-xs text-muted-foreground">
               R$
@@ -240,8 +246,8 @@ export function SwipeableItemRow({
               inputMode="decimal"
               step="0.01"
               min={0}
-              placeholder={measure.pricePlaceholder}
-              aria-label={`${measure.pricePlaceholder} de ${item.productName}`}
+              placeholder={priceLabel}
+              aria-label={`${priceLabel} de ${item.productName}`}
               value={priceInput}
               onChange={(event) => setPriceInput(event.target.value)}
               onBlur={commitPrice}
@@ -252,9 +258,42 @@ export function SwipeableItemRow({
               className="h-8 w-28 rounded-lg border border-input bg-background pr-2 pl-8 text-sm tabular-nums outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             />
           </div>
-          {item.price != null && item.price > 0 && (
+
+          <div
+            className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted p-0.5 text-[0.7rem] font-medium"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => onChangePriceMode(item, "UNIT")}
+              aria-pressed={item.priceMode === "UNIT"}
+              className={cn(
+                "rounded-full px-2 py-1 transition-colors",
+                item.priceMode === "UNIT"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              /{unitLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangePriceMode(item, "TOTAL")}
+              aria-pressed={item.priceMode === "TOTAL"}
+              className={cn(
+                "rounded-full px-2 py-1 transition-colors",
+                item.priceMode === "TOTAL"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+            >
+              total
+            </button>
+          </div>
+
+          {item.priceMode === "UNIT" && lineTotal != null && lineTotal > 0 && (
             <span className="text-xs text-muted-foreground tabular-nums">
-              = {formatCurrency(item.price * item.quantity)}
+              = {formatCurrency(lineTotal)}
             </span>
           )}
         </div>

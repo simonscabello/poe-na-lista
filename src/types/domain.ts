@@ -58,6 +58,8 @@ export type ProductDTO = {
   defaultUnit: string | null
 }
 
+export type PriceModeDTO = "UNIT" | "TOTAL"
+
 export type ShoppingListItemDTO = {
   id: string
   productId: string
@@ -68,6 +70,7 @@ export type ShoppingListItemDTO = {
   checked: boolean
   notes: string | null
   price: number | null
+  priceMode: PriceModeDTO
 }
 
 export type ShoppingListStatusDTO = "ACTIVE" | "COMPLETED"

@@ -62,8 +62,8 @@ export async function updateItemQuantityAction(
 export async function updateItemPriceAction(itemId: string, input: unknown): Promise<ActionResult> {
   try {
     const listId = await requireItemAccess(itemId)
-    const { price } = itemPriceSchema.parse(input)
-    await setItemPrice(itemId, price)
+    const { price, priceMode } = itemPriceSchema.parse(input)
+    await setItemPrice(itemId, price, priceMode)
     revalidatePath(`/dashboard/lists/${listId}`)
     return actionOk(undefined)
   } catch (error) {

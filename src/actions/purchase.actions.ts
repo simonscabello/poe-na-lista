@@ -6,6 +6,7 @@ import { parseCalendarDate } from "@/lib/calendar-date"
 import { getActionErrorMessage } from "@/lib/errors"
 import { formatCurrency } from "@/lib/format-currency"
 import { requireHouseholdMember } from "@/lib/permissions"
+import { computeLineTotal } from "@/lib/pricing"
 import { stockPantryItems } from "@/services/pantry.service"
 import { finalizePurchase } from "@/services/purchase.service"
 import { getListDetail, getListHouseholdId } from "@/services/shopping-list.service"
@@ -29,8 +30,8 @@ export async function finalizePurchaseAction(
     }
 
     const items = list.items.map((item) => {
-      const unitPrice = item.price
-      const totalPrice = unitPrice != null ? unitPrice * item.quantity : null
+      const totalPrice = computeLineTotal(item.price, item.quantity, item.priceMode)
+      const unitPrice = item.priceMode === "TOTAL" ? null : item.price
       return {
         productId: item.productId,
         productName: item.productName,
@@ -42,7 +43,7 @@ export async function finalizePurchaseAction(
     })
 
     const itemsTotal = items.reduce((sum, item) => sum + (item.totalPrice ?? 0), 0)
-    const allPriced = items.length > 0 && items.every((item) => item.unitPrice != null)
+    const allPriced = items.length > 0 && items.every((item) => item.totalPrice != null)
 
     let totalAmount: number
     if (allPriced) {

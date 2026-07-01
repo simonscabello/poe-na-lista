@@ -7,8 +7,9 @@ import { SwipeableItemRow } from "@/features/shopping-lists/components/swipeable
 import { hideCheckedItemsAtom } from "@/lib/atoms"
 import { formatCurrency } from "@/lib/format-currency"
 import { formatQuantity } from "@/lib/measure"
+import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
-import type { ProductDTO, ShoppingListItemDTO } from "@/types/domain"
+import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
 type ListItemsProps = {
   items: ShoppingListItemDTO[]
@@ -17,6 +18,7 @@ type ListItemsProps = {
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
   onChangePrice: (item: ShoppingListItemDTO, nextPrice: number | null) => void
+  onChangePriceMode: (item: ShoppingListItemDTO, nextPriceMode: PriceModeDTO) => void
   readOnly?: boolean
 }
 
@@ -27,6 +29,7 @@ export function ListItems({
   onRemove,
   onChangeQuantity,
   onChangePrice,
+  onChangePriceMode,
   readOnly = false,
 }: ListItemsProps) {
   const [hideChecked, setHideChecked] = useAtom(hideCheckedItemsAtom)
@@ -71,6 +74,7 @@ export function ListItems({
               onRemove={onRemove}
               onChangeQuantity={onChangeQuantity}
               onChangePrice={onChangePrice}
+              onChangePriceMode={onChangePriceMode}
             />
           ))
         )}
@@ -102,6 +106,7 @@ export function ListItems({
                   onRemove={onRemove}
                   onChangeQuantity={onChangeQuantity}
                   onChangePrice={onChangePrice}
+                  onChangePriceMode={onChangePriceMode}
                 />
               ))}
             </ul>
@@ -134,7 +139,9 @@ function ReadOnlyItemRow({ item }: { item: ShoppingListItemDTO }) {
       <span className="shrink-0 text-right text-sm text-muted-foreground tabular-nums">
         <span className="block">{formatQuantity(item.quantity, item.unit)}</span>
         {item.price != null && (
-          <span className="block text-xs">{formatCurrency(item.price * item.quantity)}</span>
+          <span className="block text-xs">
+            {formatCurrency(computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0)}
+          </span>
         )}
       </span>
     </li>

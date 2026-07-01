@@ -51,6 +51,7 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
       checked: item.checked,
       notes: item.notes,
       price: item.price != null ? Number(item.price) : null,
+      priceMode: item.priceMode,
     })),
   }
 }
