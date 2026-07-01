@@ -2,6 +2,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Container } from "@/components/layout/container"
+import { BackofficeNav } from "@/features/backoffice/components/backoffice-nav"
 import { isAdminEmail } from "@/lib/admin"
 import { auth } from "@/lib/auth"
 
@@ -33,6 +34,7 @@ export default async function BackofficeLayout({ children }: { children: React.R
           </Link>
         </Container>
       </header>
+      <BackofficeNav />
       <main className="flex-1">{children}</main>
     </>
   )

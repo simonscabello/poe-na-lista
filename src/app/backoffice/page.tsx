@@ -7,15 +7,12 @@ import {
   Users,
   Wallet,
 } from "lucide-react"
-import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { Container } from "@/components/layout/container"
 import { ActivityChart } from "@/features/backoffice/components/activity-chart"
 import { AdminOverviewSkeleton } from "@/features/backoffice/components/admin-overview-skeleton"
 import { AdminStatCard } from "@/features/backoffice/components/admin-stat-card"
 import { UserGrowthChart } from "@/features/backoffice/components/user-growth-chart"
-import { isAdminEmail } from "@/lib/admin"
-import { auth } from "@/lib/auth"
 import { formatCurrency } from "@/lib/format-currency"
 import { getAdminOverview } from "@/services/admin-stats.service"
 
@@ -28,11 +25,6 @@ export default function BackofficePage() {
 }
 
 async function BackofficeContent() {
-  const session = await auth()
-  if (!session?.user || !isAdminEmail(session.user.email)) {
-    redirect("/login?callbackUrl=/backoffice")
-  }
-
   const overview = await getAdminOverview()
 
   return (
@@ -45,7 +37,12 @@ async function BackofficeContent() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <AdminStatCard label="Usuários" value={String(overview.totalUsers)} icon={Users} />
+        <AdminStatCard
+          label="Usuários"
+          value={String(overview.totalUsers)}
+          icon={Users}
+          href="/backoffice/users"
+        />
         <AdminStatCard
           label="Novos (30 dias)"
           value={String(overview.newUsersLast30Days)}

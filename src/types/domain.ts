@@ -220,3 +220,20 @@ export type AdminOverviewDTO = {
   userGrowthSeries: AdminUserGrowthPointDTO[]
   activitySeries: AdminActivityPointDTO[]
 }
+
+export type AdminUserSummaryDTO = {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+  createdAt: string
+  householdCount: number
+  listsCreatedCount: number
+}
+
+export type AdminUsersPageDTO = {
+  users: AdminUserSummaryDTO[]
+  total: number
+  page: number
+  pageSize: number
+}
