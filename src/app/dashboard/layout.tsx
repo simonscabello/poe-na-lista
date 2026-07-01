@@ -6,6 +6,7 @@ import { DashboardHeaderSkeleton } from "@/components/layout/dashboard-header-sk
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
 import { getUserHouseholds } from "@/services/household.service"
+import { getNotifications, getUnreadNotificationCount } from "@/services/notification.service"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,13 @@ async function DashboardHeaderSection() {
   const households = await getUserHouseholds(session.user.id)
   const active = await resolveActiveHousehold(households)
 
+  const [notifications, unreadCount] = active
+    ? await Promise.all([
+        getNotifications(session.user.id, active.id),
+        getUnreadNotificationCount(session.user.id, active.id),
+      ])
+    : [[], 0]
+
   return (
     <DashboardHeader
       households={households}
@@ -40,6 +48,8 @@ async function DashboardHeaderSection() {
         email: session.user.email ?? null,
         image: session.user.image ?? null,
       }}
+      notifications={notifications}
+      unreadCount={unreadCount}
     />
   )
 }

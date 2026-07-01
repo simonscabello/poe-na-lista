@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { shoppingListNameSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
+import { notifyHousehold } from "@/services/notification.service"
 import {
   createShoppingList,
   deleteShoppingList,
@@ -21,6 +22,14 @@ export async function createListAction(
     const { user } = await requireHouseholdMember(householdId)
     const { name } = shoppingListNameSchema.parse(input)
     const id = await createShoppingList(householdId, user.id, name)
+    await notifyHousehold({
+      householdId,
+      excludeUserId: user.id,
+      type: "LIST_CREATED",
+      actorName: user.name ?? "Alguém",
+      entityLabel: name,
+      link: `/dashboard/lists/${id}`,
+    })
     revalidatePath("/dashboard")
     return actionOk({ id })
   } catch (error) {

@@ -35,6 +35,12 @@ enum PriceMode {
   TOTAL
 }
 
+enum NotificationType {
+  LIST_CREATED
+  PURCHASE_FINALIZED
+  MEMBER_JOINED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -51,6 +57,7 @@ model User {
   pantryUpdates    PantryItem[]          @relation("PantryItemUpdater")
   createdShares    ShoppingListShare[]   @relation("ShareCreator")
   createdPurchases Purchase[]            @relation("PurchaseCreator")
+  notifications    Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -105,6 +112,7 @@ model Household {
   shoppingLists ShoppingList[]
   pantryItems   PantryItem[]
   purchases     Purchase[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -321,4 +329,23 @@ model PurchaseItem {
 
   @@index([purchaseId])
   @@index([productId])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  householdId String
+  userId      String
+  type        NotificationType
+  actorName   String
+  entityLabel String?
+  amount      Decimal?         @db.Decimal(10, 2)
+  link        String?
+  readAt      DateTime?
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, householdId, createdAt])
 }

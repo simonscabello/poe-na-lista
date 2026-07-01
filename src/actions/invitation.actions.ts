@@ -5,6 +5,7 @@ import { HouseholdRole } from "@/generated/prisma/enums"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireAuth, requireHouseholdMember } from "@/lib/permissions"
 import { acceptInvitation, createInvitation, revokeInvitation } from "@/services/invitation.service"
+import { notifyHousehold } from "@/services/notification.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
 import type { InvitationDTO } from "@/types/domain"
 
@@ -44,6 +45,13 @@ export async function acceptInvitationAction(
       token,
       userId: user.id,
       userEmail: user.email ?? null,
+    })
+    await notifyHousehold({
+      householdId: result.householdId,
+      excludeUserId: user.id,
+      type: "MEMBER_JOINED",
+      actorName: user.name ?? user.email ?? "Alguém",
+      link: "/dashboard",
     })
     revalidatePath("/dashboard")
     return actionOk(result)

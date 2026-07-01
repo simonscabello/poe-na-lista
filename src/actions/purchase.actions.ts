@@ -7,6 +7,7 @@ import { getActionErrorMessage } from "@/lib/errors"
 import { formatCurrency } from "@/lib/format-currency"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { computeLineTotal } from "@/lib/pricing"
+import { notifyHousehold } from "@/services/notification.service"
 import { stockPantryItems } from "@/services/pantry.service"
 import { finalizePurchase } from "@/services/purchase.service"
 import { getListDetail, getListHouseholdId } from "@/services/shopping-list.service"
@@ -69,6 +70,16 @@ export async function finalizePurchaseAction(
       storeName: values.storeName || null,
       notes: values.notes || null,
       items,
+    })
+
+    await notifyHousehold({
+      householdId,
+      excludeUserId: user.id,
+      type: "PURCHASE_FINALIZED",
+      actorName: user.name ?? "Alguém",
+      entityLabel: list.name,
+      amount: totalAmount,
+      link: `/dashboard/expenses/${result.purchaseId}`,
     })
 
     revalidatePath("/dashboard")

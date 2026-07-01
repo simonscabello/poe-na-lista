@@ -179,3 +179,16 @@ export type ExpenseEstimateDTO = {
   hasItemPricing: boolean
   method: string
 }
+
+export type NotificationTypeDTO = "LIST_CREATED" | "PURCHASE_FINALIZED" | "MEMBER_JOINED"
+
+export type NotificationDTO = {
+  id: string
+  type: NotificationTypeDTO
+  actorName: string
+  entityLabel: string | null
+  amount: number | null
+  link: string | null
+  read: boolean
+  createdAt: string
+}
