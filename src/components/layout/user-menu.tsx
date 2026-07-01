@@ -1,6 +1,7 @@
 "use client"
 
-import { LogOut } from "lucide-react"
+import { LogOut, User } from "lucide-react"
+import Link from "next/link"
 import { signOut } from "next-auth/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,11 @@ export function UserMenu({ name, email, image }: UserMenuProps) {
             {email && <span className="truncate text-xs">{email}</span>}
           </DropdownMenuLabel>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/dashboard/profile" />}>
+          <User className="size-4" />
+          Perfil
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => signOut({ callbackUrl: "/" })}>
           <LogOut className="size-4" />

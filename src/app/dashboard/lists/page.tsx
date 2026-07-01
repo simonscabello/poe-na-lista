@@ -4,9 +4,10 @@ import { Container } from "@/components/layout/container"
 import { CreateListDialog } from "@/features/shopping-lists/components/create-list-dialog"
 import { ListsGrid } from "@/features/shopping-lists/components/lists-grid"
 import { ListsPageSkeleton } from "@/features/shopping-lists/components/lists-page-skeleton"
+import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
-import { getUserHouseholds } from "@/services/household.service"
+import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
 
 export default function ListsPage() {
@@ -30,7 +31,11 @@ async function ListsContent() {
     redirect("/dashboard")
   }
 
-  const lists = await getListsByHousehold(active.id)
+  const canInvite = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
+  const [lists, members] = await Promise.all([
+    getListsByHousehold(active.id),
+    getHouseholdMembers(active.id),
+  ])
 
   return (
     <Container size="wide" className="space-y-6 py-6">
@@ -39,7 +44,7 @@ async function ListsContent() {
         <CreateListDialog householdId={active.id} />
       </div>
 
-      <ListsGrid lists={lists} />
+      <ListsGrid lists={lists} members={members} householdId={active.id} canInvite={canInvite} />
     </Container>
   )
 }

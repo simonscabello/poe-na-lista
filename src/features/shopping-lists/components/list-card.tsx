@@ -6,7 +6,6 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { deleteListAction } from "@/actions/shopping-list.actions"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogClose,
@@ -22,17 +21,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { ShoppingListSummary } from "@/types/domain"
+import { ListCardIllustration } from "@/features/shopping-lists/components/list-card-illustration"
+import { ListCardInviteButton } from "@/features/shopping-lists/components/list-card-invite-button"
+import { ListCardMembers } from "@/features/shopping-lists/components/list-card-members"
+import type { HouseholdMemberDTO, ShoppingListSummary } from "@/types/domain"
 
 type ListCardProps = {
   list: ShoppingListSummary
+  members: HouseholdMemberDTO[]
+  householdId: string
+  canInvite: boolean
 }
 
-export function ListCard({ list }: ListCardProps) {
+export function ListCard({ list, members, householdId, canInvite }: ListCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const progress = list.totalItems > 0 ? Math.round((list.checkedItems / list.totalItems) * 100) : 0
+
+  const pendingItems = list.totalItems - list.checkedItems
+  const allDone = list.totalItems > 0 && pendingItems === 0
 
   function openList() {
     router.push(`/dashboard/lists/${list.id}`)
@@ -51,84 +58,90 @@ export function ListCard({ list }: ListCardProps) {
     })
   }
 
-  const isComplete = list.totalItems > 0 && list.checkedItems === list.totalItems
+  return (
+    <article className="relative flex min-h-36 flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-sm ring-1 ring-primary/30 transition-all duration-[var(--duration-fast)] active:scale-[0.99]">
+      <button
+        type="button"
+        onClick={openList}
+        aria-label={`Abrir lista ${list.name}`}
+        className="absolute inset-0 z-0 rounded-2xl"
+      />
+
+      <ListCardIllustration seed={list.id} />
+
+      <div className="pointer-events-none relative z-[1] flex items-start justify-between gap-2">
+        <h2 className="min-w-0 flex-1 truncate font-heading text-xl font-semibold tracking-tight">
+          {list.name}
+        </h2>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Opções da lista"
+                className="pointer-events-auto -mt-1 -mr-1 rounded-full text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+              >
+                <MoreVertical className="size-4" />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
+              <Trash2 className="size-4" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="pointer-events-none relative z-[1] mt-2">
+        <StatusBadge allDone={allDone} pendingItems={pendingItems} />
+      </div>
+
+      <div className="relative z-[1] mt-4 flex items-center justify-between gap-2">
+        <div className="pointer-events-none">
+          <ListCardMembers members={members} />
+        </div>
+        {canInvite && <ListCardInviteButton householdId={householdId} />}
+      </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir lista</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir "{list.name}"? Essa ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
+            <Button variant="destructive" disabled={isPending} onClick={handleDelete}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </article>
+  )
+}
+
+function StatusBadge({ allDone, pendingItems }: { allDone: boolean; pendingItems: number }) {
+  if (allDone) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
+        <Check className="size-3.5" />
+        Tudo certo
+      </span>
+    )
+  }
 
   return (
-    <Card className="relative transition-all duration-[var(--duration-fast)] hover:bg-muted/40 active:scale-[0.99]">
-      <CardHeader className="flex-row items-start justify-between gap-2">
-        <button
-          type="button"
-          onClick={openList}
-          aria-label={`Abrir lista ${list.name}`}
-          className="min-w-0 flex-1 text-left after:absolute after:inset-0"
-        >
-          <CardTitle className="truncate">{list.name}</CardTitle>
-        </button>
-
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Opções da lista"
-                  className="relative z-10"
-                >
-                  <MoreVertical className="size-4" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
-                <Trash2 className="size-4" />
-                Excluir
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Excluir lista</DialogTitle>
-              <DialogDescription>
-                Tem certeza que deseja excluir "{list.name}"? Essa ação não pode ser desfeita.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
-              <Button variant="destructive" disabled={isPending} onClick={handleDelete}>
-                Excluir
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-
-      <CardContent>
-        <div className="w-full space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="tabular-nums">
-              {list.totalItems === 0
-                ? "Lista vazia"
-                : `${list.checkedItems} de ${list.totalItems} itens`}
-            </span>
-            {isComplete ? (
-              <span className="inline-flex items-center gap-1 font-medium text-primary">
-                <Check className="size-3.5" />
-                Completa
-              </span>
-            ) : (
-              list.totalItems > 0 && <span className="tabular-nums">{progress}%</span>
-            )}
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-[var(--duration-normal)]"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium tabular-nums">
+      {pendingItems === 0
+        ? "Lista vazia"
+        : `${pendingItems} ${pendingItems === 1 ? "item" : "itens"}`}
+    </span>
   )
 }
