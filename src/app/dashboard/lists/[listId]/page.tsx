@@ -4,6 +4,7 @@ import { ListDetailSkeleton } from "@/features/shopping-lists/components/list-de
 import { ListView } from "@/features/shopping-lists/components/list-view"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getActiveShareForList } from "@/services/list-share.service"
 import { getCategories, getFrequentProducts, getProductCatalog } from "@/services/product.service"
 import { getListDetail } from "@/services/shopping-list.service"
 
@@ -41,11 +42,20 @@ async function ListDetailContent({ listId }: { listId: string }) {
     notFound()
   }
 
-  const [catalog, frequent, categories] = await Promise.all([
+  const [catalog, frequent, categories, initialShare] = await Promise.all([
     getProductCatalog(list.householdId),
     getFrequentProducts(list.householdId),
     getCategories(),
+    getActiveShareForList(list.id),
   ])
 
-  return <ListView list={list} catalog={catalog} frequent={frequent} categories={categories} />
+  return (
+    <ListView
+      list={list}
+      catalog={catalog}
+      frequent={frequent}
+      categories={categories}
+      initialShare={initialShare}
+    />
+  )
 }

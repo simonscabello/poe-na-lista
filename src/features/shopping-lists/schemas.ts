@@ -15,5 +15,10 @@ export const addItemSchema = z.object({
   notes: z.string().trim().max(200).optional().or(z.literal("")),
 })
 
+export const itemPriceSchema = z.object({
+  price: z.coerce.number().min(0, "Preço inválido").max(999999).nullable(),
+})
+
 export type ShoppingListNameValues = z.infer<typeof shoppingListNameSchema>
 export type AddItemValues = z.infer<typeof addItemSchema>
+export type ItemPriceValues = z.infer<typeof itemPriceSchema>

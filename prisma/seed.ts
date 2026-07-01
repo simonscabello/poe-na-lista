@@ -3,6 +3,7 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 import { PrismaClient } from "../src/generated/prisma/client.js"
 import { catalog } from "./data/catalog.js"
 import { categories } from "./data/categories.js"
+import { resolveProductMeasure } from "./data/measure.js"
 import { slugify } from "./lib/slugify.js"
 
 const databaseUrl = process.env.DATABASE_URL
@@ -63,6 +64,8 @@ async function seedProducts(categoryIdBySlug: Map<string, string>) {
       throw new Error(`Categoria não encontrada para "${product.name}": ${product.categorySlug}`)
     }
 
+    const { measureKind, defaultUnit } = resolveProductMeasure(product)
+
     // Reconcilia com placeholders legados do seed antigo (slug provisório = id).
     const existing = await prisma.product.findFirst({
       where: { isGlobal: true, OR: [{ slug }, { name: product.name }] },
@@ -72,14 +75,30 @@ async function seedProducts(categoryIdBySlug: Map<string, string>) {
     if (existing) {
       await prisma.product.update({
         where: { id: existing.id },
-        data: { name: product.name, slug, categoryId, active: true, householdId: null },
+        data: {
+          name: product.name,
+          slug,
+          categoryId,
+          active: true,
+          householdId: null,
+          measureKind,
+          defaultUnit,
+        },
       })
       updated += 1
       continue
     }
 
     await prisma.product.create({
-      data: { name: product.name, slug, categoryId, isGlobal: true, active: true },
+      data: {
+        name: product.name,
+        slug,
+        categoryId,
+        isGlobal: true,
+        active: true,
+        measureKind,
+        defaultUnit,
+      },
     })
     created += 1
   }

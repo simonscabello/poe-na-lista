@@ -4,7 +4,7 @@ import type { ShoppingListDetail, ShoppingListSummary } from "@/types/domain"
 export async function getListsByHousehold(householdId: string): Promise<ShoppingListSummary[]> {
   const lists = await prisma.shoppingList.findMany({
     where: { householdId },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     include: {
       items: { select: { checked: true } },
     },
@@ -15,6 +15,7 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
     name: list.name,
     totalItems: list.items.length,
     checkedItems: list.items.filter((item) => item.checked).length,
+    status: list.status,
     updatedAt: list.updatedAt.toISOString(),
   }))
 }
@@ -38,6 +39,8 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
     id: list.id,
     name: list.name,
     householdId: list.householdId,
+    status: list.status,
+    completedAt: list.completedAt?.toISOString() ?? null,
     items: list.items.map((item) => ({
       id: item.id,
       productId: item.productId,
@@ -47,6 +50,7 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
       unit: item.unit,
       checked: item.checked,
       notes: item.notes,
+      price: item.price != null ? Number(item.price) : null,
     })),
   }
 }
@@ -78,4 +82,29 @@ export async function renameShoppingList(listId: string, name: string): Promise<
 
 export async function deleteShoppingList(listId: string): Promise<void> {
   await prisma.shoppingList.delete({ where: { id: listId } })
+}
+
+export async function duplicateShoppingList(listId: string, createdById: string): Promise<string> {
+  const source = await prisma.shoppingList.findUniqueOrThrow({
+    where: { id: listId },
+    include: { items: true },
+  })
+
+  const duplicate = await prisma.shoppingList.create({
+    data: {
+      householdId: source.householdId,
+      createdById,
+      name: `${source.name} (cópia)`,
+      items: {
+        create: source.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unit: item.unit,
+          notes: item.notes,
+        })),
+      },
+    },
+  })
+
+  return duplicate.id
 }

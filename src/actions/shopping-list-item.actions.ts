@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { addItemSchema } from "@/features/shopping-lists/schemas"
+import { addItemSchema, itemPriceSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { getListHouseholdId } from "@/services/shopping-list.service"
@@ -10,6 +10,7 @@ import {
   getItemListId,
   removeShoppingListItem,
   setItemChecked,
+  setItemPrice,
   updateItemQuantity,
 } from "@/services/shopping-list-item.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
@@ -51,6 +52,18 @@ export async function updateItemQuantityAction(
   try {
     const listId = await requireItemAccess(itemId)
     await updateItemQuantity(itemId, quantity, unit ?? null)
+    revalidatePath(`/dashboard/lists/${listId}`)
+    return actionOk(undefined)
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+export async function updateItemPriceAction(itemId: string, input: unknown): Promise<ActionResult> {
+  try {
+    const listId = await requireItemAccess(itemId)
+    const { price } = itemPriceSchema.parse(input)
+    await setItemPrice(itemId, price)
     revalidatePath(`/dashboard/lists/${listId}`)
     return actionOk(undefined)
   } catch (error) {

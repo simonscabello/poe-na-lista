@@ -31,6 +31,7 @@ export type ShoppingListSummary = {
   name: string
   totalItems: number
   checkedItems: number
+  status: ShoppingListStatusDTO
   updatedAt: string
 }
 
@@ -42,6 +43,8 @@ export type CategoryDTO = {
   sortOrder: number
 }
 
+export type MeasureKindDTO = "UNIT" | "WEIGHT" | "VOLUME"
+
 export type ProductDTO = {
   id: string
   name: string
@@ -51,6 +54,8 @@ export type ProductDTO = {
   categoryName: string | null
   categoryIcon: string | null
   categorySortOrder: number | null
+  measureKind: MeasureKindDTO
+  defaultUnit: string | null
 }
 
 export type ShoppingListItemDTO = {
@@ -62,11 +67,112 @@ export type ShoppingListItemDTO = {
   unit: string | null
   checked: boolean
   notes: string | null
+  price: number | null
 }
+
+export type ShoppingListStatusDTO = "ACTIVE" | "COMPLETED"
 
 export type ShoppingListDetail = {
   id: string
   name: string
   householdId: string
+  status: ShoppingListStatusDTO
+  completedAt: string | null
   items: ShoppingListItemDTO[]
+}
+
+export type PantryItemStatus = "available" | "low_stock" | "out" | "expiring_soon"
+
+export type PantryItemDTO = {
+  id: string
+  productId: string
+  productName: string
+  categoryId: string | null
+  categoryName: string | null
+  quantity: number
+  minimumQuantity: number
+  unit: string | null
+  expirationDate: string | null
+  status: PantryItemStatus
+  updatedByName: string | null
+  updatedAt: string
+}
+
+export type ShoppingListShareDTO = {
+  id: string
+  token: string
+  expiresAt: string | null
+  createdAt: string
+}
+
+export type PublicListItemDTO = {
+  productName: string
+  category: string | null
+  quantity: number
+  unit: string | null
+  checked: boolean
+}
+
+export type PublicListDTO = {
+  name: string
+  items: PublicListItemDTO[]
+}
+
+export type PurchaseSummaryDTO = {
+  id: string
+  listName: string | null
+  purchasedAt: string
+  totalAmount: number
+  itemCount: number
+  storeName: string | null
+}
+
+export type PurchaseLineDTO = {
+  id: string
+  productName: string
+  quantity: number
+  unit: string | null
+  unitPrice: number | null
+  totalPrice: number | null
+}
+
+export type PurchaseDetailDTO = {
+  id: string
+  listName: string | null
+  purchasedAt: string
+  totalAmount: number
+  storeName: string | null
+  notes: string | null
+  items: PurchaseLineDTO[]
+}
+
+export type MonthlyExpensePointDTO = {
+  month: string
+  label: string
+  total: number
+}
+
+export type CategoryExpenseDTO = {
+  category: string
+  total: number
+}
+
+export type ExpenseMetricsDTO = {
+  currentMonthTotal: number
+  previousMonthTotal: number
+  percentChange: number | null
+  averageLastPurchases: number
+  monthlyAverage: number
+  purchaseCount: number
+  largestPurchase: number
+  monthlySeries: MonthlyExpensePointDTO[]
+  categoryBreakdown: CategoryExpenseDTO[]
+}
+
+export type ExpenseEstimateDTO = {
+  min: number
+  max: number
+  basedOnPurchases: number
+  hasItemPricing: boolean
+  method: string
 }

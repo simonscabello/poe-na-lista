@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `Product` ADD COLUMN `defaultUnit` VARCHAR(191) NULL,
+    ADD COLUMN `measureKind` ENUM('UNIT', 'WEIGHT', 'VOLUME') NOT NULL DEFAULT 'UNIT';

@@ -12,6 +12,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { ALL_CATEGORIES, productEmoji } from "@/lib/categories"
 import { categoryIcon } from "@/lib/category-icons"
 import { haptic } from "@/lib/haptics"
+import { formatQuantity, getMeasureConfig, isMeasurableProduct } from "@/lib/measure"
 import { cn } from "@/lib/utils"
 import type { CategoryDTO, ProductDTO } from "@/types/domain"
 
@@ -25,6 +26,7 @@ type ProductCatalogSheetProps = {
   /** productId → quantity currently in the list, for the live "in list" badge. */
   inList: Map<string, number>
   onAdd: (product: ProductDTO) => void
+  onAddOne: (product: ProductDTO) => void
   onRemoveOne: (product: ProductDTO) => void
 }
 
@@ -45,12 +47,15 @@ export function ProductCatalogSheet({
   categories,
   inList,
   onAdd,
+  onAddOne,
   onRemoveOne,
 }: ProductCatalogSheetProps) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<string>(ALL_CATEGORIES)
   const [created, setCreated] = useState<ProductDTO[]>([])
   const [isCreating, setIsCreating] = useState(false)
+  const [createMeasureKind, setCreateMeasureKind] = useState<"UNIT" | "WEIGHT" | "VOLUME">("UNIT")
+  const [createUnit, setCreateUnit] = useState("kg")
 
   // Reset transient state each time the sheet opens so it always starts fresh.
   useEffect(() => {
@@ -94,13 +99,6 @@ export function ProductCatalogSheet({
     return frequent.filter((product) => !q || normalize(product.name).includes(q))
   }, [frequent, effectiveCategory, q])
 
-  // Products shown in the frequent strip shouldn't repeat in the grid below it.
-  const frequentIds = useMemo(() => new Set(frequentMatches.map((p) => p.id)), [frequentMatches])
-  const gridProducts = useMemo(
-    () => matches.filter((p) => !frequentIds.has(p.id)),
-    [matches, frequentIds],
-  )
-
   const trimmed = query.trim()
   const hasExactMatch = matches.some((p) => normalize(p.name) === q)
   const showCreate = trimmed.length >= 2 && !hasExactMatch
@@ -114,6 +112,11 @@ export function ProductCatalogSheet({
   function handleAdd(product: ProductDTO) {
     haptic("success")
     onAdd(product)
+  }
+
+  function handleAddOne(product: ProductDTO) {
+    haptic("success")
+    onAddOne(product)
   }
 
   function handleRemove(product: ProductDTO) {
@@ -130,7 +133,11 @@ export function ProductCatalogSheet({
   async function handleCreate() {
     if (isCreating) return
     setIsCreating(true)
-    const result = await createProductAction(householdId, { name: trimmed })
+    const result = await createProductAction(householdId, {
+      name: trimmed,
+      measureKind: createMeasureKind,
+      defaultUnit: createMeasureKind === "UNIT" ? "" : createUnit,
+    })
     setIsCreating(false)
     if (!result.success) {
       toast.error(result.error)
@@ -232,6 +239,7 @@ export function ProductCatalogSheet({
                     product={product}
                     count={inList.get(product.id) ?? 0}
                     onAdd={handleAdd}
+                    onAddOne={handleAddOne}
                     onRemove={handleRemove}
                   />
                 ))}
@@ -240,19 +248,20 @@ export function ProductCatalogSheet({
           )}
 
           {/* Product grid */}
-          {gridProducts.length > 0 && (
+          {matches.length > 0 && (
             <section>
               <SectionTitle>
                 {effectiveCategory === ALL_CATEGORIES ? "Todos os produtos" : activeCategoryName}
               </SectionTitle>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {gridProducts.map((product) => (
+                {matches.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     count={inList.get(product.id) ?? 0}
                     showCategory={effectiveCategory === ALL_CATEGORIES}
                     onAdd={handleAdd}
+                    onAddOne={handleAddOne}
                     onRemove={handleRemove}
                   />
                 ))}
@@ -262,25 +271,63 @@ export function ProductCatalogSheet({
 
           {/* Create-on-the-fly / empty state */}
           {showCreate && (
-            <button
-              type="button"
-              disabled={isCreating}
-              onClick={handleCreate}
-              className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-primary/30 border-dashed bg-primary/5 px-4 py-3.5 text-left transition-colors hover:bg-primary/10 disabled:opacity-60"
-            >
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                <Plus className="size-5" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">Criar "{trimmed}"</span>
-                <span className="block text-xs text-muted-foreground">
-                  Adiciona um novo produto e inclui na lista
+            <div className="mt-3 space-y-3 rounded-2xl border border-primary/30 border-dashed bg-primary/5 p-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                  <Plus className="size-5" />
                 </span>
-              </span>
-            </button>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">Criar "{trimmed}"</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Adiciona um novo produto e inclui na lista
+                  </span>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["UNIT", "Unidade"],
+                    ["WEIGHT", "Peso"],
+                    ["VOLUME", "Volume"],
+                  ] as const
+                ).map(([kind, label]) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => {
+                      setCreateMeasureKind(kind)
+                      if (kind === "WEIGHT") setCreateUnit("kg")
+                      if (kind === "VOLUME") setCreateUnit("L")
+                    }}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                      createMeasureKind === kind
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {createMeasureKind !== "UNIT" && (
+                <Input
+                  value={createUnit}
+                  onChange={(event) => setCreateUnit(event.target.value)}
+                  placeholder={createMeasureKind === "WEIGHT" ? "kg, g..." : "L, ml..."}
+                  aria-label="Unidade padrão"
+                />
+              )}
+
+              <Button type="button" disabled={isCreating} onClick={handleCreate} className="w-full">
+                Criar e adicionar
+              </Button>
+            </div>
           )}
 
-          {gridProducts.length === 0 && frequentMatches.length === 0 && !showCreate && (
+          {matches.length === 0 && frequentMatches.length === 0 && !showCreate && (
             <p className="py-12 text-center text-sm text-muted-foreground">
               Nenhum produto encontrado.
             </p>
@@ -327,14 +374,18 @@ function FrequentPill({
   product,
   count,
   onAdd,
+  onAddOne,
   onRemove,
 }: {
   product: ProductDTO
   count: number
   onAdd: (product: ProductDTO) => void
+  onAddOne: (product: ProductDTO) => void
   onRemove: (product: ProductDTO) => void
 }) {
   const [pulse, triggerPulse] = useAddPulse()
+  const measurable = isMeasurableProduct(product)
+  const config = getMeasureConfig(product)
   function add() {
     triggerPulse()
     onAdd(product)
@@ -367,9 +418,13 @@ function FrequentPill({
         <div className="ml-1.5">
           <QuantityStepper
             count={count}
-            onAdd={add}
+            onAdd={() => onAddOne(product)}
             onRemove={() => onRemove(product)}
             name={product.name}
+            step={measurable ? config.step : 1}
+            formatValue={
+              measurable ? (value) => formatQuantity(value, product.defaultUnit) : undefined
+            }
           />
         </div>
       )}
@@ -382,15 +437,19 @@ function ProductCard({
   count,
   showCategory,
   onAdd,
+  onAddOne,
   onRemove,
 }: {
   product: ProductDTO
   count: number
   showCategory: boolean
   onAdd: (product: ProductDTO) => void
+  onAddOne: (product: ProductDTO) => void
   onRemove: (product: ProductDTO) => void
 }) {
   const [pulse, triggerPulse] = useAddPulse()
+  const measurable = isMeasurableProduct(product)
+  const config = getMeasureConfig(product)
   function add() {
     triggerPulse()
     onAdd(product)
@@ -419,6 +478,7 @@ function ProductCard({
           {showCategory && product.categoryName && (
             <span className="mt-0.5 block truncate text-[0.7rem] text-muted-foreground leading-tight">
               {product.categoryName}
+              {measurable && product.defaultUnit ? ` · ${product.defaultUnit}` : ""}
             </span>
           )}
         </span>
@@ -426,9 +486,13 @@ function ProductCard({
       {count > 0 ? (
         <QuantityStepper
           count={count}
-          onAdd={add}
+          onAdd={() => onAddOne(product)}
           onRemove={() => onRemove(product)}
           name={product.name}
+          step={measurable ? config.step : 1}
+          formatValue={
+            measurable ? (value) => formatQuantity(value, product.defaultUnit) : undefined
+          }
         />
       ) : (
         <button

@@ -1,19 +1,18 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Copy, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import { deleteListAction, renameListAction } from "@/actions/shopping-list.actions"
-import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  deleteListAction,
+  duplicateListAction,
+  renameListAction,
+} from "@/actions/shopping-list.actions"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,9 +36,10 @@ import {
 type ListHeaderProps = {
   listId: string
   name: string
+  onShare?: () => void
 }
 
-export function ListHeader({ listId, name }: ListHeaderProps) {
+export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
   const router = useRouter()
   const [renameOpen, setRenameOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -71,6 +71,18 @@ export function ListHeader({ listId, name }: ListHeaderProps) {
     })
   }
 
+  function handleDuplicate() {
+    startTransition(async () => {
+      const result = await duplicateListAction(listId)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast.success("Lista duplicada")
+      router.push(`/dashboard/lists/${result.data.id}`)
+    })
+  }
+
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -93,9 +105,19 @@ export function ListHeader({ listId, name }: ListHeaderProps) {
             }
           />
           <DropdownMenuContent align="end">
+            {onShare && (
+              <DropdownMenuItem onClick={onShare}>
+                <Share2 className="size-4" />
+                Compartilhar lista
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setRenameOpen(true)}>
               <Pencil className="size-4" />
               Renomear
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={isPending} onClick={handleDuplicate}>
+              <Copy className="size-4" />
+              Duplicar
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" disabled={isPending} onClick={handleDelete}>
               <Trash2 className="size-4" />

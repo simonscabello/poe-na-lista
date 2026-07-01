@@ -1,14 +1,14 @@
 "use client"
 
-import { Home, ListChecks, User, Users } from "lucide-react"
+import { ListChecks, Package, Receipt, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const items = [
-  { href: "/dashboard", label: "Início", icon: Home, exact: true },
   { href: "/dashboard/lists", label: "Listas", icon: ListChecks, exact: false },
-  { href: "/dashboard/household", label: "Grupo", icon: Users, exact: false },
+  { href: "/dashboard/pantry", label: "Despensa", icon: Package, exact: false },
+  { href: "/dashboard/expenses", label: "Gastos", icon: Receipt, exact: false },
   { href: "/dashboard/profile", label: "Perfil", icon: User, exact: false },
 ]
 

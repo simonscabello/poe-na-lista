@@ -19,6 +19,8 @@ export async function createProductAction(
       createdById: user.id,
       name: values.name,
       categoryId: values.categoryId || null,
+      measureKind: values.measureKind,
+      defaultUnit: values.defaultUnit || null,
     })
     return actionOk(product)
   } catch (error) {

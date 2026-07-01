@@ -1,21 +1,34 @@
 "use client"
 
 import { useAtom } from "jotai"
-import { ChevronDown, ListChecks } from "lucide-react"
+import { Check, ChevronDown, ListChecks } from "lucide-react"
 import { EmptyState } from "@/components/common/empty-state"
 import { SwipeableItemRow } from "@/features/shopping-lists/components/swipeable-item-row"
 import { hideCheckedItemsAtom } from "@/lib/atoms"
+import { formatCurrency } from "@/lib/format-currency"
+import { formatQuantity } from "@/lib/measure"
 import { cn } from "@/lib/utils"
-import type { ShoppingListItemDTO } from "@/types/domain"
+import type { ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
 type ListItemsProps = {
   items: ShoppingListItemDTO[]
+  productsById: Map<string, ProductDTO>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
+  onChangePrice: (item: ShoppingListItemDTO, nextPrice: number | null) => void
+  readOnly?: boolean
 }
 
-export function ListItems({ items, onToggle, onRemove, onChangeQuantity }: ListItemsProps) {
+export function ListItems({
+  items,
+  productsById,
+  onToggle,
+  onRemove,
+  onChangeQuantity,
+  onChangePrice,
+  readOnly = false,
+}: ListItemsProps) {
   const [hideChecked, setHideChecked] = useAtom(hideCheckedItemsAtom)
 
   const pending = items.filter((item) => !item.checked)
@@ -26,8 +39,20 @@ export function ListItems({ items, onToggle, onRemove, onChangeQuantity }: ListI
       <EmptyState
         icon={ListChecks}
         title="Lista vazia"
-        description="Adicione produtos usando a barra abaixo."
+        description={
+          readOnly ? "Esta lista não tem itens." : "Adicione produtos usando a barra abaixo."
+        }
       />
+    )
+  }
+
+  if (readOnly) {
+    return (
+      <ul className="overflow-hidden rounded-2xl bg-card ring-1 ring-border/70">
+        {[...pending, ...checked].map((item) => (
+          <ReadOnlyItemRow key={item.id} item={item} />
+        ))}
+      </ul>
     )
   }
 
@@ -41,9 +66,11 @@ export function ListItems({ items, onToggle, onRemove, onChangeQuantity }: ListI
             <SwipeableItemRow
               key={item.id}
               item={item}
+              product={productsById.get(item.productId)}
               onToggle={onToggle}
               onRemove={onRemove}
               onChangeQuantity={onChangeQuantity}
+              onChangePrice={onChangePrice}
             />
           ))
         )}
@@ -70,9 +97,11 @@ export function ListItems({ items, onToggle, onRemove, onChangeQuantity }: ListI
                 <SwipeableItemRow
                   key={item.id}
                   item={item}
+                  product={productsById.get(item.productId)}
                   onToggle={onToggle}
                   onRemove={onRemove}
                   onChangeQuantity={onChangeQuantity}
+                  onChangePrice={onChangePrice}
                 />
               ))}
             </ul>
@@ -80,5 +109,34 @@ export function ListItems({ items, onToggle, onRemove, onChangeQuantity }: ListI
         </div>
       )}
     </div>
+  )
+}
+
+function ReadOnlyItemRow({ item }: { item: ShoppingListItemDTO }) {
+  return (
+    <li className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0">
+      <span
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center rounded-full ring-1",
+          item.checked ? "bg-primary text-primary-foreground ring-primary" : "ring-border",
+        )}
+      >
+        {item.checked && <Check className="size-3.5" />}
+      </span>
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-[0.95rem]",
+          item.checked && "text-muted-foreground line-through",
+        )}
+      >
+        {item.productName}
+      </span>
+      <span className="shrink-0 text-right text-sm text-muted-foreground tabular-nums">
+        <span className="block">{formatQuantity(item.quantity, item.unit)}</span>
+        {item.price != null && (
+          <span className="block text-xs">{formatCurrency(item.price * item.quantity)}</span>
+        )}
+      </span>
+    </li>
   )
 }

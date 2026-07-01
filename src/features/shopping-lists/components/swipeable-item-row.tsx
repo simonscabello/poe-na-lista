@@ -1,37 +1,75 @@
 "use client"
 
 import { Check, RotateCcw, Trash2 } from "lucide-react"
-import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { formatCurrency } from "@/lib/format-currency"
 import { haptic } from "@/lib/haptics"
+import {
+  formatQuantity,
+  getMeasureConfigForItem,
+  nextQuantityDown,
+  nextQuantityUp,
+} from "@/lib/measure"
 import { cn } from "@/lib/utils"
-import type { ShoppingListItemDTO } from "@/types/domain"
+import type { ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
-const THRESHOLD = 72 // distance (px) needed to commit a swipe action
-const MAX_TRAVEL = 100 // visual clamp so the row never slides fully off
+const THRESHOLD = 72
+const MAX_TRAVEL = 100
 
 type SwipeableItemRowProps = {
   item: ShoppingListItemDTO
+  product?: ProductDTO
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
+  onChangePrice: (item: ShoppingListItemDTO, nextPrice: number | null) => void
 }
 
 export function SwipeableItemRow({
   item,
+  product,
   onToggle,
   onRemove,
   onChangeQuantity,
+  onChangePrice,
 }: SwipeableItemRowProps) {
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
   const gesture = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null)
   const crossed = useRef(false)
 
+  const [priceInput, setPriceInput] = useState(item.price != null ? String(item.price) : "")
+  const priceRef = useRef<HTMLInputElement>(null)
+  const wasChecked = useRef(item.checked)
+
+  const measure = getMeasureConfigForItem(product, item.unit)
+
+  useEffect(() => {
+    setPriceInput(item.price != null ? String(item.price) : "")
+  }, [item.price])
+
+  useEffect(() => {
+    if (item.checked && !wasChecked.current) {
+      priceRef.current?.focus()
+    }
+    wasChecked.current = item.checked
+  }, [item.checked])
+
+  function commitPrice() {
+    const trimmed = priceInput.trim().replace(",", ".")
+    const next = trimmed === "" ? null : Number(trimmed)
+    if (next != null && (Number.isNaN(next) || next < 0)) {
+      setPriceInput(item.price != null ? String(item.price) : "")
+      return
+    }
+    if (next === item.price) return
+    onChangePrice(item, next)
+  }
+
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    // Swipe is a touch/pen enhancement; mouse users rely on the visible buttons.
     if (event.pointerType === "mouse") return
     gesture.current = { x: event.clientX, y: event.clientY, axis: null }
     setDragging(true)
@@ -84,9 +122,21 @@ export function SwipeableItemRow({
     }
   }
 
+  function decrementQuantity() {
+    const next = nextQuantityDown(item.quantity, measure.step, measure.minQuantity)
+    if (next == null) {
+      onRemove(item.id)
+      return
+    }
+    onChangeQuantity(item, next)
+  }
+
+  function incrementQuantity() {
+    onChangeQuantity(item, nextQuantityUp(item.quantity, measure.step))
+  }
+
   return (
     <li className="relative overflow-hidden border-b last:border-b-0">
-      {/* Action hints revealed beneath the row as it slides */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 flex items-center justify-between px-6"
@@ -109,10 +159,9 @@ export function SwipeableItemRow({
         </span>
       </div>
 
-      {/* Foreground: opaque so it hides the action hints at rest */}
       <div
         className={cn(
-          "relative flex touch-pan-y items-center gap-3 bg-card px-3 py-3",
+          "relative flex touch-pan-y flex-col gap-2 bg-card px-3 py-3",
           !dragging && "transition-transform duration-200 ease-out",
         )}
         style={{ transform: `translate3d(${dx}px, 0, 0)` }}
@@ -121,63 +170,95 @@ export function SwipeableItemRow({
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
       >
-        <Checkbox
-          checked={item.checked}
-          onCheckedChange={() => onToggle(item)}
-          className="size-6 rounded-full"
-          aria-label={item.checked ? `Desmarcar ${item.productName}` : `Marcar ${item.productName}`}
-        />
-        <button
-          type="button"
-          className="min-w-0 flex-1 py-1 text-left"
-          onClick={() => onToggle(item)}
-        >
-          <span
-            className={cn(
-              "block truncate text-[0.95rem] transition-colors duration-200",
-              item.checked && "text-muted-foreground line-through decoration-muted-foreground/50",
-            )}
+        <div className="flex items-center gap-3">
+          <Checkbox
+            checked={item.checked}
+            onCheckedChange={() => onToggle(item)}
+            className="size-6 rounded-full"
+            aria-label={
+              item.checked ? `Desmarcar ${item.productName}` : `Marcar ${item.productName}`
+            }
+          />
+          <button
+            type="button"
+            className="min-w-0 flex-1 py-1 text-left"
+            onClick={() => onToggle(item)}
           >
-            {item.productName}
-          </span>
-          {(item.unit || item.category) && (
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {item.unit ? item.unit : ""}
-              {item.unit && item.category ? " · " : ""}
-              {item.category ?? ""}
+            <span
+              className={cn(
+                "block truncate text-[0.95rem] transition-colors duration-200",
+                item.checked && "text-muted-foreground line-through decoration-muted-foreground/50",
+              )}
+            >
+              {item.productName}
+            </span>
+            {(item.unit || item.category) && (
+              <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                {item.unit ? item.unit : ""}
+                {item.unit && item.category ? " · " : ""}
+                {item.category ?? ""}
+              </span>
+            )}
+          </button>
+
+          {item.checked ? (
+            <>
+              <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+                {formatQuantity(item.quantity, item.unit)}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Remover ${item.productName}`}
+                onClick={() => onRemove(item.id)}
+                className="text-muted-foreground transition-colors hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </>
+          ) : (
+            <QuantityStepper
+              count={item.quantity}
+              name={item.productName}
+              size="md"
+              step={measure.step}
+              formatValue={(value) => formatQuantity(value, item.unit)}
+              onAdd={incrementQuantity}
+              onRemove={decrementQuantity}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 pl-9">
+          <div className="relative">
+            <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 text-xs text-muted-foreground">
+              R$
+            </span>
+            <input
+              ref={priceRef}
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min={0}
+              placeholder={measure.pricePlaceholder}
+              aria-label={`${measure.pricePlaceholder} de ${item.productName}`}
+              value={priceInput}
+              onChange={(event) => setPriceInput(event.target.value)}
+              onBlur={commitPrice}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur()
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="h-8 w-28 rounded-lg border border-input bg-background pr-2 pl-8 text-sm tabular-nums outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            />
+          </div>
+          {item.price != null && item.price > 0 && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              = {formatCurrency(item.price * item.quantity)}
             </span>
           )}
-        </button>
-
-        {item.checked ? (
-          <>
-            <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
-              {formatQuantity(item.quantity)}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Remover ${item.productName}`}
-              onClick={() => onRemove(item.id)}
-              className="text-muted-foreground transition-colors hover:text-destructive"
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </>
-        ) : (
-          <QuantityStepper
-            count={item.quantity}
-            name={item.productName}
-            size="md"
-            onAdd={() => onChangeQuantity(item, item.quantity + 1)}
-            onRemove={() => onChangeQuantity(item, item.quantity - 1)}
-          />
-        )}
+        </div>
       </div>
     </li>
   )
-}
-
-function formatQuantity(quantity: number): string {
-  return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(2)
 }

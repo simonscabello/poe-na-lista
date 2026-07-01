@@ -55,6 +55,10 @@ export async function setItemChecked(itemId: string, checked: boolean): Promise<
   await prisma.shoppingListItem.update({ where: { id: itemId }, data: { checked } })
 }
 
+export async function setItemPrice(itemId: string, price: number | null): Promise<void> {
+  await prisma.shoppingListItem.update({ where: { id: itemId }, data: { price } })
+}
+
 export async function updateItemQuantity(
   itemId: string,
   quantity: number,

@@ -1,10 +1,10 @@
 "use client"
 
-import { Check, MoreVertical, Trash2 } from "lucide-react"
+import { Check, Copy, MoreVertical, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import { deleteListAction } from "@/actions/shopping-list.actions"
+import { deleteListAction, duplicateListAction } from "@/actions/shopping-list.actions"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -24,6 +24,7 @@ import {
 import { ListCardIllustration } from "@/features/shopping-lists/components/list-card-illustration"
 import { ListCardInviteButton } from "@/features/shopping-lists/components/list-card-invite-button"
 import { ListCardMembers } from "@/features/shopping-lists/components/list-card-members"
+import { cn } from "@/lib/utils"
 import type { HouseholdMemberDTO, ShoppingListSummary } from "@/types/domain"
 
 type ListCardProps = {
@@ -40,6 +41,7 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
 
   const pendingItems = list.totalItems - list.checkedItems
   const allDone = list.totalItems > 0 && pendingItems === 0
+  const isCompleted = list.status === "COMPLETED"
 
   function openList() {
     router.push(`/dashboard/lists/${list.id}`)
@@ -58,8 +60,27 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
     })
   }
 
+  function handleDuplicate() {
+    startTransition(async () => {
+      const result = await duplicateListAction(list.id)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast.success("Lista duplicada")
+      router.push(`/dashboard/lists/${result.data.id}`)
+    })
+  }
+
   return (
-    <article className="relative flex min-h-36 flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-sm ring-1 ring-primary/30 transition-all duration-[var(--duration-fast)] active:scale-[0.99]">
+    <article
+      className={cn(
+        "relative flex min-h-36 flex-col justify-between overflow-hidden rounded-2xl p-5 shadow-sm ring-1 transition-all duration-[var(--duration-fast)] active:scale-[0.99]",
+        isCompleted
+          ? "bg-gradient-to-br from-muted-foreground to-muted-foreground/80 text-primary-foreground ring-muted-foreground/30"
+          : "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground ring-primary/30",
+      )}
+    >
       <button
         type="button"
         onClick={openList}
@@ -88,6 +109,10 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
             }
           />
           <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={isPending} onClick={handleDuplicate}>
+              <Copy className="size-4" />
+              Duplicar
+            </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
               <Trash2 className="size-4" />
               Excluir
@@ -97,7 +122,7 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
       </div>
 
       <div className="pointer-events-none relative z-[1] mt-2">
-        <StatusBadge allDone={allDone} pendingItems={pendingItems} />
+        <StatusBadge allDone={allDone} pendingItems={pendingItems} isCompleted={isCompleted} />
       </div>
 
       <div className="relative z-[1] mt-4 flex items-center justify-between gap-2">
@@ -127,7 +152,24 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
   )
 }
 
-function StatusBadge({ allDone, pendingItems }: { allDone: boolean; pendingItems: number }) {
+function StatusBadge({
+  allDone,
+  pendingItems,
+  isCompleted,
+}: {
+  allDone: boolean
+  pendingItems: number
+  isCompleted: boolean
+}) {
+  if (isCompleted) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
+        <Check className="size-3.5" />
+        Finalizada
+      </span>
+    )
+  }
+
   if (allDone) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">

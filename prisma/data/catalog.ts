@@ -1,7 +1,6 @@
-export type ProductSeed = {
-  name: string
-  categorySlug: string
-}
+import type { ProductSeed } from "./measure.js"
+
+export type { ProductSeed } from "./measure.js"
 
 /**
  * Catálogo global oficial. Nomes padronizados (Title Case, acentuação correta) e

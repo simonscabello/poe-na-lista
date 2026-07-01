@@ -7,6 +7,7 @@ import { requireHouseholdMember } from "@/lib/permissions"
 import {
   createShoppingList,
   deleteShoppingList,
+  duplicateShoppingList,
   getListHouseholdId,
   renameShoppingList,
 } from "@/services/shopping-list.service"
@@ -46,6 +47,21 @@ export async function deleteListAction(listId: string): Promise<ActionResult> {
     await deleteShoppingList(listId)
     revalidatePath("/dashboard")
     return actionOk(undefined)
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+export async function duplicateListAction(listId: string): Promise<ActionResult<{ id: string }>> {
+  try {
+    const householdId = await getListHouseholdId(listId)
+    if (!householdId) {
+      throw new Error("Lista não encontrada")
+    }
+    const { user } = await requireHouseholdMember(householdId)
+    const id = await duplicateShoppingList(listId, user.id)
+    revalidatePath("/dashboard")
+    return actionOk({ id })
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

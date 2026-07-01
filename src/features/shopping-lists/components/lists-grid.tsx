@@ -1,3 +1,7 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import { CreateListDialog } from "@/features/shopping-lists/components/create-list-dialog"
 import { ListCard } from "@/features/shopping-lists/components/list-card"
 import type { HouseholdMemberDTO, ShoppingListSummary } from "@/types/domain"
@@ -9,14 +13,21 @@ type ListsGridProps = {
   canInvite: boolean
 }
 
+const PAGE_SIZE = 5
+
 export function ListsGrid({ lists, members, householdId, canInvite }: ListsGridProps) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
   if (lists.length === 0) {
     return <ListsEmptyState householdId={householdId} />
   }
 
+  const visibleLists = lists.slice(0, visibleCount)
+  const hasMore = visibleCount < lists.length
+
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
-      {lists.map((list) => (
+      {visibleLists.map((list) => (
         <ListCard
           key={list.id}
           list={list}
@@ -25,6 +36,16 @@ export function ListsGrid({ lists, members, householdId, canInvite }: ListsGridP
           canInvite={canInvite}
         />
       ))}
+
+      {hasMore && (
+        <Button
+          variant="outline"
+          className="mt-2"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+        >
+          Carregar mais
+        </Button>
+      )}
     </div>
   )
 }

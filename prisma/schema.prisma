@@ -19,6 +19,17 @@ enum InvitationStatus {
   EXPIRED
 }
 
+enum ShoppingListStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum MeasureKind {
+  UNIT
+  WEIGHT
+  VOLUME
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -32,6 +43,9 @@ model User {
   createdProducts  Product[]             @relation("ProductCreator")
   createdLists     ShoppingList[]        @relation("ListCreator")
   sentInvitations  HouseholdInvitation[] @relation("InvitationSender")
+  pantryUpdates    PantryItem[]          @relation("PantryItemUpdater")
+  createdShares    ShoppingListShare[]   @relation("ShareCreator")
+  createdPurchases Purchase[]            @relation("PurchaseCreator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,6 +98,8 @@ model Household {
   invitations   HouseholdInvitation[]
   products      Product[]
   shoppingLists ShoppingList[]
+  pantryItems   PantryItem[]
+  purchases     Purchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -154,11 +170,15 @@ model Product {
   barcode     String?
   imageUrl    String?
   brand       String?
+  measureKind MeasureKind @default(UNIT)
+  defaultUnit String?
 
-  category  Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  household Household?         @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  createdBy User?              @relation("ProductCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  items     ShoppingListItem[]
+  category      Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  household     Household?         @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  createdBy     User?              @relation("ProductCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  items         ShoppingListItem[]
+  pantryItems   PantryItem[]
+  purchaseItems PurchaseItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -172,30 +192,36 @@ model Product {
 }
 
 model ShoppingList {
-  id          String @id @default(cuid())
+  id          String             @id @default(cuid())
   name        String
   householdId String
   createdById String
+  status      ShoppingListStatus @default(ACTIVE)
+  completedAt DateTime?
 
-  household Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  createdBy User               @relation("ListCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  household Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  createdBy User                @relation("ListCreator", fields: [createdById], references: [id], onDelete: Cascade)
   items     ShoppingListItem[]
+  shares    ShoppingListShare[]
+  purchases Purchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([householdId])
   @@index([createdById])
+  @@index([householdId, status])
 }
 
 model ShoppingListItem {
-  id             String  @id @default(cuid())
+  id             String   @id @default(cuid())
   shoppingListId String
   productId      String
-  quantity       Decimal @default(1) @db.Decimal(10, 2)
+  quantity       Decimal  @default(1) @db.Decimal(10, 2)
   unit           String?
-  checked        Boolean @default(false)
+  checked        Boolean  @default(false)
   notes          String?
+  price          Decimal? @db.Decimal(10, 2)
 
   shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   product      Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -204,5 +230,89 @@ model ShoppingListItem {
   updatedAt DateTime @updatedAt
 
   @@index([shoppingListId])
+  @@index([productId])
+}
+
+model PantryItem {
+  id              String    @id @default(cuid())
+  householdId     String
+  productId       String
+  quantity        Decimal   @default(0) @db.Decimal(10, 2)
+  minimumQuantity Decimal   @default(1) @db.Decimal(10, 2)
+  unit            String?
+  expirationDate  DateTime?
+  updatedById     String?
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  updatedBy User?     @relation("PantryItemUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([householdId, productId])
+  @@index([householdId])
+  @@index([productId])
+  @@index([updatedById])
+}
+
+model ShoppingListShare {
+  id             String    @id @default(cuid())
+  shoppingListId String
+  token          String    @unique
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdById    String
+
+  shoppingList ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("ShareCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shoppingListId])
+  @@index([createdById])
+}
+
+model Purchase {
+  id             String   @id @default(cuid())
+  householdId    String
+  shoppingListId String?
+  totalAmount    Decimal  @db.Decimal(10, 2)
+  purchasedAt    DateTime
+  storeName      String?
+  notes          String?
+  createdById    String
+
+  household    Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  shoppingList ShoppingList?  @relation(fields: [shoppingListId], references: [id], onDelete: SetNull)
+  createdBy    User           @relation("PurchaseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  items        PurchaseItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([householdId, purchasedAt])
+  @@index([shoppingListId])
+  @@index([createdById])
+}
+
+model PurchaseItem {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  productId   String?
+  productName String
+  quantity    Decimal  @default(1) @db.Decimal(10, 2)
+  unit        String?
+  unitPrice   Decimal? @db.Decimal(10, 2)
+  totalPrice  Decimal? @db.Decimal(10, 2)
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([purchaseId])
   @@index([productId])
 }

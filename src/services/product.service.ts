@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client"
+import type { MeasureKind } from "@/generated/prisma/enums"
 import { prisma } from "@/lib/prisma"
 import type { CategoryDTO, ProductDTO } from "@/types/domain"
 
@@ -16,6 +17,8 @@ function toProductDTO(product: ProductWithCategory): ProductDTO {
     categoryName: product.category?.name ?? null,
     categoryIcon: product.category?.icon ?? null,
     categorySortOrder: product.category?.sortOrder ?? null,
+    measureKind: product.measureKind as ProductDTO["measureKind"],
+    defaultUnit: product.defaultUnit,
   }
 }
 
@@ -97,7 +100,13 @@ export async function createHouseholdProduct(input: {
   createdById: string
   name: string
   categoryId?: string | null
+  measureKind?: MeasureKind
+  defaultUnit?: string | null
 }): Promise<ProductDTO> {
+  const measureKind = input.measureKind ?? "UNIT"
+  const defaultUnit =
+    measureKind === "UNIT" ? null : input.defaultUnit?.trim() || defaultUnitFor(measureKind)
+
   const product = await prisma.product.create({
     data: {
       householdId: input.householdId,
@@ -106,9 +115,17 @@ export async function createHouseholdProduct(input: {
       slug: slugify(input.name),
       categoryId: input.categoryId ?? null,
       isGlobal: false,
+      measureKind,
+      defaultUnit,
     },
     include: { category: true },
   })
 
   return toProductDTO(product)
+}
+
+function defaultUnitFor(measureKind: MeasureKind): string | null {
+  if (measureKind === "WEIGHT") return "kg"
+  if (measureKind === "VOLUME") return "L"
+  return null
 }

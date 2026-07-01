@@ -15,6 +15,7 @@ type AddProductsBarProps = {
   /** productId → quantity currently in the list, for live badges in the sheet. */
   inList: Map<string, number>
   onAdd: (product: ProductDTO) => void
+  onAddOne: (product: ProductDTO) => void
   onRemoveOne: (product: ProductDTO) => void
 }
 
@@ -25,6 +26,7 @@ export function AddProductsBar({
   categories,
   inList,
   onAdd,
+  onAddOne,
   onRemoveOne,
 }: AddProductsBarProps) {
   const [open, setOpen] = useState(false)
@@ -60,6 +62,7 @@ export function AddProductsBar({
         categories={categories}
         inList={inList}
         onAdd={onAdd}
+        onAddOne={onAddOne}
         onRemoveOne={onRemoveOne}
       />
     </>
