@@ -83,7 +83,7 @@ export function CreateListDialog({ householdId }: CreateListDialogProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+            <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
               Criar lista
             </Button>
           </form>

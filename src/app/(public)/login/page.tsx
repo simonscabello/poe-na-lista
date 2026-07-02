@@ -2,7 +2,6 @@ import { Suspense } from "react"
 import { AppLogo } from "@/components/common/app-logo"
 import { LinkButton } from "@/components/common/link-button"
 import { Container } from "@/components/layout/container"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { auth, signIn } from "@/lib/auth"
+import { GoogleSignInButton } from "./google-sign-in-button"
 
 type LoginPageProps = {
   searchParams: Promise<{ callbackUrl?: string }>
@@ -69,9 +69,7 @@ async function LoginContent({ searchParams }: LoginPageProps) {
               await signIn("google", { redirectTo: callbackUrl ?? "/dashboard" })
             }}
           >
-            <Button type="submit" className="w-full">
-              Entrar com Google
-            </Button>
+            <GoogleSignInButton />
           </form>
         </CardFooter>
       </Card>

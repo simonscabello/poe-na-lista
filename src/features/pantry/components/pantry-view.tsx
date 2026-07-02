@@ -217,7 +217,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-9 shrink-0 items-center rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors active:translate-y-px",
+        "flex h-9 shrink-0 items-center rounded-full px-4 text-sm font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px",
         active
           ? "bg-primary text-primary-foreground"
           : "bg-secondary text-secondary-foreground hover:bg-secondary/70",

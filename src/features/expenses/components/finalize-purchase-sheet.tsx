@@ -228,7 +228,12 @@ export function FinalizePurchaseSheet({
                 />
               </div>
 
-              <Button onClick={finalize} disabled={isPending || !canRegister} className="w-full">
+              <Button
+                onClick={finalize}
+                loading={isPending}
+                disabled={!canRegister}
+                className="w-full"
+              >
                 Registrar compra
               </Button>
             </>
@@ -280,7 +285,7 @@ export function FinalizePurchaseSheet({
                 })}
               </div>
               <div className="flex flex-col gap-2">
-                <Button onClick={updatePantry} disabled={isPending}>
+                <Button onClick={updatePantry} loading={isPending}>
                   <Package className="size-4" />
                   Atualizar despensa
                 </Button>

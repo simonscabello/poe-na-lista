@@ -145,7 +145,7 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+              <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
                 Salvar
               </Button>
             </form>
