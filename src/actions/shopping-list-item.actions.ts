@@ -25,6 +25,7 @@ export async function addItemAction(listId: string, input: unknown): Promise<Act
       quantity: values.quantity,
       unit: values.unit || null,
       notes: values.notes || null,
+      priceMode: values.priceMode,
     })
     revalidatePath(`/dashboard/lists/${listId}`)
     return actionOk(undefined)

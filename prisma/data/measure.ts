@@ -94,11 +94,13 @@ const MERCEARIA_UNIT_LIQUIDS = new Set([
 export function resolveProductMeasure(product: ProductSeed): {
   measureKind: MeasureKindSeed
   defaultUnit: string | null
+  pricedByWeight: boolean
 } {
   if (product.measureKind) {
     return {
       measureKind: product.measureKind,
       defaultUnit: product.defaultUnit ?? defaultUnitFor(product.measureKind),
+      pricedByWeight: false,
     }
   }
 
@@ -106,42 +108,44 @@ export function resolveProductMeasure(product: ProductSeed): {
 
   if (categorySlug === "acougue") {
     if (ACOURGUE_UNIT.has(name)) {
-      return { measureKind: "UNIT", defaultUnit: null }
+      return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
     }
     if (ACOURGUE_WEIGHT_DEFAULT) {
-      return { measureKind: "WEIGHT", defaultUnit: "kg" }
+      // Açougue: a pessoa já pensa em kg ao planejar (ex: "1kg de carne moída").
+      return { measureKind: "WEIGHT", defaultUnit: "kg", pricedByWeight: false }
     }
   }
 
   if (categorySlug === "hortifruti") {
     if (HORTIFRUTI_UNIT.has(name)) {
-      return { measureKind: "UNIT", defaultUnit: null }
+      return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
     }
     if (HORTIFRUTI_WEIGHT.has(name)) {
-      return { measureKind: "WEIGHT", defaultUnit: "kg" }
+      // Comprado contando unidades (ex: "3 cebolas"), preço real só na balança do caixa.
+      return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: true }
     }
-    return { measureKind: "UNIT", defaultUnit: null }
+    return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
   }
 
   if (categorySlug === "laticinios") {
     if (LATICINIOS_VOLUME.has(name)) {
-      return { measureKind: "VOLUME", defaultUnit: "L" }
+      return { measureKind: "VOLUME", defaultUnit: "L", pricedByWeight: false }
     }
     // Leite (caixa), creme de leite (lata), iogurte, queijo (pacote), etc.
-    return { measureKind: "UNIT", defaultUnit: null }
+    return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
   }
 
   if (categorySlug === "bebidas") {
     // Garrafa, lata, caixa — sempre unidade na lista de compras.
-    return { measureKind: "UNIT", defaultUnit: null }
+    return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
   }
 
   if (categorySlug === "mercearia" && MERCEARIA_UNIT_LIQUIDS.has(name)) {
-    return { measureKind: "UNIT", defaultUnit: null }
+    return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
   }
 
   // Demais categorias: pacotes, caixas, unidades.
-  return { measureKind: "UNIT", defaultUnit: null }
+  return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
 }
 
 function defaultUnitFor(kind: MeasureKindSeed): string | null {

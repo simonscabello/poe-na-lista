@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-const measureKindSchema = z.enum(["UNIT", "WEIGHT", "VOLUME"])
+const measureKindSchema = z.enum(["UNIT", "WEIGHT"])
 
 export const createProductSchema = z
   .object({
@@ -12,6 +12,7 @@ export const createProductSchema = z
     categoryId: z.string().trim().min(1).optional().or(z.literal("")),
     measureKind: measureKindSchema.default("UNIT"),
     defaultUnit: z.string().trim().max(20).optional().or(z.literal("")),
+    pricedByWeight: z.boolean().default(false),
   })
   .superRefine((values, ctx) => {
     if (values.measureKind === "UNIT") return

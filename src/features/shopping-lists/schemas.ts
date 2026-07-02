@@ -13,6 +13,7 @@ export const addItemSchema = z.object({
   quantity: z.coerce.number().positive("Quantidade deve ser maior que zero").max(9999),
   unit: z.string().trim().max(20).optional().or(z.literal("")),
   notes: z.string().trim().max(200).optional().or(z.literal("")),
+  priceMode: z.enum(["UNIT", "TOTAL"]).optional(),
 })
 
 export const itemPriceSchema = z.object({

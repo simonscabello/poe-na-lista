@@ -64,7 +64,7 @@ async function seedProducts(categoryIdBySlug: Map<string, string>) {
       throw new Error(`Categoria não encontrada para "${product.name}": ${product.categorySlug}`)
     }
 
-    const { measureKind, defaultUnit } = resolveProductMeasure(product)
+    const { measureKind, defaultUnit, pricedByWeight } = resolveProductMeasure(product)
 
     // Reconcilia com placeholders legados do seed antigo (slug provisório = id).
     const existing = await prisma.product.findFirst({
@@ -83,6 +83,7 @@ async function seedProducts(categoryIdBySlug: Map<string, string>) {
           householdId: null,
           measureKind,
           defaultUnit,
+          pricedByWeight,
         },
       })
       updated += 1
@@ -98,6 +99,7 @@ async function seedProducts(categoryIdBySlug: Map<string, string>) {
         active: true,
         measureKind,
         defaultUnit,
+        pricedByWeight,
       },
     })
     created += 1

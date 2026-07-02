@@ -21,6 +21,7 @@ export async function createProductAction(
       categoryId: values.categoryId || null,
       measureKind: values.measureKind,
       defaultUnit: values.defaultUnit || null,
+      pricedByWeight: values.pricedByWeight,
     })
     return actionOk(product)
   } catch (error) {

@@ -7,7 +7,9 @@ import { createProductAction } from "@/actions/product.actions"
 import { HorizontalScrollArea } from "@/components/common/horizontal-scroll-area"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { ALL_CATEGORIES, productEmoji } from "@/lib/categories"
 import { categoryIcon } from "@/lib/category-icons"
@@ -54,14 +56,17 @@ export function ProductCatalogSheet({
   const [category, setCategory] = useState<string>(ALL_CATEGORIES)
   const [created, setCreated] = useState<ProductDTO[]>([])
   const [isCreating, setIsCreating] = useState(false)
-  const [createMeasureKind, setCreateMeasureKind] = useState<"UNIT" | "WEIGHT" | "VOLUME">("UNIT")
+  const [createMeasureKind, setCreateMeasureKind] = useState<"UNIT" | "WEIGHT">("UNIT")
   const [createUnit, setCreateUnit] = useState("kg")
+  const [createPricedByWeight, setCreatePricedByWeight] = useState(false)
 
   // Reset transient state each time the sheet opens so it always starts fresh.
   useEffect(() => {
     if (open) {
       setQuery("")
       setCategory(ALL_CATEGORIES)
+      setCreateMeasureKind("UNIT")
+      setCreatePricedByWeight(false)
     }
   }, [open])
 
@@ -137,6 +142,7 @@ export function ProductCatalogSheet({
       name: trimmed,
       measureKind: createMeasureKind,
       defaultUnit: createMeasureKind === "UNIT" ? "" : createUnit,
+      pricedByWeight: createMeasureKind === "UNIT" && createPricedByWeight,
     })
     setIsCreating(false)
     if (!result.success) {
@@ -284,12 +290,11 @@ export function ProductCatalogSheet({
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {(
                   [
                     ["UNIT", "Unidade"],
                     ["WEIGHT", "Peso"],
-                    ["VOLUME", "Volume"],
                   ] as const
                 ).map(([kind, label]) => (
                   <button
@@ -297,8 +302,10 @@ export function ProductCatalogSheet({
                     type="button"
                     onClick={() => {
                       setCreateMeasureKind(kind)
-                      if (kind === "WEIGHT") setCreateUnit("kg")
-                      if (kind === "VOLUME") setCreateUnit("L")
+                      if (kind === "WEIGHT") {
+                        setCreateUnit("kg")
+                        setCreatePricedByWeight(false)
+                      }
                     }}
                     className={cn(
                       "rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
@@ -312,13 +319,31 @@ export function ProductCatalogSheet({
                 ))}
               </div>
 
-              {createMeasureKind !== "UNIT" && (
+              {createMeasureKind === "WEIGHT" && (
                 <Input
                   value={createUnit}
                   onChange={(event) => setCreateUnit(event.target.value)}
-                  placeholder={createMeasureKind === "WEIGHT" ? "kg, g..." : "L, ml..."}
+                  placeholder="kg, g..."
                   aria-label="Unidade padrão"
                 />
+              )}
+
+              {createMeasureKind === "UNIT" && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-border bg-card p-3 text-sm">
+                  <Checkbox
+                    id="create-priced-by-weight"
+                    checked={createPricedByWeight}
+                    onCheckedChange={(checked) => setCreatePricedByWeight(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="create-priced-by-weight" className="flex-1 font-normal">
+                    <span className="block font-medium">Preço varia por peso</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Ex: hortifrúti. Você compra em unidades (ex: 3 cebolas), mas o preço exato só
+                      é conhecido na balança do mercado.
+                    </span>
+                  </Label>
+                </div>
               )}
 
               <Button type="button" loading={isCreating} onClick={handleCreate} className="w-full">

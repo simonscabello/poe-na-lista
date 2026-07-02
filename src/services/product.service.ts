@@ -19,6 +19,7 @@ function toProductDTO(product: ProductWithCategory): ProductDTO {
     categorySortOrder: product.category?.sortOrder ?? null,
     measureKind: product.measureKind as ProductDTO["measureKind"],
     defaultUnit: product.defaultUnit,
+    pricedByWeight: product.pricedByWeight,
   }
 }
 
@@ -102,10 +103,12 @@ export async function createHouseholdProduct(input: {
   categoryId?: string | null
   measureKind?: MeasureKind
   defaultUnit?: string | null
+  pricedByWeight?: boolean
 }): Promise<ProductDTO> {
   const measureKind = input.measureKind ?? "UNIT"
   const defaultUnit =
     measureKind === "UNIT" ? null : input.defaultUnit?.trim() || defaultUnitFor(measureKind)
+  const pricedByWeight = measureKind === "UNIT" && (input.pricedByWeight ?? false)
 
   const product = await prisma.product.create({
     data: {
@@ -117,6 +120,7 @@ export async function createHouseholdProduct(input: {
       isGlobal: false,
       measureKind,
       defaultUnit,
+      pricedByWeight,
     },
     include: { category: true },
   })

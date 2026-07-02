@@ -16,6 +16,7 @@ export async function addShoppingListItem(input: {
   quantity: number
   unit?: string | null
   notes?: string | null
+  priceMode?: PriceModeDTO
 }): Promise<void> {
   const existing = await prisma.shoppingListItem.findFirst({
     where: {
@@ -42,6 +43,7 @@ export async function addShoppingListItem(input: {
         quantity: input.quantity,
         unit: input.unit ?? null,
         notes: input.notes ?? null,
+        priceMode: input.priceMode ?? "UNIT",
       },
     })
   }

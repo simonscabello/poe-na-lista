@@ -56,6 +56,7 @@ export type ProductDTO = {
   categorySortOrder: number | null
   measureKind: MeasureKindDTO
   defaultUnit: string | null
+  pricedByWeight: boolean
 }
 
 export type PriceModeDTO = "UNIT" | "TOTAL"

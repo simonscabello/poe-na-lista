@@ -45,7 +45,13 @@ type OptimisticAction =
   | { type: "setQty"; id: string; quantity: number }
   | { type: "setPrice"; id: string; price: number | null }
   | { type: "setPriceMode"; id: string; priceMode: PriceModeDTO }
-  | { type: "add"; product: ProductDTO; quantity: number; unit: string | null }
+  | {
+      type: "add"
+      product: ProductDTO
+      quantity: number
+      unit: string | null
+      priceMode: PriceModeDTO
+    }
 
 function reducer(state: ShoppingListItemDTO[], action: OptimisticAction): ShoppingListItemDTO[] {
   switch (action.type) {
@@ -88,7 +94,7 @@ function reducer(state: ShoppingListItemDTO[], action: OptimisticAction): Shoppi
           checked: false,
           notes: null,
           price: null,
-          priceMode: "UNIT",
+          priceMode: action.priceMode,
         },
       ]
     }
@@ -157,13 +163,15 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
 
   function addItem(product: ProductDTO, quantity: number) {
     const unit = isMeasurableProduct(product) ? product.defaultUnit : null
+    const priceMode: PriceModeDTO = product.pricedByWeight ? "TOTAL" : "UNIT"
     startTransition(async () => {
-      applyOptimistic({ type: "add", product, quantity, unit })
+      applyOptimistic({ type: "add", product, quantity, unit, priceMode })
       const result = await addItemAction(list.id, {
         productId: product.id,
         quantity,
         unit: unit ?? "",
         notes: "",
+        priceMode,
       })
       if (!result.success) {
         toast.error(result.error)
