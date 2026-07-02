@@ -1,20 +1,23 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, Search } from "lucide-react"
+import { ArrowLeft, type LucideIcon, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { type Resolver, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { addPantryItemAction } from "@/actions/pantry.actions"
+import { HorizontalScrollArea } from "@/components/common/horizontal-scroll-area"
 import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { PantryItemFields } from "@/features/pantry/components/pantry-item-fields"
 import { type UpdatePantryItemValues, updatePantryItemSchema } from "@/features/pantry/schemas"
-import { productEmoji } from "@/lib/categories"
-import type { ProductDTO } from "@/types/domain"
+import { ALL_CATEGORIES, productEmoji } from "@/lib/categories"
+import { categoryIcon } from "@/lib/category-icons"
+import { cn } from "@/lib/utils"
+import type { CategoryDTO, ProductDTO } from "@/types/domain"
 
 function normalize(value: string): string {
   return value
@@ -27,6 +30,7 @@ function normalize(value: string): string {
 type AddPantryItemSheetProps = {
   householdId: string
   catalog: ProductDTO[]
+  categories: CategoryDTO[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -34,11 +38,13 @@ type AddPantryItemSheetProps = {
 export function AddPantryItemSheet({
   householdId,
   catalog,
+  categories,
   open,
   onOpenChange,
 }: AddPantryItemSheetProps) {
   const router = useRouter()
   const [query, setQuery] = useState("")
+  const [category, setCategory] = useState<string>(ALL_CATEGORIES)
   const [selected, setSelected] = useState<ProductDTO | null>(null)
 
   const form = useForm<UpdatePantryItemValues>({
@@ -46,14 +52,31 @@ export function AddPantryItemSheet({
     defaultValues: { quantity: 1, minimumQuantity: 1, unit: "", expirationDate: "" },
   })
 
+  const q = normalize(query)
+  // A typed search is always global: while there's a query, ignore the browsed
+  // category so results span every category.
+  const effectiveCategory = q ? ALL_CATEGORIES : category
+
   const matches = useMemo(() => {
-    const q = normalize(query)
-    if (!q) return catalog.slice(0, 40)
-    return catalog.filter((product) => normalize(product.name).includes(q)).slice(0, 40)
-  }, [catalog, query])
+    return catalog
+      .filter((product) => {
+        if (effectiveCategory !== ALL_CATEGORIES && product.categoryId !== effectiveCategory) {
+          return false
+        }
+        if (q && !normalize(product.name).includes(q)) return false
+        return true
+      })
+      .slice(0, 40)
+  }, [catalog, effectiveCategory, q])
+
+  function selectCategory(id: string) {
+    setCategory(id)
+    setQuery("")
+  }
 
   function reset() {
     setQuery("")
+    setCategory(ALL_CATEGORIES)
     setSelected(null)
     form.reset({ quantity: 1, minimumQuantity: 1, unit: "", expirationDate: "" })
   }
@@ -127,6 +150,25 @@ export function AddPantryItemSheet({
                   aria-label="Buscar produto"
                 />
               </div>
+
+              {categories.length > 0 && (
+                <HorizontalScrollArea className="-mx-4 mt-3 pb-1">
+                  <CategoryChip
+                    label="Todos"
+                    active={effectiveCategory === ALL_CATEGORIES}
+                    onClick={() => selectCategory(ALL_CATEGORIES)}
+                  />
+                  {categories.map((item) => (
+                    <CategoryChip
+                      key={item.id}
+                      label={item.name}
+                      icon={categoryIcon(item.icon)}
+                      active={effectiveCategory === item.id}
+                      onClick={() => selectCategory(item.id)}
+                    />
+                  ))}
+                </HorizontalScrollArea>
+              )}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {matches.length === 0 ? (
@@ -163,5 +205,33 @@ export function AddPantryItemSheet({
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+function CategoryChip({
+  label,
+  icon: Icon,
+  active,
+  onClick,
+}: {
+  label: string
+  icon?: LucideIcon
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
+      )}
+    >
+      {Icon && <Icon className="size-4" />}
+      {label}
+    </button>
   )
 }

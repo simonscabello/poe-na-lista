@@ -126,6 +126,7 @@
   html {
     @apply font-sans;
     color-scheme: light dark;
+    font-size: 106.25%;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }

@@ -180,6 +180,7 @@ export function PantryView({ householdId, items, catalog, categories, lists }: P
       <AddPantryItemSheet
         householdId={householdId}
         catalog={catalog}
+        categories={categories}
         open={addOpen}
         onOpenChange={setAddOpen}
       />

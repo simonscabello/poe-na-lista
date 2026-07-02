@@ -9,9 +9,12 @@ const geistSans = Geist({
   subsets: ["latin"],
 })
 
+// Not used by any visible text yet (only wired as a CSS variable), so it
+// shouldn't be eagerly preloaded — that trips the browser's unused-preload warning.
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -39,8 +42,7 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
   viewportFit: "cover",
 }
 

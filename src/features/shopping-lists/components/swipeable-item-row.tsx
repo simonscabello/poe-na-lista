@@ -199,7 +199,7 @@ export function SwipeableItemRow({
               {item.productName}
             </span>
             {(item.unit || item.category) && (
-              <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              <span className="mt-0.5 block truncate text-sm text-muted-foreground">
                 {item.unit ? item.unit : ""}
                 {item.unit && item.category ? " · " : ""}
                 {item.category ?? ""}
