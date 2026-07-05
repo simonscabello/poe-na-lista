@@ -5,7 +5,7 @@ import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } f
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { formatCurrency } from "@/lib/format-currency"
+import { ItemPriceFields } from "@/features/shopping-lists/components/item-price-fields"
 import { haptic } from "@/lib/haptics"
 import {
   formatQuantity,
@@ -13,7 +13,6 @@ import {
   nextQuantityDown,
   nextQuantityUp,
 } from "@/lib/measure"
-import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
 import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
@@ -44,18 +43,12 @@ export function SwipeableItemRow({
   const gesture = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null)
   const crossed = useRef(false)
 
-  const [priceInput, setPriceInput] = useState(item.price != null ? String(item.price) : "")
   const priceRef = useRef<HTMLInputElement>(null)
   const wasChecked = useRef(item.checked)
 
   const measure = getMeasureConfigForItem(product, item.unit)
   const unitLabel = item.unit || "un"
   const priceLabel = item.priceMode === "TOTAL" ? "preço total" : measure.pricePlaceholder
-  const lineTotal = computeLineTotal(item.price, item.quantity, item.priceMode)
-
-  useEffect(() => {
-    setPriceInput(item.price != null ? String(item.price) : "")
-  }, [item.price])
 
   useEffect(() => {
     if (item.checked && !wasChecked.current) {
@@ -63,17 +56,6 @@ export function SwipeableItemRow({
     }
     wasChecked.current = item.checked
   }, [item.checked])
-
-  function commitPrice() {
-    const trimmed = priceInput.trim().replace(",", ".")
-    const next = trimmed === "" ? null : Number(trimmed)
-    if (next != null && (Number.isNaN(next) || next < 0)) {
-      setPriceInput(item.price != null ? String(item.price) : "")
-      return
-    }
-    if (next === item.price) return
-    onChangePrice(item, next)
-  }
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse") return
@@ -235,68 +217,16 @@ export function SwipeableItemRow({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pl-9">
-          <div className="relative">
-            <span className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 text-xs text-muted-foreground">
-              R$
-            </span>
-            <input
-              ref={priceRef}
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min={0}
-              placeholder={priceLabel}
-              aria-label={`${priceLabel} de ${item.productName}`}
-              value={priceInput}
-              onChange={(event) => setPriceInput(event.target.value)}
-              onBlur={commitPrice}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.currentTarget.blur()
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-              className="h-8 w-28 rounded-lg border border-input bg-background pr-2 pl-8 text-sm tabular-nums outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            />
-          </div>
-
-          <div
-            className="flex shrink-0 items-center gap-0.5 rounded-full bg-muted p-0.5 text-[0.7rem] font-medium"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => onChangePriceMode(item, "UNIT")}
-              aria-pressed={item.priceMode === "UNIT"}
-              className={cn(
-                "rounded-full px-2 py-1 transition-colors",
-                item.priceMode === "UNIT"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-            >
-              /{unitLabel}
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangePriceMode(item, "TOTAL")}
-              aria-pressed={item.priceMode === "TOTAL"}
-              className={cn(
-                "rounded-full px-2 py-1 transition-colors",
-                item.priceMode === "TOTAL"
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-            >
-              total
-            </button>
-          </div>
-
-          {item.priceMode === "UNIT" && lineTotal != null && lineTotal > 0 && (
-            <span className="text-xs text-muted-foreground tabular-nums">
-              = {formatCurrency(lineTotal)}
-            </span>
-          )}
-        </div>
+        <ItemPriceFields
+          item={item}
+          unitLabel={unitLabel}
+          priceLabel={priceLabel}
+          onChangePrice={onChangePrice}
+          onChangePriceMode={onChangePriceMode}
+          priceInputRef={priceRef}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="pl-9"
+        />
       </div>
     </li>
   )

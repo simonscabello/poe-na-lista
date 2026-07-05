@@ -1,4 +1,5 @@
 import { ShoppingListStatus } from "@/generated/prisma/enums"
+import { computeLineTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
 import type { PurchaseDetailDTO, PurchaseSummaryDTO } from "@/types/domain"
 
@@ -59,6 +60,69 @@ export async function finalizePurchase(input: {
   })
 
   return { purchaseId: purchase.id }
+}
+
+export async function syncPurchaseItemFromListItem(itemId: string): Promise<string | null> {
+  const item = await prisma.shoppingListItem.findUnique({
+    where: { id: itemId },
+    include: {
+      shoppingList: { select: { status: true, id: true } },
+    },
+  })
+
+  if (!item || item.shoppingList.status !== ShoppingListStatus.COMPLETED) {
+    return null
+  }
+
+  const purchase = await prisma.purchase.findFirst({
+    where: { shoppingListId: item.shoppingListId },
+    orderBy: { purchasedAt: "desc" },
+    include: { items: true },
+  })
+
+  if (!purchase) {
+    return null
+  }
+
+  const quantity = Number(item.quantity)
+  const purchaseItem = purchase.items.find(
+    (row) =>
+      row.productId === item.productId &&
+      row.unit === item.unit &&
+      Number(row.quantity) === quantity,
+  )
+
+  if (!purchaseItem) {
+    return purchase.id
+  }
+
+  const price = item.price != null ? Number(item.price) : null
+  const totalPrice = computeLineTotal(price, quantity, item.priceMode)
+  const unitPrice = item.priceMode === "TOTAL" ? null : price
+
+  await prisma.$transaction(async (tx) => {
+    await tx.purchaseItem.update({
+      where: { id: purchaseItem.id },
+      data: { unitPrice, totalPrice },
+    })
+
+    const allItems = await tx.purchaseItem.findMany({
+      where: { purchaseId: purchase.id },
+    })
+
+    const allPriced = allItems.every((row) => row.totalPrice != null)
+    if (!allPriced) {
+      return
+    }
+
+    const totalAmount = allItems.reduce((sum, row) => sum + Number(row.totalPrice ?? 0), 0)
+    await tx.purchase.update({
+      where: { id: purchase.id },
+      data: { totalAmount },
+    })
+  })
+
+  return purchase.id
 }
 
 export async function getPurchaseHistory(householdId: string): Promise<PurchaseSummaryDTO[]> {

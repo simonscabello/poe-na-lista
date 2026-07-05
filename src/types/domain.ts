@@ -31,6 +31,7 @@ export type ShoppingListSummary = {
   name: string
   totalItems: number
   checkedItems: number
+  unpricedCheckedItems: number
   status: ShoppingListStatusDTO
   updatedAt: string
 }

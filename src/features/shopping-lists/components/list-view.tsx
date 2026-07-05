@@ -124,6 +124,7 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
 
   const isCompleted = list.status === "COMPLETED"
   const checkedCount = items.filter((item) => item.checked).length
+  const unpricedCheckedCount = items.filter((item) => item.checked && item.price == null).length
   const allChecked = items.length > 0 && checkedCount === items.length
   const itemsTotal = items.reduce(
     (sum, item) => sum + (computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0),
@@ -286,7 +287,11 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
         {isCompleted && (
           <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="size-4 shrink-0" />
-            <span>Compra finalizada. Esta lista está em modo somente leitura.</span>
+            <span>
+              Compra finalizada. Informe os preços dos produtos pesados no caixa.
+              {unpricedCheckedCount > 0 &&
+                ` ${unpricedCheckedCount} ${unpricedCheckedCount === 1 ? "produto ainda" : "produtos ainda"} sem preço.`}
+            </span>
           </div>
         )}
 
@@ -298,7 +303,7 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
           onChangeQuantity={changeQuantity}
           onChangePrice={changePrice}
           onChangePriceMode={changePriceMode}
-          readOnly={isCompleted}
+          priceOnly={isCompleted}
         />
 
         {!isCompleted && items.length > 0 && (

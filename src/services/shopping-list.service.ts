@@ -6,7 +6,7 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
     where: { householdId },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     include: {
-      items: { select: { checked: true } },
+      items: { select: { checked: true, price: true } },
     },
   })
 
@@ -15,6 +15,7 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
     name: list.name,
     totalItems: list.items.length,
     checkedItems: list.items.filter((item) => item.checked).length,
+    unpricedCheckedItems: list.items.filter((item) => item.checked && item.price == null).length,
     status: list.status,
     updatedAt: list.updatedAt.toISOString(),
   }))

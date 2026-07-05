@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Copy, MoreVertical, Trash2 } from "lucide-react"
+import { AlertCircle, Check, Copy, MoreVertical, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -121,8 +121,13 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
         </DropdownMenu>
       </div>
 
-      <div className="pointer-events-none relative z-[1] mt-2">
-        <StatusBadge allDone={allDone} pendingItems={pendingItems} isCompleted={isCompleted} />
+      <div className="pointer-events-none relative z-[1] mt-2 flex flex-wrap items-center gap-2">
+        <StatusBadge
+          allDone={allDone}
+          pendingItems={pendingItems}
+          isCompleted={isCompleted}
+          unpricedCheckedItems={list.unpricedCheckedItems}
+        />
       </div>
 
       <div className="relative z-[1] mt-4 flex items-center justify-between gap-2">
@@ -156,34 +161,39 @@ function StatusBadge({
   allDone,
   pendingItems,
   isCompleted,
+  unpricedCheckedItems,
 }: {
   allDone: boolean
   pendingItems: number
   isCompleted: boolean
+  unpricedCheckedItems: number
 }) {
-  if (isCompleted) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
-        <Check className="size-3.5" />
-        Finalizada
-      </span>
-    )
-  }
-
-  if (allDone) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
-        <Check className="size-3.5" />
-        Tudo certo
-      </span>
-    )
-  }
-
   return (
-    <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium tabular-nums">
-      {pendingItems === 0
-        ? "Lista vazia"
-        : `${pendingItems} ${pendingItems === 1 ? "item" : "itens"}`}
-    </span>
+    <div className="flex flex-wrap items-center gap-2">
+      {isCompleted ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
+          <Check className="size-3.5" />
+          Finalizada
+        </span>
+      ) : allDone ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
+          <Check className="size-3.5" />
+          Tudo certo
+        </span>
+      ) : (
+        <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium tabular-nums">
+          {pendingItems === 0
+            ? "Lista vazia"
+            : `${pendingItems} ${pendingItems === 1 ? "item" : "itens"}`}
+        </span>
+      )}
+
+      {unpricedCheckedItems > 0 && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-xs font-medium tabular-nums">
+          <AlertCircle className="size-3.5" />
+          {unpricedCheckedItems} sem preço
+        </span>
+      )}
+    </div>
   )
 }

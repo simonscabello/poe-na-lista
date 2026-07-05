@@ -2,9 +2,10 @@
 
 import { Check, Package } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
 import { finalizePurchaseAction, stockPantryFromPurchaseAction } from "@/actions/purchase.actions"
+import { CurrencyInput } from "@/components/common/currency-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,7 +44,8 @@ export function FinalizePurchaseSheet({
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState<Step>("details")
 
-  const [total, setTotal] = useState("")
+  const [manualTotal, setManualTotal] = useState<number | null>(null)
+  const totalInputRef = useRef<HTMLInputElement>(null)
   const [purchasedAt, setPurchasedAt] = useState(localDateString)
   const [storeName, setStoreName] = useState("")
   const [notes, setNotes] = useState("")
@@ -64,13 +66,17 @@ export function FinalizePurchaseSheet({
   // Pré-preenche o total manual com a soma dos itens ao abrir (não sobrescreve edição).
   useEffect(() => {
     if (open && !allPriced && itemsTotal > 0) {
-      setTotal((current) => (current === "" ? String(itemsTotal) : current))
+      setManualTotal((current) => (current == null ? itemsTotal : current))
     }
   }, [open, allPriced, itemsTotal])
 
-  // Quando todos os itens têm preço, o total é a soma (travado). Senão, total manual.
-  const manualTotal = Number.parseFloat(total.replace(",", "."))
-  const hasManualTotal = total.trim() !== "" && Number.isFinite(manualTotal)
+  useEffect(() => {
+    if (open && step === "details" && !allPriced) {
+      totalInputRef.current?.focus()
+    }
+  }, [open, step, allPriced])
+
+  const hasManualTotal = manualTotal != null && manualTotal > 0
   const belowItems = hasManualTotal && manualTotal + 0.001 < itemsTotal
   const canRegister = allPriced || (hasManualTotal && !belowItems)
 
@@ -78,7 +84,7 @@ export function FinalizePurchaseSheet({
     if (!canRegister) return
     startTransition(async () => {
       const result = await finalizePurchaseAction(listId, {
-        totalAmount: allPriced ? undefined : total,
+        totalAmount: allPriced ? undefined : (manualTotal ?? undefined),
         purchasedAt,
         storeName,
         notes,
@@ -173,18 +179,17 @@ export function FinalizePurchaseSheet({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="total">Valor total (R$)</Label>
-                  <Input
+                  <Label htmlFor="total">Valor total</Label>
+                  <CurrencyInput
                     id="total"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min={0}
+                    variant="full"
+                    value={manualTotal}
+                    onCommit={setManualTotal}
+                    onValueChange={setManualTotal}
                     placeholder="0,00"
-                    value={total}
-                    onChange={(event) => setTotal(event.target.value)}
+                    aria-label="Valor total da compra"
                     aria-invalid={belowItems}
-                    autoFocus
+                    inputRef={totalInputRef}
                   />
                   {itemsTotal > 0 && (
                     <p

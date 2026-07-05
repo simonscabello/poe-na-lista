@@ -9,6 +9,10 @@ function createAdapter() {
   }
 
   const url = new URL(databaseUrl)
+  const isLocalHost = url.hostname === "localhost" || url.hostname === "127.0.0.1"
+  const allowPublicKeyRetrieval =
+    url.searchParams.get("allowPublicKeyRetrieval") === "true" ||
+    (url.searchParams.get("allowPublicKeyRetrieval") !== "false" && isLocalHost)
 
   return new PrismaMariaDb({
     host: url.hostname,
@@ -17,6 +21,7 @@ function createAdapter() {
     password: decodeURIComponent(url.password),
     database: url.pathname.replace(/^\//, ""),
     connectionLimit: 5,
+    allowPublicKeyRetrieval,
   })
 }
 

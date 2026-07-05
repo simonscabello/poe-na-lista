@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { addItemSchema, itemPriceSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
+import { syncPurchaseItemFromListItem } from "@/services/purchase.service"
 import { getListHouseholdId } from "@/services/shopping-list.service"
 import {
   addShoppingListItem,
@@ -65,7 +66,14 @@ export async function updateItemPriceAction(itemId: string, input: unknown): Pro
     const listId = await requireItemAccess(itemId)
     const { price, priceMode } = itemPriceSchema.parse(input)
     await setItemPrice(itemId, price, priceMode)
+    const purchaseId = await syncPurchaseItemFromListItem(itemId)
     revalidatePath(`/dashboard/lists/${listId}`)
+    revalidatePath("/dashboard/lists")
+    revalidatePath("/dashboard")
+    if (purchaseId) {
+      revalidatePath("/dashboard/expenses")
+      revalidatePath(`/dashboard/expenses/${purchaseId}`)
+    }
     return actionOk(undefined)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
