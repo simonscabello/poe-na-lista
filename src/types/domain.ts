@@ -124,6 +124,11 @@ export type PublicListDTO = {
   items: PublicListItemDTO[]
 }
 
+export type StoreDTO = {
+  id: string
+  name: string
+}
+
 export type PurchaseSummaryDTO = {
   id: string
   listName: string | null

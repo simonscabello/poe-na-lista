@@ -111,6 +111,7 @@ model Household {
   shoppingLists ShoppingList[]
   pantryItems   PantryItem[]
   purchases     Purchase[]
+  stores        Store[]
   notifications Notification[]
 
   createdAt DateTime @default(now())
@@ -292,6 +293,7 @@ model Purchase {
   id             String   @id @default(cuid())
   householdId    String
   shoppingListId String?
+  storeId        String?
   totalAmount    Decimal  @db.Decimal(10, 2)
   purchasedAt    DateTime
   storeName      String?
@@ -300,6 +302,7 @@ model Purchase {
 
   household    Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   shoppingList ShoppingList?  @relation(fields: [shoppingListId], references: [id], onDelete: SetNull)
+  store        Store?         @relation(fields: [storeId], references: [id], onDelete: SetNull)
   createdBy    User           @relation("PurchaseCreator", fields: [createdById], references: [id], onDelete: Cascade)
   items        PurchaseItem[]
 
@@ -308,7 +311,24 @@ model Purchase {
 
   @@index([householdId, purchasedAt])
   @@index([shoppingListId])
+  @@index([storeId])
   @@index([createdById])
+}
+
+model Store {
+  id             String @id @default(cuid())
+  householdId    String
+  name           String
+  normalizedName String
+
+  household Household  @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([householdId, normalizedName])
+  @@index([householdId])
 }
 
 model PurchaseItem {

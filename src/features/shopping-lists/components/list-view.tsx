@@ -37,6 +37,7 @@ import type {
   ShoppingListDetail,
   ShoppingListItemDTO,
   ShoppingListShareDTO,
+  StoreDTO,
 } from "@/types/domain"
 
 type OptimisticAction =
@@ -107,9 +108,17 @@ type ListViewProps = {
   frequent: ProductDTO[]
   categories: CategoryDTO[]
   initialShare: ShoppingListShareDTO | null
+  stores: StoreDTO[]
 }
 
-export function ListView({ list, catalog, frequent, categories, initialShare }: ListViewProps) {
+export function ListView({
+  list,
+  catalog,
+  frequent,
+  categories,
+  initialShare,
+  stores,
+}: ListViewProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [items, applyOptimistic] = useOptimistic(list.items, reducer)
@@ -362,6 +371,7 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
         listName={list.name}
         householdId={list.householdId}
         items={items}
+        stores={stores}
         open={finalizeOpen}
         onOpenChange={setFinalizeOpen}
       />

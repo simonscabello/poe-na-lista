@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { getActiveShareForList } from "@/services/list-share.service"
 import { getCategories, getFrequentProducts, getProductCatalog } from "@/services/product.service"
 import { getListDetail } from "@/services/shopping-list.service"
+import { getHouseholdStores } from "@/services/store.service"
 
 type ListDetailPageProps = {
   params: Promise<{ listId: string }>
@@ -42,11 +43,12 @@ async function ListDetailContent({ listId }: { listId: string }) {
     notFound()
   }
 
-  const [catalog, frequent, categories, initialShare] = await Promise.all([
+  const [catalog, frequent, categories, initialShare, stores] = await Promise.all([
     getProductCatalog(list.householdId),
     getFrequentProducts(list.householdId),
     getCategories(),
     getActiveShareForList(list.id),
+    getHouseholdStores(list.householdId),
   ])
 
   return (
@@ -56,6 +58,7 @@ async function ListDetailContent({ listId }: { listId: string }) {
       frequent={frequent}
       categories={categories}
       initialShare={initialShare}
+      stores={stores}
     />
   )
 }

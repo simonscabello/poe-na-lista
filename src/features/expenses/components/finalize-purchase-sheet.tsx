@@ -21,7 +21,7 @@ import { localDateString } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
 import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
-import type { ShoppingListItemDTO } from "@/types/domain"
+import type { ShoppingListItemDTO, StoreDTO } from "@/types/domain"
 
 type Step = "pending" | "details" | "pantry"
 type PendingHandling = "NEW_LIST" | "KEEP_IN_LIST"
@@ -31,6 +31,7 @@ type FinalizePurchaseSheetProps = {
   listName: string
   householdId: string
   items: ShoppingListItemDTO[]
+  stores: StoreDTO[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -40,6 +41,7 @@ export function FinalizePurchaseSheet({
   listName,
   householdId,
   items,
+  stores,
   open,
   onOpenChange,
 }: FinalizePurchaseSheetProps) {
@@ -336,9 +338,34 @@ export function FinalizePurchaseSheet({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="store">Mercado (opcional)</Label>
+                {stores.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {stores.map((store) => {
+                      const selected =
+                        store.name.trim().toLowerCase() === storeName.trim().toLowerCase()
+                      return (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => setStoreName(selected ? "" : store.name)}
+                          className={cn(
+                            "rounded-full px-3 py-1.5 text-sm ring-1 transition-colors",
+                            selected
+                              ? "bg-primary/10 text-primary ring-primary"
+                              : "text-muted-foreground ring-border hover:bg-muted/50",
+                          )}
+                        >
+                          {store.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
                 <Input
                   id="store"
-                  placeholder="Onde você comprou"
+                  placeholder={
+                    stores.length > 0 ? "Ou escreva um novo mercado" : "Onde você comprou"
+                  }
                   value={storeName}
                   onChange={(event) => setStoreName(event.target.value)}
                 />

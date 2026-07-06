@@ -1,6 +1,7 @@
 import { ShoppingListStatus } from "@/generated/prisma/enums"
 import { computeLineTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
+import { findOrCreateStore } from "@/services/store.service"
 import type { PurchaseDetailDTO, PurchaseSummaryDTO } from "@/types/domain"
 
 export type PurchaseItemInput = {
@@ -38,14 +39,20 @@ export async function finalizePurchase(input: {
   listCleanup?: ListCleanupInput
 }): Promise<{ purchaseId: string; pendingListId?: string }> {
   const result = await prisma.$transaction(async (tx) => {
+    const trimmedStoreName = input.storeName?.trim() || null
+    const store = trimmedStoreName
+      ? await findOrCreateStore(tx, input.householdId, trimmedStoreName)
+      : null
+
     const created = await tx.purchase.create({
       data: {
         householdId: input.householdId,
         shoppingListId: input.shoppingListId,
+        storeId: store?.id ?? null,
         createdById: input.createdById,
         totalAmount: input.totalAmount,
         purchasedAt: input.purchasedAt,
-        storeName: input.storeName ?? null,
+        storeName: store?.name ?? null,
         notes: input.notes ?? null,
         items: {
           create: input.items.map((item) => ({
