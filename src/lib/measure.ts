@@ -1,5 +1,8 @@
 import type { MeasureKindDTO, ProductDTO } from "@/types/domain"
 
+/** Única categoria que hoje admite peso (kg) em vez de unidade. */
+export const ACOUGUE_CATEGORY_SLUG = "acougue"
+
 export type MeasureConfig = {
   step: number
   minQuantity: number
@@ -20,14 +23,6 @@ export function getMeasureConfig(
       return {
         step: 0.5,
         minQuantity: 0.05,
-        defaultQuantity: 1,
-        pricePlaceholder: formatPriceLabel(product.defaultUnit),
-        quantityPresets: [0.5, 1, 1.5, 2],
-      }
-    case "VOLUME":
-      return {
-        step: 0.5,
-        minQuantity: 0.1,
         defaultQuantity: 1,
         pricePlaceholder: formatPriceLabel(product.defaultUnit),
         quantityPresets: [0.5, 1, 1.5, 2],
@@ -58,8 +53,9 @@ export function getMeasureConfigForItem(
 
 function inferMeasureKind(unit: string): MeasureKindDTO {
   const normalized = unit.trim().toLowerCase()
-  if (normalized === "l" || normalized === "ml") return "VOLUME"
-  if (normalized === "kg" || normalized === "g") return "WEIGHT"
+  if (normalized === "kg" || normalized === "g" || normalized === "l" || normalized === "ml") {
+    return "WEIGHT"
+  }
   return "UNIT"
 }
 

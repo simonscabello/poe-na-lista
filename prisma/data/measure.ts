@@ -1,4 +1,4 @@
-export type MeasureKindSeed = "UNIT" | "WEIGHT" | "VOLUME"
+export type MeasureKindSeed = "UNIT" | "WEIGHT"
 
 export type ProductSeed = {
   name: string
@@ -69,12 +69,6 @@ const HORTIFRUTI_UNIT = new Set([
   "Ovo de Codorna",
 ])
 
-/**
- * Laticínios vendidos por litro (galão/refil). Caixas e latas são unidade.
- * Lista vazia de propósito: leite UHT e similares são comprados por caixa.
- */
-const LATICINIOS_VOLUME = new Set<string>([])
-
 /** Líquidos de mercearia embalados (garrafa, lata, sachê). */
 const MERCEARIA_UNIT_LIQUIDS = new Set([
   "Óleo de Soja",
@@ -128,9 +122,6 @@ export function resolveProductMeasure(product: ProductSeed): {
   }
 
   if (categorySlug === "laticinios") {
-    if (LATICINIOS_VOLUME.has(name)) {
-      return { measureKind: "VOLUME", defaultUnit: "L", pricedByWeight: false }
-    }
     // Leite (caixa), creme de leite (lata), iogurte, queijo (pacote), etc.
     return { measureKind: "UNIT", defaultUnit: null, pricedByWeight: false }
   }
@@ -150,6 +141,5 @@ export function resolveProductMeasure(product: ProductSeed): {
 
 function defaultUnitFor(kind: MeasureKindSeed): string | null {
   if (kind === "WEIGHT") return "kg"
-  if (kind === "VOLUME") return "L"
   return null
 }

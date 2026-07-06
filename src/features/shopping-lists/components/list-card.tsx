@@ -127,6 +127,7 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
           pendingItems={pendingItems}
           isCompleted={isCompleted}
           unpricedCheckedItems={list.unpricedCheckedItems}
+          purchaseCount={list.purchaseCount}
         />
       </div>
 
@@ -162,18 +163,26 @@ function StatusBadge({
   pendingItems,
   isCompleted,
   unpricedCheckedItems,
+  purchaseCount,
 }: {
   allDone: boolean
   pendingItems: number
   isCompleted: boolean
   unpricedCheckedItems: number
+  purchaseCount: number
 }) {
+  const hasPartialPurchase = !isCompleted && purchaseCount > 0 && pendingItems > 0
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       {isCompleted ? (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
           <Check className="size-3.5" />
           Finalizada
+        </span>
+      ) : hasPartialPurchase ? (
+        <span className="inline-flex items-center rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium tabular-nums">
+          {pendingItems} {pendingItems === 1 ? "restante" : "restantes"}
         </span>
       ) : allDone ? (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
@@ -185,6 +194,12 @@ function StatusBadge({
           {pendingItems === 0
             ? "Lista vazia"
             : `${pendingItems} ${pendingItems === 1 ? "item" : "itens"}`}
+        </span>
+      )}
+
+      {hasPartialPurchase && (
+        <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium">
+          Compra parcial
         </span>
       )}
 

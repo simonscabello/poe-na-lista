@@ -12,8 +12,18 @@ export type PurchaseItemInput = {
   totalPrice?: number | null
 }
 
+export type PendingHandling = "NEW_LIST" | "KEEP_IN_LIST" | "NONE"
+
+export type ListCleanupInput = {
+  checkedItemIds: string[]
+  pendingItemIds: string[]
+  pendingHandling: PendingHandling
+  pendingListName?: string
+  listName: string
+}
+
 /**
- * Registra uma compra e marca a lista como finalizada em uma única transação,
+ * Registra uma compra e atualiza a lista em uma única transação,
  * garantindo que gastos e status da lista fiquem sempre consistentes.
  */
 export async function finalizePurchase(input: {
@@ -25,8 +35,9 @@ export async function finalizePurchase(input: {
   storeName?: string | null
   notes?: string | null
   items: PurchaseItemInput[]
-}): Promise<{ purchaseId: string }> {
-  const purchase = await prisma.$transaction(async (tx) => {
+  listCleanup?: ListCleanupInput
+}): Promise<{ purchaseId: string; pendingListId?: string }> {
+  const result = await prisma.$transaction(async (tx) => {
     const created = await tx.purchase.create({
       data: {
         householdId: input.householdId,
@@ -49,17 +60,58 @@ export async function finalizePurchase(input: {
       },
     })
 
-    if (input.shoppingListId) {
+    let pendingListId: string | undefined
+
+    if (input.shoppingListId && input.listCleanup) {
+      const { checkedItemIds, pendingItemIds, pendingHandling, pendingListName, listName } =
+        input.listCleanup
+
+      if (pendingHandling === "NEW_LIST" && pendingItemIds.length > 0) {
+        const pendingItems = await tx.shoppingListItem.findMany({
+          where: { id: { in: pendingItemIds } },
+        })
+
+        const newList = await tx.shoppingList.create({
+          data: {
+            householdId: input.householdId,
+            createdById: input.createdById,
+            name: pendingListName ?? `${listName} · pendências`,
+            items: {
+              create: pendingItems.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unit: item.unit,
+                notes: item.notes,
+              })),
+            },
+          },
+        })
+        pendingListId = newList.id
+
+        await tx.shoppingListItem.deleteMany({ where: { id: { in: pendingItemIds } } })
+        await tx.shoppingList.update({
+          where: { id: input.shoppingListId },
+          data: { status: ShoppingListStatus.COMPLETED, completedAt: new Date() },
+        })
+      } else if (pendingHandling === "KEEP_IN_LIST") {
+        await tx.shoppingListItem.deleteMany({ where: { id: { in: checkedItemIds } } })
+      } else {
+        await tx.shoppingList.update({
+          where: { id: input.shoppingListId },
+          data: { status: ShoppingListStatus.COMPLETED, completedAt: new Date() },
+        })
+      }
+    } else if (input.shoppingListId) {
       await tx.shoppingList.update({
         where: { id: input.shoppingListId },
         data: { status: ShoppingListStatus.COMPLETED, completedAt: new Date() },
       })
     }
 
-    return created
+    return { purchaseId: created.id, pendingListId }
   })
 
-  return { purchaseId: purchase.id }
+  return result
 }
 
 export async function syncPurchaseItemFromListItem(itemId: string): Promise<string | null> {

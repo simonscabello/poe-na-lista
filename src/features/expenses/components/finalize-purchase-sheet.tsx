@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Package } from "lucide-react"
+import { Check, ListPlus, Package, RotateCcw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -23,10 +23,12 @@ import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
 import type { ShoppingListItemDTO } from "@/types/domain"
 
-type Step = "details" | "pantry"
+type Step = "pending" | "details" | "pantry"
+type PendingHandling = "NEW_LIST" | "KEEP_IN_LIST"
 
 type FinalizePurchaseSheetProps = {
   listId: string
+  listName: string
   householdId: string
   items: ShoppingListItemDTO[]
   open: boolean
@@ -35,6 +37,7 @@ type FinalizePurchaseSheetProps = {
 
 export function FinalizePurchaseSheet({
   listId,
+  listName,
   householdId,
   items,
   open,
@@ -44,26 +47,40 @@ export function FinalizePurchaseSheet({
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState<Step>("details")
 
+  const checkedItems = useMemo(() => items.filter((item) => item.checked), [items])
+  const pendingItems = useMemo(() => items.filter((item) => !item.checked), [items])
+  const hasPending = pendingItems.length > 0
+
+  const [pendingHandling, setPendingHandling] = useState<PendingHandling>("NEW_LIST")
+  const [pendingListName, setPendingListName] = useState(`${listName} · pendências`)
+
   const [manualTotal, setManualTotal] = useState<number | null>(null)
   const totalInputRef = useRef<HTMLInputElement>(null)
   const [purchasedAt, setPurchasedAt] = useState(localDateString)
   const [storeName, setStoreName] = useState("")
   const [notes, setNotes] = useState("")
   const [pantrySelection, setPantrySelection] = useState<Set<string>>(
-    () => new Set(items.map((item) => item.productId)),
+    () => new Set(checkedItems.map((item) => item.productId)),
   )
 
   const itemsTotal = useMemo(
     () =>
-      items.reduce(
+      checkedItems.reduce(
         (sum, item) => sum + (computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0),
         0,
       ),
-    [items],
+    [checkedItems],
   )
-  const allPriced = items.length > 0 && items.every((item) => item.price != null)
+  const allPriced = checkedItems.length > 0 && checkedItems.every((item) => item.price != null)
 
-  // Pré-preenche o total manual com a soma dos itens ao abrir (não sobrescreve edição).
+  useEffect(() => {
+    if (!open) return
+    setStep(hasPending ? "pending" : "details")
+    setPendingListName(`${listName} · pendências`)
+    setPendingHandling("NEW_LIST")
+    setPantrySelection(new Set(checkedItems.map((item) => item.productId)))
+  }, [open, hasPending, listName, checkedItems])
+
   useEffect(() => {
     if (open && !allPriced && itemsTotal > 0) {
       setManualTotal((current) => (current == null ? itemsTotal : current))
@@ -88,19 +105,31 @@ export function FinalizePurchaseSheet({
         purchasedAt,
         storeName,
         notes,
+        pendingHandling: hasPending ? pendingHandling : undefined,
+        pendingListName: hasPending && pendingHandling === "NEW_LIST" ? pendingListName : undefined,
       })
       if (!result.success) {
         toast.error(result.error)
         return
       }
-      toast.success("Compra registrada")
+
+      if (result.data.pendingListName) {
+        toast.success(`Compra registrada · pendências em ${result.data.pendingListName}`)
+      } else if (hasPending && pendingHandling === "KEEP_IN_LIST") {
+        toast.success(
+          `Compra registrada · ${pendingItems.length} ${pendingItems.length === 1 ? "item restante" : "itens restantes"} na lista`,
+        )
+      } else {
+        toast.success("Compra registrada")
+      }
+
       router.refresh()
       setStep("pantry")
     })
   }
 
   function updatePantry() {
-    const selected = items.filter((item) => pantrySelection.has(item.productId))
+    const selected = checkedItems.filter((item) => pantrySelection.has(item.productId))
     if (selected.length === 0) {
       finishFlow()
       return
@@ -140,33 +169,124 @@ export function FinalizePurchaseSheet({
   }
 
   const allPantrySelected =
-    items.length > 0 && items.every((item) => pantrySelection.has(item.productId))
+    checkedItems.length > 0 && checkedItems.every((item) => pantrySelection.has(item.productId))
 
   function toggleSelectAllPantry() {
     if (allPantrySelected) {
       setPantrySelection(new Set())
       return
     }
-    setPantrySelection(new Set(items.map((item) => item.productId)))
+    setPantrySelection(new Set(checkedItems.map((item) => item.productId)))
   }
+
+  const stepTitle =
+    step === "pending"
+      ? "Itens não encontrados"
+      : step === "details"
+        ? "Finalizar compra"
+        : "Atualizar despensa"
+
+  const stepDescription =
+    step === "pending"
+      ? `${pendingItems.length} ${pendingItems.length === 1 ? "item não foi marcado" : "itens não foram marcados"} como comprado.`
+      : step === "details"
+        ? allPriced
+          ? "O total foi calculado a partir dos preços dos itens marcados."
+          : "Informe o valor total. O resto é opcional."
+        : "Adicione o que você comprou ao seu estoque em casa."
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[92dvh] overflow-y-auto safe-bottom">
         <SheetHeader>
-          <SheetTitle>{step === "details" ? "Finalizar compra" : "Atualizar despensa"}</SheetTitle>
-          <SheetDescription>
-            {step === "details"
-              ? allPriced
-                ? "O total foi calculado a partir dos preços dos itens."
-                : "Informe o valor total. O resto é opcional."
-              : "Adicione o que você comprou ao seu estoque em casa."}
-          </SheetDescription>
+          <SheetTitle>{stepTitle}</SheetTitle>
+          <SheetDescription>{stepDescription}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-5 px-4 pb-6">
+          {step === "pending" && (
+            <>
+              <ul className="max-h-36 space-y-1 overflow-y-auto rounded-xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+                {pendingItems.map((item) => (
+                  <li key={item.id} className="truncate text-sm text-muted-foreground">
+                    {item.productName}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingHandling("NEW_LIST")}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left ring-1 transition-colors",
+                    pendingHandling === "NEW_LIST"
+                      ? "bg-primary/10 ring-primary"
+                      : "ring-border hover:bg-muted/50",
+                  )}
+                >
+                  <ListPlus className="mt-0.5 size-5 shrink-0" />
+                  <span>
+                    <span className="block text-sm font-medium">
+                      Criar nova lista com pendências
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Esta lista será finalizada e os itens pendentes vão para outra lista.
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPendingHandling("KEEP_IN_LIST")}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left ring-1 transition-colors",
+                    pendingHandling === "KEEP_IN_LIST"
+                      ? "bg-primary/10 ring-primary"
+                      : "ring-border hover:bg-muted/50",
+                  )}
+                >
+                  <RotateCcw className="mt-0.5 size-5 shrink-0" />
+                  <span>
+                    <span className="block text-sm font-medium">Manter na lista atual</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Compra parcial — os pendentes ficam para a próxima ida ao mercado.
+                    </span>
+                  </span>
+                </button>
+              </div>
+
+              {pendingHandling === "NEW_LIST" && (
+                <div className="space-y-2">
+                  <Label htmlFor="pending-list-name">Nome da nova lista</Label>
+                  <Input
+                    id="pending-list-name"
+                    value={pendingListName}
+                    onChange={(event) => setPendingListName(event.target.value)}
+                    placeholder="Nome da lista"
+                  />
+                </div>
+              )}
+
+              <Button
+                onClick={() => setStep("details")}
+                disabled={pendingHandling === "NEW_LIST" && !pendingListName.trim()}
+                className="w-full"
+              >
+                Continuar
+              </Button>
+            </>
+          )}
+
           {step === "details" && (
             <>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {checkedItems.length}{" "}
+                {checkedItems.length === 1 ? "item marcado" : "itens marcados"}
+                {hasPending &&
+                  ` · ${pendingItems.length} pendente${pendingItems.length === 1 ? "" : "s"}`}
+              </p>
+
               {allPriced ? (
                 <div className="space-y-2">
                   <Label>Valor total</Label>
@@ -200,7 +320,7 @@ export function FinalizePurchaseSheet({
                     >
                       {belowItems
                         ? `O total não pode ser menor que a soma dos itens (${formatCurrency(itemsTotal)})`
-                        : `Itens já somam ${formatCurrency(itemsTotal)}`}
+                        : `Itens marcados somam ${formatCurrency(itemsTotal)}`}
                     </p>
                   )}
                 </div>
@@ -233,14 +353,21 @@ export function FinalizePurchaseSheet({
                 />
               </div>
 
-              <Button
-                onClick={finalize}
-                loading={isPending}
-                disabled={!canRegister}
-                className="w-full"
-              >
-                Registrar compra
-              </Button>
+              <div className="flex flex-col gap-2">
+                {hasPending && (
+                  <Button type="button" variant="ghost" onClick={() => setStep("pending")}>
+                    Voltar
+                  </Button>
+                )}
+                <Button
+                  onClick={finalize}
+                  loading={isPending}
+                  disabled={!canRegister}
+                  className="w-full"
+                >
+                  Registrar compra
+                </Button>
+              </div>
             </>
           )}
 
@@ -248,7 +375,7 @@ export function FinalizePurchaseSheet({
             <>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  {pantrySelection.size} de {items.length} selecionados
+                  {pantrySelection.size} de {checkedItems.length} selecionados
                 </p>
                 <Button
                   type="button"
@@ -261,7 +388,7 @@ export function FinalizePurchaseSheet({
                 </Button>
               </div>
               <div className="space-y-1">
-                {items.map((item) => {
+                {checkedItems.map((item) => {
                   const selected = pantrySelection.has(item.productId)
                   return (
                     <button

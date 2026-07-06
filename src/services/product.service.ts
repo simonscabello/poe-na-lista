@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client"
 import type { MeasureKind } from "@/generated/prisma/enums"
+import { ACOUGUE_CATEGORY_SLUG } from "@/lib/measure"
 import { prisma } from "@/lib/prisma"
 import type { CategoryDTO, ProductDTO } from "@/types/domain"
 
@@ -110,6 +111,15 @@ export async function createHouseholdProduct(input: {
     measureKind === "UNIT" ? null : input.defaultUnit?.trim() || defaultUnitFor(measureKind)
   const pricedByWeight = measureKind === "UNIT" && (input.pricedByWeight ?? false)
 
+  if (measureKind === "WEIGHT") {
+    const category = input.categoryId
+      ? await prisma.category.findUnique({ where: { id: input.categoryId } })
+      : null
+    if (category?.slug !== ACOUGUE_CATEGORY_SLUG) {
+      throw new Error("Peso (kg) só é permitido para produtos da categoria Açougue")
+    }
+  }
+
   const product = await prisma.product.create({
     data: {
       householdId: input.householdId,
@@ -130,6 +140,5 @@ export async function createHouseholdProduct(input: {
 
 function defaultUnitFor(measureKind: MeasureKind): string | null {
   if (measureKind === "WEIGHT") return "kg"
-  if (measureKind === "VOLUME") return "L"
   return null
 }

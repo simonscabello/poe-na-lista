@@ -32,6 +32,7 @@ export type ShoppingListSummary = {
   totalItems: number
   checkedItems: number
   unpricedCheckedItems: number
+  purchaseCount: number
   status: ShoppingListStatusDTO
   updatedAt: string
 }
@@ -44,7 +45,7 @@ export type CategoryDTO = {
   sortOrder: number
 }
 
-export type MeasureKindDTO = "UNIT" | "WEIGHT" | "VOLUME"
+export type MeasureKindDTO = "UNIT" | "WEIGHT"
 
 export type ProductDTO = {
   id: string

@@ -27,7 +27,6 @@ enum ShoppingListStatus {
 enum MeasureKind {
   UNIT
   WEIGHT
-  VOLUME
 }
 
 enum PriceMode {

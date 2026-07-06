@@ -14,7 +14,12 @@ import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { ALL_CATEGORIES, productEmoji } from "@/lib/categories"
 import { categoryIcon } from "@/lib/category-icons"
 import { haptic } from "@/lib/haptics"
-import { formatQuantity, getMeasureConfig, isMeasurableProduct } from "@/lib/measure"
+import {
+  ACOUGUE_CATEGORY_SLUG,
+  formatQuantity,
+  getMeasureConfig,
+  isMeasurableProduct,
+} from "@/lib/measure"
 import { cn } from "@/lib/utils"
 import type { CategoryDTO, ProductDTO } from "@/types/domain"
 
@@ -69,6 +74,17 @@ export function ProductCatalogSheet({
       setCreatePricedByWeight(false)
     }
   }, [open])
+
+  const acougueCategoryId = useMemo(
+    () => categories.find((c) => c.slug === ACOUGUE_CATEGORY_SLUG)?.id ?? null,
+    [categories],
+  )
+  // Peso (kg) só faz sentido para Açougue — navegar para outra categoria
+  // enquanto o cartão de criação está aberto invalida a escolha anterior.
+  const isAcougueSelected = category === acougueCategoryId
+  useEffect(() => {
+    if (!isAcougueSelected) setCreateMeasureKind("UNIT")
+  }, [isAcougueSelected])
 
   const fullCatalog = useMemo(() => {
     if (created.length === 0) return catalog
@@ -140,6 +156,7 @@ export function ProductCatalogSheet({
     setIsCreating(true)
     const result = await createProductAction(householdId, {
       name: trimmed,
+      categoryId: category === ALL_CATEGORIES ? "" : category,
       measureKind: createMeasureKind,
       defaultUnit: createMeasureKind === "UNIT" ? "" : createUnit,
       pricedByWeight: createMeasureKind === "UNIT" && createPricedByWeight,
@@ -290,34 +307,36 @@ export function ProductCatalogSheet({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {(
-                  [
-                    ["UNIT", "Unidade"],
-                    ["WEIGHT", "Peso"],
-                  ] as const
-                ).map(([kind, label]) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    onClick={() => {
-                      setCreateMeasureKind(kind)
-                      if (kind === "WEIGHT") {
-                        setCreateUnit("kg")
-                        setCreatePricedByWeight(false)
-                      }
-                    }}
-                    className={cn(
-                      "rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
-                      createMeasureKind === kind
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-card",
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {isAcougueSelected && (
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["UNIT", "Unidade"],
+                      ["WEIGHT", "Peso"],
+                    ] as const
+                  ).map(([kind, label]) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => {
+                        setCreateMeasureKind(kind)
+                        if (kind === "WEIGHT") {
+                          setCreateUnit("kg")
+                          setCreatePricedByWeight(false)
+                        }
+                      }}
+                      className={cn(
+                        "rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                        createMeasureKind === kind
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {createMeasureKind === "WEIGHT" && (
                 <Input

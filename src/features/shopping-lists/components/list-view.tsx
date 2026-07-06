@@ -126,10 +126,12 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
   const checkedCount = items.filter((item) => item.checked).length
   const unpricedCheckedCount = items.filter((item) => item.checked && item.price == null).length
   const allChecked = items.length > 0 && checkedCount === items.length
-  const itemsTotal = items.reduce(
-    (sum, item) => sum + (computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0),
-    0,
-  )
+  const checkedItemsTotal = items
+    .filter((item) => item.checked)
+    .reduce(
+      (sum, item) => sum + (computeLineTotal(item.price, item.quantity, item.priceMode) ?? 0),
+      0,
+    )
 
   const inList = new Map<string, number>()
   for (const item of items) {
@@ -310,14 +312,15 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
           <Button
             variant={allChecked ? "default" : "outline"}
             className="w-full"
+            disabled={checkedCount === 0}
             onClick={() => setFinalizeOpen(true)}
           >
             <ShoppingBag className="size-4" />
             Finalizar compra
-            {itemsTotal > 0 && (
+            {checkedItemsTotal > 0 && (
               <span className="tabular-nums">
                 {" · "}
-                {formatCurrency(itemsTotal)}
+                {formatCurrency(checkedItemsTotal)}
               </span>
             )}
           </Button>
@@ -356,6 +359,7 @@ export function ListView({ list, catalog, frequent, categories, initialShare }: 
       />
       <FinalizePurchaseSheet
         listId={list.id}
+        listName={list.name}
         householdId={list.householdId}
         items={items}
         open={finalizeOpen}

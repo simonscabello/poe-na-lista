@@ -9,14 +9,14 @@ import { requireHouseholdMember } from "@/lib/permissions"
 import { computeLineTotal } from "@/lib/pricing"
 import { notifyHousehold } from "@/services/notification.service"
 import { stockPantryItems } from "@/services/pantry.service"
-import { finalizePurchase } from "@/services/purchase.service"
+import { finalizePurchase, type PendingHandling } from "@/services/purchase.service"
 import { getListDetail, getListHouseholdId } from "@/services/shopping-list.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
 
 export async function finalizePurchaseAction(
   listId: string,
   input: unknown,
-): Promise<ActionResult<{ purchaseId: string }>> {
+): Promise<ActionResult<{ purchaseId: string; pendingListId?: string; pendingListName?: string }>> {
   try {
     const householdId = await getListHouseholdId(listId)
     if (!householdId) {
@@ -30,7 +30,22 @@ export async function finalizePurchaseAction(
       throw new Error("Lista não encontrada")
     }
 
-    const items = list.items.map((item) => {
+    const checkedListItems = list.items.filter((item) => item.checked)
+    const pendingListItems = list.items.filter((item) => !item.checked)
+
+    if (checkedListItems.length === 0) {
+      throw new Error("Marque o que você comprou antes de finalizar")
+    }
+
+    if (pendingListItems.length > 0 && !values.pendingHandling) {
+      throw new Error("Informe o que fazer com os itens pendentes")
+    }
+
+    if (values.pendingHandling === "NEW_LIST" && !values.pendingListName?.trim()) {
+      throw new Error("Informe o nome da lista de pendências")
+    }
+
+    const items = checkedListItems.map((item) => {
       const totalPrice = computeLineTotal(item.price, item.quantity, item.priceMode)
       const unitPrice = item.priceMode === "TOTAL" ? null : item.price
       return {
@@ -61,6 +76,16 @@ export async function finalizePurchaseAction(
       totalAmount = values.totalAmount
     }
 
+    let pendingHandling: PendingHandling = "NONE"
+    if (pendingListItems.length > 0) {
+      pendingHandling = values.pendingHandling as PendingHandling
+    }
+
+    const pendingListName =
+      pendingHandling === "NEW_LIST"
+        ? (values.pendingListName?.trim() ?? `${list.name} · pendências`)
+        : undefined
+
     const result = await finalizePurchase({
       householdId,
       shoppingListId: listId,
@@ -70,6 +95,13 @@ export async function finalizePurchaseAction(
       storeName: values.storeName || null,
       notes: values.notes || null,
       items,
+      listCleanup: {
+        checkedItemIds: checkedListItems.map((item) => item.id),
+        pendingItemIds: pendingListItems.map((item) => item.id),
+        pendingHandling,
+        pendingListName,
+        listName: list.name,
+      },
     })
 
     await notifyHousehold({
@@ -86,7 +118,15 @@ export async function finalizePurchaseAction(
     revalidatePath("/dashboard/lists")
     revalidatePath(`/dashboard/lists/${listId}`)
     revalidatePath("/dashboard/expenses")
-    return actionOk(result)
+    if (result.pendingListId) {
+      revalidatePath(`/dashboard/lists/${result.pendingListId}`)
+    }
+
+    return actionOk({
+      purchaseId: result.purchaseId,
+      pendingListId: result.pendingListId,
+      pendingListName,
+    })
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

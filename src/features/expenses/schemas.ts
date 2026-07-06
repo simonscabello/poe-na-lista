@@ -5,6 +5,8 @@ export const finalizePurchaseSchema = z.object({
   purchasedAt: z.string().min(1, "Informe a data"),
   storeName: z.string().trim().max(80).optional().or(z.literal("")),
   notes: z.string().trim().max(300).optional().or(z.literal("")),
+  pendingHandling: z.enum(["NEW_LIST", "KEEP_IN_LIST"]).optional(),
+  pendingListName: z.string().trim().min(1, "Informe o nome da lista").max(80).optional(),
 })
 
 export const stockPantrySchema = z.object({
