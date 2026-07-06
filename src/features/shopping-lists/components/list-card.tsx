@@ -42,6 +42,9 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
   const pendingItems = list.totalItems - list.checkedItems
   const allDone = list.totalItems > 0 && pendingItems === 0
   const isCompleted = list.status === "COMPLETED"
+  const progressPercent =
+    list.totalItems > 0 ? Math.round((list.checkedItems / list.totalItems) * 100) : 0
+  const showProgress = !isCompleted && list.totalItems > 0
 
   function openList() {
     router.push(`/dashboard/lists/${list.id}`)
@@ -124,12 +127,37 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
       <div className="pointer-events-none relative z-[1] mt-2 flex flex-wrap items-center gap-2">
         <StatusBadge
           allDone={allDone}
+          totalItems={list.totalItems}
           pendingItems={pendingItems}
           isCompleted={isCompleted}
           unpricedCheckedItems={list.unpricedCheckedItems}
           purchaseCount={list.purchaseCount}
         />
       </div>
+
+      {showProgress && (
+        <div className="pointer-events-none relative z-[1] mt-3 space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-medium tabular-nums">
+            <span>
+              {list.checkedItems} de {list.totalItems} {list.totalItems === 1 ? "item" : "itens"}
+            </span>
+            <span className="opacity-90">{progressPercent}%</span>
+          </div>
+          <div
+            className="h-1.5 overflow-hidden rounded-full bg-primary-foreground/20"
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Progresso da compra da lista ${list.name}`}
+          >
+            <div
+              className="h-full rounded-full bg-primary-foreground transition-[width] duration-[var(--duration-fast)]"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="relative z-[1] mt-4 flex items-center justify-between gap-2">
         <div className="pointer-events-none">
@@ -160,12 +188,14 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
 
 function StatusBadge({
   allDone,
+  totalItems,
   pendingItems,
   isCompleted,
   unpricedCheckedItems,
   purchaseCount,
 }: {
   allDone: boolean
+  totalItems: number
   pendingItems: number
   isCompleted: boolean
   unpricedCheckedItems: number
@@ -180,22 +210,16 @@ function StatusBadge({
           <Check className="size-3.5" />
           Finalizada
         </span>
-      ) : hasPartialPurchase ? (
-        <span className="inline-flex items-center rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium tabular-nums">
-          {pendingItems} {pendingItems === 1 ? "restante" : "restantes"}
+      ) : totalItems === 0 ? (
+        <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium">
+          Lista vazia
         </span>
       ) : allDone ? (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1 text-xs font-medium">
           <Check className="size-3.5" />
           Tudo certo
         </span>
-      ) : (
-        <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium tabular-nums">
-          {pendingItems === 0
-            ? "Lista vazia"
-            : `${pendingItems} ${pendingItems === 1 ? "item" : "itens"}`}
-        </span>
-      )}
+      ) : null}
 
       {hasPartialPurchase && (
         <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium">
