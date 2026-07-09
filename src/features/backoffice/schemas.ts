@@ -49,3 +49,31 @@ export const adminProductSchema = z
 
 export type AdminProductInput = z.input<typeof adminProductSchema>
 export type AdminProductValues = z.output<typeof adminProductSchema>
+
+export const mergeProductSchema = z.object({
+  targetId: z.string().trim().min(1, "Selecione um produto global"),
+})
+
+export type MergeProductValues = z.infer<typeof mergeProductSchema>
+
+export const globalStoreSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Nome deve ter pelo menos 2 caracteres")
+    .max(60, "Nome deve ter no máximo 60 caracteres"),
+  active: z.boolean().default(true),
+})
+
+export type GlobalStoreInput = z.input<typeof globalStoreSchema>
+export type GlobalStoreValues = z.output<typeof globalStoreSchema>
+
+export const renameHouseholdStoreSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Nome deve ter pelo menos 2 caracteres")
+    .max(60, "Nome deve ter no máximo 60 caracteres"),
+})
+
+export type RenameHouseholdStoreValues = z.infer<typeof renameHouseholdStoreSchema>

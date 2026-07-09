@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { adminProductSchema } from "@/features/backoffice/schemas"
+import { adminProductSchema, mergeProductSchema } from "@/features/backoffice/schemas"
 import { createProductSchema } from "@/features/products/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireAdmin, requireHouseholdMember } from "@/lib/permissions"
@@ -9,6 +9,8 @@ import {
   createAdminProduct,
   createHouseholdProduct,
   deleteProduct,
+  mergeProductIntoGlobal,
+  promoteProductToGlobal,
   toggleProductActive,
   updateProduct,
 } from "@/services/product.service"
@@ -76,6 +78,7 @@ export async function updateProductAction(
       active: values.active,
     })
     revalidatePath("/backoffice/products")
+    revalidatePath("/backoffice/moderation")
     return actionOk(product)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
@@ -90,6 +93,7 @@ export async function toggleProductActiveAction(
     await requireAdmin()
     const product = await toggleProductActive(id, active)
     revalidatePath("/backoffice/products")
+    revalidatePath("/backoffice/moderation")
     return actionOk(product)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
@@ -103,6 +107,35 @@ export async function deleteProductAction(
     await requireAdmin()
     const result = await deleteProduct(id)
     revalidatePath("/backoffice/products")
+    revalidatePath("/backoffice/moderation")
+    return actionOk(result)
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+export async function promoteProductAction(id: string): Promise<ActionResult<AdminProductDTO>> {
+  try {
+    await requireAdmin()
+    const product = await promoteProductToGlobal(id)
+    revalidatePath("/backoffice/products")
+    revalidatePath("/backoffice/moderation")
+    return actionOk(product)
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+export async function mergeProductAction(
+  sourceId: string,
+  input: unknown,
+): Promise<ActionResult<{ merged: true; itemsMoved: number }>> {
+  try {
+    await requireAdmin()
+    const { targetId } = mergeProductSchema.parse(input)
+    const result = await mergeProductIntoGlobal(sourceId, targetId)
+    revalidatePath("/backoffice/products")
+    revalidatePath("/backoffice/moderation")
     return actionOk(result)
   } catch (error) {
     return actionError(getActionErrorMessage(error))

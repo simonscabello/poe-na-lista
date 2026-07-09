@@ -331,6 +331,18 @@ model Store {
   @@index([householdId])
 }
 
+model GlobalStore {
+  id             String  @id @default(cuid())
+  name           String
+  normalizedName String  @unique
+  active         Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
 model PurchaseItem {
   id          String   @id @default(cuid())
   purchaseId  String

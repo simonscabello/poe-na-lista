@@ -1,11 +1,10 @@
 import type { Prisma } from "@/generated/prisma/client"
+import { normalizeStoreName } from "@/lib/normalize-store-name"
 import { prisma } from "@/lib/prisma"
+import { getActiveGlobalStoreByNormalizedName } from "@/services/global-store.service"
 import type { StoreDTO } from "@/types/domain"
 
-/** Normaliza o nome para deduplicar mercados ("Carrefour " e "carrefour" viram o mesmo). */
-export function normalizeStoreName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ")
-}
+export { normalizeStoreName } from "@/lib/normalize-store-name"
 
 export async function getHouseholdStores(householdId: string): Promise<StoreDTO[]> {
   const stores = await prisma.store.findMany({
@@ -37,8 +36,11 @@ export async function findOrCreateStore(
     return { id: existing.id, name: existing.name }
   }
 
+  const globalStore = await getActiveGlobalStoreByNormalizedName(normalizedName)
+  const displayName = globalStore?.name ?? trimmed
+
   const created = await tx.store.create({
-    data: { householdId, name: trimmed, normalizedName },
+    data: { householdId, name: displayName, normalizedName },
     select: { id: true, name: true },
   })
   return { id: created.id, name: created.name }

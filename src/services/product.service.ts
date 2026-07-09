@@ -3,7 +3,14 @@ import type { MeasureKind } from "@/generated/prisma/enums"
 import { ACOUGUE_CATEGORY_SLUG } from "@/lib/measure"
 import { prisma } from "@/lib/prisma"
 import { slugify } from "@/lib/slugify"
-import type { AdminProductDTO, AdminProductsPageDTO, CategoryDTO, ProductDTO } from "@/types/domain"
+import type {
+  AdminModerationProductDTO,
+  AdminModerationProductsPageDTO,
+  AdminProductDTO,
+  AdminProductsPageDTO,
+  CategoryDTO,
+  ProductDTO,
+} from "@/types/domain"
 
 const withCategory = { include: { category: true } } satisfies Prisma.ProductDefaultArgs
 
@@ -334,4 +341,185 @@ export async function deleteProduct(id: string): Promise<{ softDeleted: boolean 
 
   await prisma.product.delete({ where: { id } })
   return { softDeleted: false }
+}
+
+const adminModerationProductSelect = {
+  ...adminProductSelect,
+  createdAt: true,
+  createdBy: { select: { name: true, email: true } },
+} satisfies Prisma.ProductSelect
+
+type AdminModerationProductRow = Prisma.ProductGetPayload<{
+  select: typeof adminModerationProductSelect
+}>
+
+function toAdminModerationProductDTO(
+  product: AdminModerationProductRow,
+): AdminModerationProductDTO {
+  const usageCount =
+    product._count.items + product._count.pantryItems + product._count.purchaseItems
+
+  return {
+    ...toAdminProductDTO(product),
+    createdAt: product.createdAt.toISOString(),
+    creatorName: product.createdBy?.name ?? null,
+    creatorEmail: product.createdBy?.email ?? null,
+    usageCount,
+  }
+}
+
+export async function getAdminModerationProducts({
+  search,
+  page = 1,
+  pageSize = ADMIN_PRODUCTS_PAGE_SIZE,
+  categoryId,
+}: {
+  search?: string
+  page?: number
+  pageSize?: number
+  categoryId?: string
+} = {}): Promise<AdminModerationProductsPageDTO> {
+  const trimmedSearch = search?.trim()
+
+  const where: Prisma.ProductWhereInput = {
+    isGlobal: false,
+    ...(trimmedSearch ? { name: { contains: trimmedSearch } } : {}),
+    ...(categoryId ? { categoryId } : {}),
+  }
+
+  const skip = (page - 1) * pageSize
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+      select: adminModerationProductSelect,
+    }),
+    prisma.product.count({ where }),
+  ])
+
+  return {
+    products: products.map(toAdminModerationProductDTO),
+    total,
+    page,
+    pageSize,
+  }
+}
+
+export async function promoteProductToGlobal(id: string): Promise<AdminProductDTO> {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { id: true, slug: true, isGlobal: true },
+  })
+
+  if (!product) {
+    throw new Error("Produto não encontrado")
+  }
+
+  if (product.isGlobal) {
+    throw new Error("Este produto já faz parte do catálogo global")
+  }
+
+  const slugConflict = await prisma.product.findFirst({
+    where: {
+      isGlobal: true,
+      householdId: null,
+      slug: product.slug,
+      NOT: { id: product.id },
+    },
+    select: { id: true },
+  })
+
+  if (slugConflict) {
+    throw new Error(
+      "Já existe um produto global com nome similar. Mescle ou renomeie antes de promover.",
+    )
+  }
+
+  const updated = await prisma.product.update({
+    where: { id },
+    data: { isGlobal: true, householdId: null, active: true },
+    select: adminProductSelect,
+  })
+
+  return toAdminProductDTO(updated)
+}
+
+export async function mergeProductIntoGlobal(
+  sourceId: string,
+  targetId: string,
+): Promise<{ merged: true; itemsMoved: number }> {
+  if (sourceId === targetId) {
+    throw new Error("Selecione um produto global diferente")
+  }
+
+  const [source, target] = await Promise.all([
+    prisma.product.findUnique({
+      where: { id: sourceId },
+      select: { id: true, isGlobal: true },
+    }),
+    prisma.product.findUnique({
+      where: { id: targetId },
+      select: { id: true, isGlobal: true },
+    }),
+  ])
+
+  if (!source || !target) {
+    throw new Error("Produto não encontrado")
+  }
+
+  if (!target.isGlobal) {
+    throw new Error("O destino deve ser um produto global do catálogo oficial")
+  }
+
+  if (source.isGlobal) {
+    throw new Error("Use esta ação apenas para produtos criados por grupos")
+  }
+
+  const itemsMoved = await prisma.$transaction(async (tx) => {
+    const listItems = await tx.shoppingListItem.updateMany({
+      where: { productId: sourceId },
+      data: { productId: targetId },
+    })
+
+    const purchaseItems = await tx.purchaseItem.updateMany({
+      where: { productId: sourceId },
+      data: { productId: targetId },
+    })
+
+    const sourcePantryItems = await tx.pantryItem.findMany({
+      where: { productId: sourceId },
+    })
+
+    let pantryMoved = 0
+    for (const item of sourcePantryItems) {
+      const existing = await tx.pantryItem.findUnique({
+        where: {
+          householdId_productId: { householdId: item.householdId, productId: targetId },
+        },
+      })
+
+      if (existing) {
+        await tx.pantryItem.update({
+          where: { id: existing.id },
+          data: { quantity: existing.quantity.add(item.quantity) },
+        })
+        await tx.pantryItem.delete({ where: { id: item.id } })
+      } else {
+        await tx.pantryItem.update({
+          where: { id: item.id },
+          data: { productId: targetId },
+        })
+      }
+      pantryMoved += 1
+    }
+
+    await tx.product.delete({ where: { id: sourceId } })
+
+    return listItems.count + purchaseItems.count + pantryMoved
+  })
+
+  return { merged: true, itemsMoved }
 }

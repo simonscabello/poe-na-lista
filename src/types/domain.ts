@@ -278,3 +278,49 @@ export type AdminProductsPageDTO = {
   page: number
   pageSize: number
 }
+
+export type AdminModerationProductDTO = AdminProductDTO & {
+  createdAt: string
+  creatorName: string | null
+  creatorEmail: string | null
+  usageCount: number
+}
+
+export type AdminModerationProductsPageDTO = {
+  products: AdminModerationProductDTO[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export type AdminGlobalStoreDTO = {
+  id: string
+  name: string
+  normalizedName: string
+  active: boolean
+  householdUsageCount: number
+}
+
+export type AdminGlobalStoresPageDTO = {
+  stores: AdminGlobalStoreDTO[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export type AdminHouseholdStoreDTO = {
+  id: string
+  name: string
+  normalizedName: string
+  householdId: string
+  householdName: string
+  purchaseCount: number
+  matchesGlobalStore: boolean
+}
+
+export type AdminHouseholdStoresPageDTO = {
+  stores: AdminHouseholdStoreDTO[]
+  total: number
+  page: number
+  pageSize: number
+}
