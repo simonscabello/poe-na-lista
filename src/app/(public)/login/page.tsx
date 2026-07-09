@@ -1,6 +1,6 @@
+import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { AppLogo } from "@/components/common/app-logo"
-import { LinkButton } from "@/components/common/link-button"
 import { Container } from "@/components/layout/container"
 import {
   Card,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { auth, signIn } from "@/lib/auth"
+import { resolveAuthRedirectUrl } from "@/lib/auth-redirect"
 import { GoogleSignInButton } from "./google-sign-in-button"
 
 type LoginPageProps = {
@@ -29,23 +30,10 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
 async function LoginContent({ searchParams }: LoginPageProps) {
   const session = await auth()
   const { callbackUrl } = await searchParams
+  const redirectTo = resolveAuthRedirectUrl(callbackUrl)
 
   if (session?.user) {
-    return (
-      <Container className="flex min-h-[calc(100vh-3.5rem)] items-center py-10">
-        <Card className="mx-auto w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Você já está autenticado</CardTitle>
-            <CardDescription>Acesse o dashboard para continuar.</CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <LinkButton className="w-full" href={callbackUrl ?? "/dashboard"}>
-              Ir para o dashboard
-            </LinkButton>
-          </CardFooter>
-        </Card>
-      </Container>
-    )
+    redirect(redirectTo)
   }
 
   return (
@@ -66,7 +54,7 @@ async function LoginContent({ searchParams }: LoginPageProps) {
             className="w-full"
             action={async () => {
               "use server"
-              await signIn("google", { redirectTo: callbackUrl ?? "/dashboard" })
+              await signIn("google", { redirectTo })
             }}
           >
             <GoogleSignInButton />

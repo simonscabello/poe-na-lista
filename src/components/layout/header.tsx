@@ -1,7 +1,11 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { AppLogo } from "@/components/common/app-logo"
-import { LinkButton } from "@/components/common/link-button"
 import { Container } from "@/components/layout/container"
+import {
+  HeaderAuthActions,
+  HeaderAuthActionsFallback,
+} from "@/components/layout/header-auth-actions"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 
 type HeaderProps = {
@@ -20,14 +24,9 @@ export function Header({ showAuthActions = true }: HeaderProps) {
         <div className="flex items-center gap-1">
           <ThemeToggle />
           {showAuthActions && (
-            <>
-              <LinkButton variant="ghost" size="sm" href="/login">
-                Entrar
-              </LinkButton>
-              <LinkButton size="sm" className="hidden sm:inline-flex" href="/dashboard">
-                Dashboard
-              </LinkButton>
-            </>
+            <Suspense fallback={<HeaderAuthActionsFallback />}>
+              <HeaderAuthActions />
+            </Suspense>
           )}
         </div>
       </Container>

@@ -1,10 +1,18 @@
 import { ArrowRight, ListChecks, Users } from "lucide-react"
+import { redirect } from "next/navigation"
 import { AppLogo } from "@/components/common/app-logo"
 import { LinkButton } from "@/components/common/link-button"
 import { Container } from "@/components/layout/container"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { auth } from "@/lib/auth"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth()
+
+  if (session?.user) {
+    redirect("/dashboard")
+  }
+
   return (
     <Container className="py-10 sm:py-16">
       <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">

@@ -4,7 +4,7 @@ import { appManifestIcons } from "@/lib/app-icons"
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Põe na Lista",
-    short_name: "Põe Lista",
+    short_name: "Põe na Lista",
     description: "Organize suas compras em grupo com quem você quiser",
     start_url: "/",
     scope: "/",
