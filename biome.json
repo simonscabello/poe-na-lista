@@ -7,7 +7,15 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!src/generated", "!public/*.svg", "!public/sw.js"]
+    "includes": [
+      "**",
+      "!src/generated",
+      "!public/*.svg",
+      "!public/sw.js",
+      "!.claude",
+      "!.cursor/skills",
+      "!coverage"
+    ]
   },
   "formatter": {
     "enabled": true,

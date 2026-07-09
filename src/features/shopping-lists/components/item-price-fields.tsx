@@ -69,7 +69,7 @@ export function ItemPriceFields({
               : "text-muted-foreground",
           )}
         >
-          total
+          valor total
         </button>
       </div>
 

@@ -1,10 +1,6 @@
 "use client"
 
 import { ListPlus, MoreVertical, PackageX, Pencil, Trash2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useTransition } from "react"
-import { toast } from "sonner"
-import { removePantryItemAction, setPantryItemQuantityAction } from "@/actions/pantry.actions"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,35 +21,17 @@ type PantryItemRowProps = {
   item: PantryItemDTO
   onEdit: (item: PantryItemDTO) => void
   onAddToList: (item: PantryItemDTO) => void
+  onChangeQuantity: (item: PantryItemDTO, nextQuantity: number) => void
+  onRemove: (item: PantryItemDTO) => void
 }
 
-export function PantryItemRow({ item, onEdit, onAddToList }: PantryItemRowProps) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-
-  function changeQuantity(next: number) {
-    startTransition(async () => {
-      const result = await setPantryItemQuantityAction(item.id, Math.max(0, next))
-      if (!result.success) {
-        toast.error(result.error)
-        return
-      }
-      router.refresh()
-    })
-  }
-
-  function remove() {
-    startTransition(async () => {
-      const result = await removePantryItemAction(item.id)
-      if (!result.success) {
-        toast.error(result.error)
-        return
-      }
-      toast.success("Item removido da despensa")
-      router.refresh()
-    })
-  }
-
+export function PantryItemRow({
+  item,
+  onEdit,
+  onAddToList,
+  onChangeQuantity,
+  onRemove,
+}: PantryItemRowProps) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-xl">
@@ -76,19 +54,14 @@ export function PantryItemRow({ item, onEdit, onAddToList }: PantryItemRowProps)
           count={Number(formatQuantity(item.quantity))}
           name={item.productName}
           size="md"
-          onAdd={() => changeQuantity(item.quantity + 1)}
-          onRemove={() => changeQuantity(item.quantity - 1)}
+          onAdd={() => onChangeQuantity(item, item.quantity + 1)}
+          onRemove={() => onChangeQuantity(item, item.quantity - 1)}
         />
 
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Opções do item"
-                disabled={isPending}
-              >
+              <Button variant="ghost" size="icon-sm" aria-label="Opções do item">
                 <MoreVertical className="size-4" />
               </Button>
             }
@@ -103,12 +76,12 @@ export function PantryItemRow({ item, onEdit, onAddToList }: PantryItemRowProps)
               Editar
             </DropdownMenuItem>
             {item.quantity > 0 && (
-              <DropdownMenuItem onClick={() => changeQuantity(0)}>
+              <DropdownMenuItem onClick={() => onChangeQuantity(item, 0)}>
                 <PackageX className="size-4" />
                 Marcar como acabou
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem variant="destructive" onClick={remove}>
+            <DropdownMenuItem variant="destructive" onClick={() => onRemove(item)}>
               <Trash2 className="size-4" />
               Remover
             </DropdownMenuItem>

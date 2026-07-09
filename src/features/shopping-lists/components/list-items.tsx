@@ -439,7 +439,7 @@ function PriceOnlyItemRow({
 }: PriceOnlyItemRowProps) {
   const measure = getMeasureConfigForItem(product, item.unit)
   const unitLabel = item.unit || "un"
-  const priceLabel = item.priceMode === "TOTAL" ? "preço total" : measure.pricePlaceholder
+  const priceLabel = item.priceMode === "TOTAL" ? "valor total" : measure.pricePlaceholder
   const lineTotal = computeLineTotal(item.price, item.quantity, item.priceMode)
   const missingPrice = item.checked && item.price == null
 

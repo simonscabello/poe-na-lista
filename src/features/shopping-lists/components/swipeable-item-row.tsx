@@ -48,7 +48,10 @@ export function SwipeableItemRow({
 
   const measure = getMeasureConfigForItem(product, item.unit)
   const unitLabel = item.unit || "un"
-  const priceLabel = item.priceMode === "TOTAL" ? "preço total" : measure.pricePlaceholder
+  const priceLabel = item.priceMode === "TOTAL" ? "valor total" : measure.pricePlaceholder
+  // Preço só aparece quando o item foi marcado (ou já tem preço), mantendo a
+  // linha enxuta para quem só quer riscar itens durante a compra.
+  const showPriceFields = item.checked || item.price != null
 
   useEffect(() => {
     if (item.checked && !wasChecked.current) {
@@ -217,16 +220,18 @@ export function SwipeableItemRow({
           )}
         </div>
 
-        <ItemPriceFields
-          item={item}
-          unitLabel={unitLabel}
-          priceLabel={priceLabel}
-          onChangePrice={onChangePrice}
-          onChangePriceMode={onChangePriceMode}
-          priceInputRef={priceRef}
-          onPointerDown={(event) => event.stopPropagation()}
-          className="pl-9"
-        />
+        {showPriceFields && (
+          <ItemPriceFields
+            item={item}
+            unitLabel={unitLabel}
+            priceLabel={priceLabel}
+            onChangePrice={onChangePrice}
+            onChangePriceMode={onChangePriceMode}
+            priceInputRef={priceRef}
+            onPointerDown={(event) => event.stopPropagation()}
+            className="pl-9"
+          />
+        )}
       </div>
     </li>
   )

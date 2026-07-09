@@ -1,7 +1,14 @@
 "use client"
 
 import { Package, Plus, Search } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useMemo, useOptimistic, useState, useTransition } from "react"
+import { toast } from "sonner"
+import {
+  addPantryItemAction,
+  removePantryItemAction,
+  setPantryItemQuantityAction,
+} from "@/actions/pantry.actions"
 import { EmptyState } from "@/components/common/empty-state"
 import { HorizontalScrollArea } from "@/components/common/horizontal-scroll-area"
 import { Button } from "@/components/ui/button"
@@ -11,8 +18,37 @@ import { AddToListSheet } from "@/features/pantry/components/add-to-list-sheet"
 import { EditPantryItemDialog } from "@/features/pantry/components/edit-pantry-item-dialog"
 import { PantryItemRow } from "@/features/pantry/components/pantry-item-row"
 import { ALL_CATEGORIES } from "@/lib/categories"
+import { computePantryStatus } from "@/lib/pantry-status"
 import { cn } from "@/lib/utils"
 import type { CategoryDTO, PantryItemDTO, PantryItemStatus, ProductDTO } from "@/types/domain"
+
+type PantryOptimisticAction =
+  | { type: "setQty"; id: string; quantity: number }
+  | { type: "remove"; id: string }
+  | { type: "restore"; item: PantryItemDTO }
+
+function reducer(state: PantryItemDTO[], action: PantryOptimisticAction): PantryItemDTO[] {
+  switch (action.type) {
+    case "setQty":
+      return state.map((item) =>
+        item.id === action.id
+          ? {
+              ...item,
+              quantity: action.quantity,
+              status: computePantryStatus(
+                action.quantity,
+                item.minimumQuantity,
+                item.expirationDate,
+              ),
+            }
+          : item,
+      )
+    case "remove":
+      return state.filter((item) => item.id !== action.id)
+    case "restore":
+      return state.some((item) => item.id === action.item.id) ? state : [...state, action.item]
+  }
+}
 
 export type ShoppingListOption = { id: string; name: string }
 
@@ -45,6 +81,9 @@ type PantryViewProps = {
 }
 
 export function PantryView({ householdId, items, catalog, categories, lists }: PantryViewProps) {
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+  const [optimisticItems, applyOptimistic] = useOptimistic(items, reducer)
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<StatusFilter>("all")
   const [category, setCategory] = useState<string>(ALL_CATEGORIES)
@@ -52,20 +91,67 @@ export function PantryView({ householdId, items, catalog, categories, lists }: P
   const [editItem, setEditItem] = useState<PantryItemDTO | null>(null)
   const [addToListItem, setAddToListItem] = useState<PantryItemDTO | null>(null)
 
+  function changeQuantity(item: PantryItemDTO, nextQuantity: number) {
+    const quantity = Math.max(0, nextQuantity)
+    startTransition(async () => {
+      applyOptimistic({ type: "setQty", id: item.id, quantity })
+      const result = await setPantryItemQuantityAction(item.id, quantity)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  function remove(item: PantryItemDTO) {
+    startTransition(async () => {
+      applyOptimistic({ type: "remove", id: item.id })
+      const result = await removePantryItemAction(item.id)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast(`${item.productName} removido da despensa`, {
+        action: { label: "Desfazer", onClick: () => restore(item) },
+      })
+      router.refresh()
+    })
+  }
+
+  /** Desfaz uma remoção recriando o item com os mesmos dados. */
+  function restore(item: PantryItemDTO) {
+    startTransition(async () => {
+      applyOptimistic({ type: "restore", item })
+      const result = await addPantryItemAction(householdId, {
+        productId: item.productId,
+        quantity: item.quantity,
+        minimumQuantity: item.minimumQuantity,
+        unit: item.unit ?? "",
+        expirationDate: item.expirationDate ?? "",
+      })
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      router.refresh()
+    })
+  }
+
   const usedCategories = useMemo(() => {
-    const ids = new Set(items.map((item) => item.categoryId).filter(Boolean))
+    const ids = new Set(optimisticItems.map((item) => item.categoryId).filter(Boolean))
     return categories.filter((cat) => ids.has(cat.id))
-  }, [items, categories])
+  }, [optimisticItems, categories])
 
   const filtered = useMemo(() => {
     const q = normalize(query)
-    return items.filter((item) => {
+    return optimisticItems.filter((item) => {
       if (status !== "all" && item.status !== status) return false
       if (category !== ALL_CATEGORIES && item.categoryId !== category) return false
       if (q && !normalize(item.productName).includes(q)) return false
       return true
     })
-  }, [items, query, status, category])
+  }, [optimisticItems, query, status, category])
 
   const grouped = useMemo(() => {
     const groups = new Map<string, PantryItemDTO[]>()
@@ -95,7 +181,7 @@ export function PantryView({ householdId, items, catalog, categories, lists }: P
         </Button>
       </div>
 
-      {items.length === 0 ? (
+      {optimisticItems.length === 0 ? (
         <EmptyState
           icon={Package}
           title="Sua despensa está vazia"
@@ -167,6 +253,8 @@ export function PantryView({ householdId, items, catalog, categories, lists }: P
                         item={item}
                         onEdit={setEditItem}
                         onAddToList={setAddToListItem}
+                        onChangeQuantity={changeQuantity}
+                        onRemove={remove}
                       />
                     ))}
                   </div>

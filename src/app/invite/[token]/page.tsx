@@ -55,8 +55,8 @@ async function InviteContent({ token }: { token: string }) {
 
         {isInvalid ? (
           <CardFooter>
-            <LinkButton href="/dashboard" variant="outline" className="w-full">
-              Ir para o dashboard
+            <LinkButton href="/dashboard/lists" variant="outline" className="w-full">
+              Ir para minhas listas
             </LinkButton>
           </CardFooter>
         ) : (

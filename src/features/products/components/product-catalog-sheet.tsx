@@ -64,6 +64,7 @@ export function ProductCatalogSheet({
   const [createMeasureKind, setCreateMeasureKind] = useState<"UNIT" | "WEIGHT">("UNIT")
   const [createUnit, setCreateUnit] = useState("kg")
   const [createPricedByWeight, setCreatePricedByWeight] = useState(false)
+  const [createCategoryId, setCreateCategoryId] = useState<string | null>(null)
 
   // Reset transient state each time the sheet opens so it always starts fresh.
   useEffect(() => {
@@ -72,6 +73,7 @@ export function ProductCatalogSheet({
       setCategory(ALL_CATEGORIES)
       setCreateMeasureKind("UNIT")
       setCreatePricedByWeight(false)
+      setCreateCategoryId(null)
     }
   }, [open])
 
@@ -79,9 +81,13 @@ export function ProductCatalogSheet({
     () => categories.find((c) => c.slug === ACOUGUE_CATEGORY_SLUG)?.id ?? null,
     [categories],
   )
-  // Peso (kg) só faz sentido para Açougue — navegar para outra categoria
-  // enquanto o cartão de criação está aberto invalida a escolha anterior.
-  const isAcougueSelected = category === acougueCategoryId
+  // Categoria do produto criado: a categoria navegada vence; em "Todos"
+  // (caso comum, já que a busca é global) vale a escolhida no cartão de criação.
+  const effectiveCreateCategoryId = category !== ALL_CATEGORIES ? category : createCategoryId
+  // Peso (kg) só faz sentido para Açougue — trocar de categoria enquanto o
+  // cartão de criação está aberto invalida a escolha anterior.
+  const isAcougueSelected =
+    effectiveCreateCategoryId != null && effectiveCreateCategoryId === acougueCategoryId
   useEffect(() => {
     if (!isAcougueSelected) setCreateMeasureKind("UNIT")
   }, [isAcougueSelected])
@@ -156,7 +162,7 @@ export function ProductCatalogSheet({
     setIsCreating(true)
     const result = await createProductAction(householdId, {
       name: trimmed,
-      categoryId: category === ALL_CATEGORIES ? "" : category,
+      categoryId: effectiveCreateCategoryId ?? "",
       measureKind: createMeasureKind,
       defaultUnit: createMeasureKind === "UNIT" ? "" : createUnit,
       pricedByWeight: createMeasureKind === "UNIT" && createPricedByWeight,
@@ -168,6 +174,7 @@ export function ProductCatalogSheet({
     }
     setCreated((prev) => [result.data, ...prev])
     setQuery("")
+    setCreateCategoryId(null)
     handleAdd(result.data)
   }
 
@@ -306,6 +313,37 @@ export function ProductCatalogSheet({
                   </span>
                 </span>
               </div>
+
+              {category === ALL_CATEGORIES && categories.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="block text-xs font-medium text-muted-foreground">Categoria</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categories.map((item) => {
+                      const selected = createCategoryId === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setCreateCategoryId(selected ? null : item.id)}
+                          className={cn(
+                            "rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition-colors",
+                            selected
+                              ? "bg-primary/10 text-primary ring-primary"
+                              : "text-muted-foreground ring-border hover:bg-muted/50",
+                          )}
+                        >
+                          {item.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {createCategoryId == null && (
+                    <p className="text-xs text-muted-foreground">
+                      Sem categoria, o produto vai para "Outros".
+                    </p>
+                  )}
+                </div>
+              )}
 
               {isAcougueSelected && (
                 <div className="grid grid-cols-2 gap-2">

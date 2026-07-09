@@ -5,16 +5,8 @@ import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { deleteListAction, duplicateListAction } from "@/actions/shopping-list.actions"
+import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -166,22 +158,14 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
         {canInvite && <ListCardInviteButton householdId={householdId} />}
       </div>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir lista</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir "{list.name}"? Essa ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
-            <Button variant="destructive" disabled={isPending} onClick={handleDelete}>
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Excluir lista"
+        description={`Tem certeza que deseja excluir "${list.name}"? Essa ação não pode ser desfeita.`}
+        pending={isPending}
+        onConfirm={handleDelete}
+      />
     </article>
   )
 }

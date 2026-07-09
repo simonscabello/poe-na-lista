@@ -11,6 +11,7 @@ import {
   duplicateListAction,
   renameListAction,
 } from "@/actions/shopping-list.actions"
+import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -42,6 +43,7 @@ type ListHeaderProps = {
 export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
   const router = useRouter()
   const [renameOpen, setRenameOpen] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const form = useForm<ShoppingListNameValues>({
     resolver: zodResolver(shoppingListNameSchema),
@@ -66,8 +68,9 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
         toast.error(result.error)
         return
       }
+      setConfirmDeleteOpen(false)
       toast.success("Lista excluída")
-      router.push("/dashboard")
+      router.push("/dashboard/lists")
     })
   }
 
@@ -89,7 +92,7 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
         variant="ghost"
         size="icon-sm"
         aria-label="Voltar"
-        onClick={() => router.push("/dashboard")}
+        onClick={() => router.push("/dashboard/lists")}
       >
         <ArrowLeft className="size-4" />
       </Button>
@@ -119,7 +122,11 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
               <Copy className="size-4" />
               Duplicar
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" disabled={isPending} onClick={handleDelete}>
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={isPending}
+              onClick={() => setConfirmDeleteOpen(true)}
+            >
               <Trash2 className="size-4" />
               Excluir
             </DropdownMenuItem>
@@ -152,6 +159,15 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Excluir lista"
+        description={`Tem certeza que deseja excluir "${name}"? Essa ação não pode ser desfeita.`}
+        pending={isPending}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

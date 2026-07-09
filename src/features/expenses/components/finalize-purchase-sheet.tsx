@@ -63,6 +63,9 @@ export function FinalizePurchaseSheet({
   const [storeName, setStoreName] = useState("")
   const [notes, setNotes] = useState("")
   const [purchasedItemsSnapshot, setPurchasedItemsSnapshot] = useState<ShoppingListItemDTO[]>([])
+  // Para onde ir ao fechar o fluxo: lista de pendências, home de listas ou
+  // null para permanecer na lista atual (compra parcial).
+  const [postFinalizeDestination, setPostFinalizeDestination] = useState<string | null>(null)
   const [pantrySelection, setPantrySelection] = useState<Set<string>>(
     () => new Set(checkedItems.map((item) => item.productId)),
   )
@@ -92,6 +95,7 @@ export function FinalizePurchaseSheet({
     setPendingListName(`${listName} · pendências`)
     setPendingHandling("NEW_LIST")
     setPurchasedItemsSnapshot([])
+    setPostFinalizeDestination(null)
     setManualTotal(null)
     setPurchasedAt(localDateString())
     setStoreName("")
@@ -131,14 +135,29 @@ export function FinalizePurchaseSheet({
         return
       }
 
+      const viewPurchase = {
+        label: "Ver em Gastos",
+        onClick: () => router.push(`/dashboard/expenses/${result.data.purchaseId}`),
+      }
+
       if (result.data.pendingListName) {
-        toast.success(`Compra registrada · pendências em ${result.data.pendingListName}`)
+        toast.success(`Compra registrada · pendências em ${result.data.pendingListName}`, {
+          action: viewPurchase,
+        })
+        setPostFinalizeDestination(
+          result.data.pendingListId ? `/dashboard/lists/${result.data.pendingListId}` : null,
+        )
       } else if (hasPending && pendingHandling === "KEEP_IN_LIST") {
         toast.success(
           `Compra registrada · ${pendingItems.length} ${pendingItems.length === 1 ? "item restante" : "itens restantes"} na lista`,
+          { action: viewPurchase },
         )
+        // Compra parcial: a lista continua ativa, então o usuário permanece nela.
+        setPostFinalizeDestination(null)
       } else {
-        toast.success("Compra registrada")
+        toast.success("Compra registrada", { action: viewPurchase })
+        // Com itens sem preço (pesados no caixa), permanece na lista para preenchê-los.
+        setPostFinalizeDestination(allPriced ? "/dashboard/lists" : null)
       }
 
       setPurchasedItemsSnapshot(checkedItems)
@@ -173,7 +192,9 @@ export function FinalizePurchaseSheet({
 
   function finishFlow() {
     onOpenChange(false)
-    router.push("/dashboard/expenses")
+    if (postFinalizeDestination) {
+      router.push(postFinalizeDestination)
+    }
   }
 
   function togglePantryItem(productId: string) {

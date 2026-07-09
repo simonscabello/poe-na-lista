@@ -30,7 +30,7 @@ async function HouseholdContent() {
   const active = await resolveActiveHousehold(households)
 
   if (!active) {
-    redirect("/dashboard")
+    redirect("/dashboard/lists")
   }
 
   const canManage = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN

@@ -161,10 +161,44 @@ export function ListView({
   }
 
   function remove(itemId: string) {
+    const removed = items.find((item) => item.id === itemId)
     startTransition(async () => {
       haptic("remove")
       applyOptimistic({ type: "remove", id: itemId })
       const result = await removeItemAction(itemId)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      if (removed) {
+        toast(`${removed.productName} removido`, {
+          action: { label: "Desfazer", onClick: () => restoreItem(removed) },
+        })
+      }
+      router.refresh()
+    })
+  }
+
+  /** Desfaz uma remoção re-adicionando o item (volta desmarcado e sem preço). */
+  function restoreItem(item: ShoppingListItemDTO) {
+    const product = productsById.get(item.productId)
+    startTransition(async () => {
+      if (product) {
+        applyOptimistic({
+          type: "add",
+          product,
+          quantity: item.quantity,
+          unit: item.unit,
+          priceMode: item.priceMode,
+        })
+      }
+      const result = await addItemAction(list.id, {
+        productId: item.productId,
+        quantity: item.quantity,
+        unit: item.unit ?? "",
+        notes: item.notes ?? "",
+        priceMode: item.priceMode,
+      })
       if (!result.success) {
         toast.error(result.error)
         return
