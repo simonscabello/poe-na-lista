@@ -1,7 +1,6 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { setActiveHouseholdAction } from "@/actions/active-household.actions"
@@ -19,7 +18,6 @@ import { Input } from "@/components/ui/input"
 import { type HouseholdNameValues, householdNameSchema } from "@/features/households/schemas"
 
 export function CreateHouseholdForm() {
-  const router = useRouter()
   const form = useForm<HouseholdNameValues>({
     resolver: zodResolver(householdNameSchema),
     defaultValues: { name: "" },
@@ -35,7 +33,12 @@ export function CreateHouseholdForm() {
 
     await setActiveHouseholdAction(result.data.id)
     toast.success("Grupo criado com sucesso")
-    router.refresh()
+    // Navegação real (não router.refresh): com cacheComponents do Next 16, o
+    // refresh na mesma rota não re-renderizava o dashboard de forma confiável,
+    // deixando o usuário preso no onboarding (e criando grupos duplicados a
+    // cada novo clique). window.location garante um render fresco com o cookie
+    // de grupo ativo já setado. Espelha o padrão de navegar do accept-invitation.
+    window.location.assign("/dashboard")
   }
 
   return (
