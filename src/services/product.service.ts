@@ -2,7 +2,8 @@ import type { Prisma } from "@/generated/prisma/client"
 import type { MeasureKind } from "@/generated/prisma/enums"
 import { ACOUGUE_CATEGORY_SLUG } from "@/lib/measure"
 import { prisma } from "@/lib/prisma"
-import type { CategoryDTO, ProductDTO } from "@/types/domain"
+import { slugify } from "@/lib/slugify"
+import type { AdminProductDTO, AdminProductsPageDTO, CategoryDTO, ProductDTO } from "@/types/domain"
 
 const withCategory = { include: { category: true } } satisfies Prisma.ProductDefaultArgs
 
@@ -22,16 +23,6 @@ function toProductDTO(product: ProductWithCategory): ProductDTO {
     defaultUnit: product.defaultUnit,
     pricedByWeight: product.pricedByWeight,
   }
-}
-
-function slugify(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
 }
 
 /** Categorias ativas na ordem oficial de exibição. */
@@ -111,14 +102,7 @@ export async function createHouseholdProduct(input: {
     measureKind === "UNIT" ? null : input.defaultUnit?.trim() || defaultUnitFor(measureKind)
   const pricedByWeight = measureKind === "UNIT" && (input.pricedByWeight ?? false)
 
-  if (measureKind === "WEIGHT") {
-    const category = input.categoryId
-      ? await prisma.category.findUnique({ where: { id: input.categoryId } })
-      : null
-    if (category?.slug !== ACOUGUE_CATEGORY_SLUG) {
-      throw new Error("Peso (kg) só é permitido para produtos da categoria Açougue")
-    }
-  }
+  await assertWeightAllowed(measureKind, input.categoryId ?? null)
 
   const product = await prisma.product.create({
     data: {
@@ -141,4 +125,213 @@ export async function createHouseholdProduct(input: {
 function defaultUnitFor(measureKind: MeasureKind): string | null {
   if (measureKind === "WEIGHT") return "kg"
   return null
+}
+
+async function assertWeightAllowed(
+  measureKind: MeasureKind,
+  categoryId: string | null,
+): Promise<void> {
+  if (measureKind !== "WEIGHT") return
+
+  const category = categoryId
+    ? await prisma.category.findUnique({ where: { id: categoryId } })
+    : null
+
+  if (category?.slug !== ACOUGUE_CATEGORY_SLUG) {
+    throw new Error("Peso (kg) só é permitido para produtos da categoria Açougue")
+  }
+}
+
+const adminProductSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  isGlobal: true,
+  active: true,
+  categoryId: true,
+  measureKind: true,
+  defaultUnit: true,
+  pricedByWeight: true,
+  category: { select: { name: true, icon: true } },
+  household: { select: { name: true } },
+  _count: { select: { items: true, pantryItems: true, purchaseItems: true } },
+} satisfies Prisma.ProductSelect
+
+type AdminProductRow = Prisma.ProductGetPayload<{ select: typeof adminProductSelect }>
+
+function toAdminProductDTO(product: AdminProductRow): AdminProductDTO {
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    isGlobal: product.isGlobal,
+    active: product.active,
+    categoryId: product.categoryId,
+    categoryName: product.category?.name ?? null,
+    categoryIcon: product.category?.icon ?? null,
+    measureKind: product.measureKind as AdminProductDTO["measureKind"],
+    defaultUnit: product.defaultUnit,
+    pricedByWeight: product.pricedByWeight,
+    householdName: product.household?.name ?? null,
+    inUse: product._count.items + product._count.pantryItems + product._count.purchaseItems > 0,
+  }
+}
+
+const ADMIN_PRODUCTS_PAGE_SIZE = 20
+
+export type AdminProductScope = "all" | "global" | "household"
+
+export async function getAdminProducts({
+  search,
+  page = 1,
+  pageSize = ADMIN_PRODUCTS_PAGE_SIZE,
+  categoryId,
+  scope = "all",
+}: {
+  search?: string
+  page?: number
+  pageSize?: number
+  categoryId?: string
+  scope?: AdminProductScope
+} = {}): Promise<AdminProductsPageDTO> {
+  const trimmedSearch = search?.trim()
+
+  const where: Prisma.ProductWhereInput = {
+    ...(trimmedSearch ? { name: { contains: trimmedSearch } } : {}),
+    ...(categoryId ? { categoryId } : {}),
+    ...(scope === "global" ? { isGlobal: true } : {}),
+    ...(scope === "household" ? { isGlobal: false } : {}),
+  }
+
+  const skip = (page - 1) * pageSize
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy: { name: "asc" },
+      skip,
+      take: pageSize,
+      select: adminProductSelect,
+    }),
+    prisma.product.count({ where }),
+  ])
+
+  return {
+    products: products.map(toAdminProductDTO),
+    total,
+    page,
+    pageSize,
+  }
+}
+
+export async function createAdminProduct(input: {
+  name: string
+  categoryId?: string | null
+  measureKind?: MeasureKind
+  defaultUnit?: string | null
+  pricedByWeight?: boolean
+  isGlobal?: boolean
+  active?: boolean
+}): Promise<AdminProductDTO> {
+  const measureKind = input.measureKind ?? "UNIT"
+  const defaultUnit =
+    measureKind === "UNIT" ? null : input.defaultUnit?.trim() || defaultUnitFor(measureKind)
+  const pricedByWeight = measureKind === "UNIT" && (input.pricedByWeight ?? false)
+  const isGlobal = input.isGlobal ?? true
+
+  await assertWeightAllowed(measureKind, input.categoryId ?? null)
+
+  const product = await prisma.product.create({
+    data: {
+      name: input.name,
+      slug: slugify(input.name),
+      categoryId: input.categoryId ?? null,
+      isGlobal,
+      householdId: null,
+      active: input.active ?? true,
+      measureKind,
+      defaultUnit,
+      pricedByWeight,
+    },
+    select: adminProductSelect,
+  })
+
+  return toAdminProductDTO(product)
+}
+
+export async function updateProduct(
+  id: string,
+  input: {
+    name: string
+    categoryId?: string | null
+    measureKind?: MeasureKind
+    defaultUnit?: string | null
+    pricedByWeight?: boolean
+    isGlobal?: boolean
+    active?: boolean
+  },
+): Promise<AdminProductDTO> {
+  const current = await prisma.product.findUnique({
+    where: { id },
+    select: { householdId: true },
+  })
+
+  if (!current) {
+    throw new Error("Produto não encontrado")
+  }
+
+  const measureKind = input.measureKind ?? "UNIT"
+  const defaultUnit =
+    measureKind === "UNIT" ? null : input.defaultUnit?.trim() || defaultUnitFor(measureKind)
+  const pricedByWeight = measureKind === "UNIT" && (input.pricedByWeight ?? false)
+
+  await assertWeightAllowed(measureKind, input.categoryId ?? null)
+
+  const product = await prisma.product.update({
+    where: { id },
+    data: {
+      name: input.name,
+      slug: slugify(input.name),
+      categoryId: input.categoryId ?? null,
+      isGlobal: input.isGlobal ?? undefined,
+      active: input.active ?? undefined,
+      measureKind,
+      defaultUnit,
+      pricedByWeight,
+    },
+    select: adminProductSelect,
+  })
+
+  return toAdminProductDTO(product)
+}
+
+export async function toggleProductActive(id: string, active: boolean): Promise<AdminProductDTO> {
+  const product = await prisma.product.update({
+    where: { id },
+    data: { active },
+    select: adminProductSelect,
+  })
+
+  return toAdminProductDTO(product)
+}
+
+export async function deleteProduct(id: string): Promise<{ softDeleted: boolean }> {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { _count: { select: { items: true, pantryItems: true, purchaseItems: true } } },
+  })
+
+  if (!product) {
+    throw new Error("Produto não encontrado")
+  }
+
+  const inUse = product._count.items + product._count.pantryItems + product._count.purchaseItems > 0
+
+  if (inUse) {
+    await prisma.product.update({ where: { id }, data: { active: false } })
+    return { softDeleted: true }
+  }
+
+  await prisma.product.delete({ where: { id } })
+  return { softDeleted: false }
 }

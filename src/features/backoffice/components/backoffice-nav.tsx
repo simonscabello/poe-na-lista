@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, Users } from "lucide-react"
+import { BarChart3, ShoppingBasket, Tags, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Container } from "@/components/layout/container"
@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils"
 const items = [
   { href: "/backoffice", label: "Visão geral", icon: BarChart3, exact: true },
   { href: "/backoffice/users", label: "Usuários", icon: Users, exact: false },
+  { href: "/backoffice/products", label: "Produtos", icon: ShoppingBasket, exact: false },
+  { href: "/backoffice/categories", label: "Categorias", icon: Tags, exact: false },
 ]
 
 export function BackofficeNav() {

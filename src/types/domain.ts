@@ -245,3 +245,36 @@ export type AdminUsersPageDTO = {
   page: number
   pageSize: number
 }
+
+export type AdminCategoryDTO = {
+  id: string
+  name: string
+  slug: string
+  icon: string | null
+  sortOrder: number
+  active: boolean
+  productCount: number
+}
+
+export type AdminProductDTO = {
+  id: string
+  name: string
+  slug: string
+  isGlobal: boolean
+  active: boolean
+  categoryId: string | null
+  categoryName: string | null
+  categoryIcon: string | null
+  measureKind: MeasureKindDTO
+  defaultUnit: string | null
+  pricedByWeight: boolean
+  householdName: string | null
+  inUse: boolean
+}
+
+export type AdminProductsPageDTO = {
+  products: AdminProductDTO[]
+  total: number
+  page: number
+  pageSize: number
+}
