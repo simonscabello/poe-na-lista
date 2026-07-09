@@ -1,18 +1,32 @@
 import { ArrowRight, ListChecks, Users } from "lucide-react"
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 import { AppLogo } from "@/components/common/app-logo"
 import { LinkButton } from "@/components/common/link-button"
 import { Container } from "@/components/layout/container"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { auth } from "@/lib/auth"
 
-export default async function HomePage() {
+export default function HomePage() {
+  return (
+    <Suspense fallback={<HomeSkeleton />}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+async function HomeContent() {
   const session = await auth()
 
   if (session?.user) {
     redirect("/dashboard")
   }
 
+  return <HomeLanding />
+}
+
+function HomeLanding() {
   return (
     <Container className="py-10 sm:py-16">
       <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">
@@ -59,6 +73,26 @@ export default async function HomePage() {
             Marque itens conforme compra e acompanhe o progresso em tempo real.
           </CardContent>
         </Card>
+      </section>
+    </Container>
+  )
+}
+
+function HomeSkeleton() {
+  return (
+    <Container className="py-10 sm:py-16">
+      <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">
+        <Skeleton className="size-16 rounded-2xl" />
+        <Skeleton className="h-10 w-full max-w-lg" />
+        <Skeleton className="h-6 w-full max-w-md" />
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Skeleton className="h-11 w-40 rounded-lg" />
+          <Skeleton className="h-11 w-28 rounded-lg" />
+        </div>
+      </section>
+      <section className="mt-12 grid gap-4 sm:grid-cols-2">
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-36 rounded-xl" />
       </section>
     </Container>
   )
