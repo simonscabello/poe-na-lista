@@ -403,7 +403,6 @@ export function ListView({
       <FinalizePurchaseSheet
         listId={list.id}
         listName={list.name}
-        householdId={list.householdId}
         items={items}
         stores={stores}
         open={finalizeOpen}

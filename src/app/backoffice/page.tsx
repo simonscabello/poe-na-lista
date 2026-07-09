@@ -66,11 +66,6 @@ async function BackofficeContent() {
           value={String(overview.totalListItems)}
           icon={PackageCheck}
         />
-        <AdminStatCard
-          label="Itens de despensa"
-          value={String(overview.totalPantryItems)}
-          icon={PackageCheck}
-        />
         <AdminStatCard label="Compras" value={String(overview.totalPurchases)} icon={Receipt} />
         <AdminStatCard
           label="Valor total"

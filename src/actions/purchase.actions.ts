@@ -1,14 +1,13 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { finalizePurchaseSchema, stockPantrySchema } from "@/features/expenses/schemas"
+import { finalizePurchaseSchema } from "@/features/expenses/schemas"
 import { parseCalendarDate } from "@/lib/calendar-date"
 import { getActionErrorMessage } from "@/lib/errors"
 import { formatCurrency } from "@/lib/format-currency"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { computeLineTotal } from "@/lib/pricing"
 import { notifyHousehold } from "@/services/notification.service"
-import { stockPantryItems } from "@/services/pantry.service"
 import { finalizePurchase, type PendingHandling } from "@/services/purchase.service"
 import { getListDetail, getListHouseholdId } from "@/services/shopping-list.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
@@ -131,29 +130,6 @@ export async function finalizePurchaseAction(
       pendingListId: result.pendingListId,
       pendingListName,
     })
-  } catch (error) {
-    return actionError(getActionErrorMessage(error))
-  }
-}
-
-export async function stockPantryFromPurchaseAction(
-  householdId: string,
-  input: unknown,
-): Promise<ActionResult> {
-  try {
-    const { user } = await requireHouseholdMember(householdId)
-    const { items } = stockPantrySchema.parse(input)
-    await stockPantryItems(
-      householdId,
-      user.id,
-      items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unit: item.unit || null,
-      })),
-    )
-    revalidatePath("/dashboard/pantry")
-    return actionOk(undefined)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

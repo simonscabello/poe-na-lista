@@ -1,13 +1,12 @@
 "use client"
 
-import { ListChecks, Package, Receipt, User } from "lucide-react"
+import { ListChecks, Receipt, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const items = [
   { href: "/dashboard/lists", label: "Listas", icon: ListChecks, exact: false },
-  { href: "/dashboard/pantry", label: "Despensa", icon: Package, exact: false },
   { href: "/dashboard/expenses", label: "Gastos", icon: Receipt, exact: false },
   { href: "/dashboard/profile", label: "Perfil", icon: User, exact: false },
 ]
@@ -18,7 +17,7 @@ export function BottomNavFallback() {
       aria-hidden
       className="sticky bottom-0 z-40 border-t bg-background/85 backdrop-blur-xl safe-bottom sm:hidden"
     >
-      <div className="mx-auto grid max-w-md grid-cols-4">
+      <div className="mx-auto grid max-w-md grid-cols-3">
         {items.map((item) => {
           const Icon = item.icon
 
@@ -44,7 +43,7 @@ export function BottomNav() {
 
   return (
     <nav className="sticky bottom-0 z-40 border-t border-border/60 bg-background/90 backdrop-blur-xl safe-bottom sm:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-4">
+      <div className="mx-auto grid max-w-md grid-cols-3">
         {items.map((item) => {
           const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
           const Icon = item.icon

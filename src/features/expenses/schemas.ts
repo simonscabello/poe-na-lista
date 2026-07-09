@@ -9,15 +9,4 @@ export const finalizePurchaseSchema = z.object({
   pendingListName: z.string().trim().min(1, "Informe o nome da lista").max(80).optional(),
 })
 
-export const stockPantrySchema = z.object({
-  items: z.array(
-    z.object({
-      productId: z.string().min(1),
-      quantity: z.coerce.number().min(0).max(99999),
-      unit: z.string().trim().max(20).optional().or(z.literal("")),
-    }),
-  ),
-})
-
 export type FinalizePurchaseValues = z.infer<typeof finalizePurchaseSchema>
-export type StockPantryValues = z.infer<typeof stockPantrySchema>

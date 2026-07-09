@@ -1,10 +1,10 @@
 "use client"
 
-import { Check, ListPlus, Package, RotateCcw } from "lucide-react"
+import { ListPlus, RotateCcw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { finalizePurchaseAction, stockPantryFromPurchaseAction } from "@/actions/purchase.actions"
+import { finalizePurchaseAction } from "@/actions/purchase.actions"
 import { CurrencyInput } from "@/components/common/currency-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,13 +23,12 @@ import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
 import type { ShoppingListItemDTO, StoreDTO } from "@/types/domain"
 
-type Step = "pending" | "details" | "pantry"
+type Step = "pending" | "details"
 type PendingHandling = "NEW_LIST" | "KEEP_IN_LIST"
 
 type FinalizePurchaseSheetProps = {
   listId: string
   listName: string
-  householdId: string
   items: ShoppingListItemDTO[]
   stores: StoreDTO[]
   open: boolean
@@ -39,7 +38,6 @@ type FinalizePurchaseSheetProps = {
 export function FinalizePurchaseSheet({
   listId,
   listName,
-  householdId,
   items,
   stores,
   open,
@@ -62,15 +60,6 @@ export function FinalizePurchaseSheet({
   const [purchasedAt, setPurchasedAt] = useState(localDateString)
   const [storeName, setStoreName] = useState("")
   const [notes, setNotes] = useState("")
-  const [purchasedItemsSnapshot, setPurchasedItemsSnapshot] = useState<ShoppingListItemDTO[]>([])
-  // Para onde ir ao fechar o fluxo: lista de pendências, home de listas ou
-  // null para permanecer na lista atual (compra parcial).
-  const [postFinalizeDestination, setPostFinalizeDestination] = useState<string | null>(null)
-  const [pantrySelection, setPantrySelection] = useState<Set<string>>(
-    () => new Set(checkedItems.map((item) => item.productId)),
-  )
-
-  const pantryItems = purchasedItemsSnapshot.length > 0 ? purchasedItemsSnapshot : checkedItems
 
   const itemsTotal = useMemo(
     () =>
@@ -88,19 +77,15 @@ export function FinalizePurchaseSheet({
 
     if (!justOpened) return
 
-    const initialCheckedItems = items.filter((item) => item.checked)
     const initialHasPending = items.some((item) => !item.checked)
 
     setStep(initialHasPending ? "pending" : "details")
     setPendingListName(`${listName} · pendências`)
     setPendingHandling("NEW_LIST")
-    setPurchasedItemsSnapshot([])
-    setPostFinalizeDestination(null)
     setManualTotal(null)
     setPurchasedAt(localDateString())
     setStoreName("")
     setNotes("")
-    setPantrySelection(new Set(initialCheckedItems.map((item) => item.productId)))
   }, [open, items, listName])
 
   useEffect(() => {
@@ -118,6 +103,13 @@ export function FinalizePurchaseSheet({
   const hasManualTotal = manualTotal != null && manualTotal > 0
   const belowItems = hasManualTotal && manualTotal + 0.001 < itemsTotal
   const canRegister = allPriced || (hasManualTotal && !belowItems)
+
+  function finishFlow(destination: string | null) {
+    onOpenChange(false)
+    if (destination) {
+      router.push(destination)
+    }
+  }
 
   function finalize() {
     if (!canRegister) return
@@ -140,101 +132,38 @@ export function FinalizePurchaseSheet({
         onClick: () => router.push(`/dashboard/expenses/${result.data.purchaseId}`),
       }
 
+      let destination: string | null = null
+
       if (result.data.pendingListName) {
         toast.success(`Compra registrada · pendências em ${result.data.pendingListName}`, {
           action: viewPurchase,
         })
-        setPostFinalizeDestination(
-          result.data.pendingListId ? `/dashboard/lists/${result.data.pendingListId}` : null,
-        )
+        destination = result.data.pendingListId
+          ? `/dashboard/lists/${result.data.pendingListId}`
+          : null
       } else if (hasPending && pendingHandling === "KEEP_IN_LIST") {
         toast.success(
           `Compra registrada · ${pendingItems.length} ${pendingItems.length === 1 ? "item restante" : "itens restantes"} na lista`,
           { action: viewPurchase },
         )
-        // Compra parcial: a lista continua ativa, então o usuário permanece nela.
-        setPostFinalizeDestination(null)
       } else {
         toast.success("Compra registrada", { action: viewPurchase })
-        // Com itens sem preço (pesados no caixa), permanece na lista para preenchê-los.
-        setPostFinalizeDestination(allPriced ? "/dashboard/lists" : null)
+        destination = allPriced ? "/dashboard/lists" : null
       }
 
-      setPurchasedItemsSnapshot(checkedItems)
-      setPantrySelection(new Set(checkedItems.map((item) => item.productId)))
-      setStep("pantry")
       router.refresh()
+      finishFlow(destination)
     })
   }
 
-  function updatePantry() {
-    const selected = pantryItems.filter((item) => pantrySelection.has(item.productId))
-    if (selected.length === 0) {
-      finishFlow()
-      return
-    }
-    startTransition(async () => {
-      const result = await stockPantryFromPurchaseAction(householdId, {
-        items: selected.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unit: item.unit ?? "",
-        })),
-      })
-      if (!result.success) {
-        toast.error(result.error)
-        return
-      }
-      toast.success("Despensa atualizada")
-      finishFlow()
-    })
-  }
-
-  function finishFlow() {
-    onOpenChange(false)
-    if (postFinalizeDestination) {
-      router.push(postFinalizeDestination)
-    }
-  }
-
-  function togglePantryItem(productId: string) {
-    setPantrySelection((prev) => {
-      const next = new Set(prev)
-      if (next.has(productId)) {
-        next.delete(productId)
-      } else {
-        next.add(productId)
-      }
-      return next
-    })
-  }
-
-  const allPantrySelected =
-    pantryItems.length > 0 && pantryItems.every((item) => pantrySelection.has(item.productId))
-
-  function toggleSelectAllPantry() {
-    if (allPantrySelected) {
-      setPantrySelection(new Set())
-      return
-    }
-    setPantrySelection(new Set(pantryItems.map((item) => item.productId)))
-  }
-
-  const stepTitle =
-    step === "pending"
-      ? "Itens não encontrados"
-      : step === "details"
-        ? "Finalizar compra"
-        : "Atualizar despensa"
+  const stepTitle = step === "pending" ? "Itens não encontrados" : "Finalizar compra"
 
   const stepDescription =
     step === "pending"
       ? `${pendingItems.length} ${pendingItems.length === 1 ? "item não foi marcado" : "itens não foram marcados"} como comprado.`
-      : step === "details"
-        ? allPriced
-          ? "O total foi calculado a partir dos preços dos itens marcados."
-          : "Informe o valor total. O resto é opcional."
-        : "Adicione o que você comprou ao seu estoque em casa."
+      : allPriced
+        ? "O total foi calculado a partir dos preços dos itens marcados."
+        : "Informe o valor total. O resto é opcional."
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -432,63 +361,6 @@ export function FinalizePurchaseSheet({
                   className="w-full"
                 >
                   Registrar compra
-                </Button>
-              </div>
-            </>
-          )}
-
-          {step === "pantry" && (
-            <>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {pantrySelection.size} de {pantryItems.length} selecionados
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleSelectAllPantry}
-                  className="h-8 shrink-0 text-xs"
-                >
-                  {allPantrySelected ? "Desmarcar todos" : "Selecionar todos"}
-                </Button>
-              </div>
-              <div className="space-y-1">
-                {pantryItems.map((item) => {
-                  const selected = pantrySelection.has(item.productId)
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => togglePantryItem(item.productId)}
-                      className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted"
-                    >
-                      <span
-                        className={cn(
-                          "flex size-5 shrink-0 items-center justify-center rounded-md ring-1",
-                          selected
-                            ? "bg-primary text-primary-foreground ring-primary"
-                            : "ring-border",
-                        )}
-                      >
-                        {selected && <Check className="size-3.5" />}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm">{item.productName}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {item.quantity}
-                        {item.unit ? ` ${item.unit}` : ""}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Button onClick={updatePantry} loading={isPending}>
-                  <Package className="size-4" />
-                  Atualizar despensa
-                </Button>
-                <Button variant="ghost" onClick={finishFlow} disabled={isPending}>
-                  Agora não
                 </Button>
               </div>
             </>

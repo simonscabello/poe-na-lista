@@ -489,36 +489,9 @@ export async function mergeProductIntoGlobal(
       data: { productId: targetId },
     })
 
-    const sourcePantryItems = await tx.pantryItem.findMany({
-      where: { productId: sourceId },
-    })
-
-    let pantryMoved = 0
-    for (const item of sourcePantryItems) {
-      const existing = await tx.pantryItem.findUnique({
-        where: {
-          householdId_productId: { householdId: item.householdId, productId: targetId },
-        },
-      })
-
-      if (existing) {
-        await tx.pantryItem.update({
-          where: { id: existing.id },
-          data: { quantity: existing.quantity.add(item.quantity) },
-        })
-        await tx.pantryItem.delete({ where: { id: item.id } })
-      } else {
-        await tx.pantryItem.update({
-          where: { id: item.id },
-          data: { productId: targetId },
-        })
-      }
-      pantryMoved += 1
-    }
-
     await tx.product.delete({ where: { id: sourceId } })
 
-    return listItems.count + purchaseItems.count + pantryMoved
+    return listItems.count + purchaseItems.count
   })
 
   return { merged: true, itemsMoved }

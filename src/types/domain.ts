@@ -87,23 +87,6 @@ export type ShoppingListDetail = {
   items: ShoppingListItemDTO[]
 }
 
-export type PantryItemStatus = "available" | "low_stock" | "out" | "expiring_soon"
-
-export type PantryItemDTO = {
-  id: string
-  productId: string
-  productName: string
-  categoryId: string | null
-  categoryName: string | null
-  quantity: number
-  minimumQuantity: number
-  unit: string | null
-  expirationDate: string | null
-  status: PantryItemStatus
-  updatedByName: string | null
-  updatedAt: string
-}
-
 export type ShoppingListShareDTO = {
   id: string
   token: string
@@ -222,7 +205,6 @@ export type AdminOverviewDTO = {
   totalActiveLists: number
   totalCompletedLists: number
   totalListItems: number
-  totalPantryItems: number
   totalPurchases: number
   totalPurchaseAmount: number
   userGrowthSeries: AdminUserGrowthPointDTO[]
