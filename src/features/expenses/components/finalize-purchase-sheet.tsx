@@ -48,6 +48,7 @@ export function FinalizePurchaseSheet({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState<Step>("details")
+  const wasOpenRef = useRef(false)
 
   const checkedItems = useMemo(() => items.filter((item) => item.checked), [items])
   const pendingItems = useMemo(() => items.filter((item) => !item.checked), [items])
@@ -61,9 +62,12 @@ export function FinalizePurchaseSheet({
   const [purchasedAt, setPurchasedAt] = useState(localDateString)
   const [storeName, setStoreName] = useState("")
   const [notes, setNotes] = useState("")
+  const [purchasedItemsSnapshot, setPurchasedItemsSnapshot] = useState<ShoppingListItemDTO[]>([])
   const [pantrySelection, setPantrySelection] = useState<Set<string>>(
     () => new Set(checkedItems.map((item) => item.productId)),
   )
+
+  const pantryItems = purchasedItemsSnapshot.length > 0 ? purchasedItemsSnapshot : checkedItems
 
   const itemsTotal = useMemo(
     () =>
@@ -76,12 +80,24 @@ export function FinalizePurchaseSheet({
   const allPriced = checkedItems.length > 0 && checkedItems.every((item) => item.price != null)
 
   useEffect(() => {
-    if (!open) return
-    setStep(hasPending ? "pending" : "details")
+    const justOpened = open && !wasOpenRef.current
+    wasOpenRef.current = open
+
+    if (!justOpened) return
+
+    const initialCheckedItems = items.filter((item) => item.checked)
+    const initialHasPending = items.some((item) => !item.checked)
+
+    setStep(initialHasPending ? "pending" : "details")
     setPendingListName(`${listName} · pendências`)
     setPendingHandling("NEW_LIST")
-    setPantrySelection(new Set(checkedItems.map((item) => item.productId)))
-  }, [open, hasPending, listName, checkedItems])
+    setPurchasedItemsSnapshot([])
+    setManualTotal(null)
+    setPurchasedAt(localDateString())
+    setStoreName("")
+    setNotes("")
+    setPantrySelection(new Set(initialCheckedItems.map((item) => item.productId)))
+  }, [open, items, listName])
 
   useEffect(() => {
     if (open && !allPriced && itemsTotal > 0) {
@@ -125,13 +141,15 @@ export function FinalizePurchaseSheet({
         toast.success("Compra registrada")
       }
 
-      router.refresh()
+      setPurchasedItemsSnapshot(checkedItems)
+      setPantrySelection(new Set(checkedItems.map((item) => item.productId)))
       setStep("pantry")
+      router.refresh()
     })
   }
 
   function updatePantry() {
-    const selected = checkedItems.filter((item) => pantrySelection.has(item.productId))
+    const selected = pantryItems.filter((item) => pantrySelection.has(item.productId))
     if (selected.length === 0) {
       finishFlow()
       return
@@ -171,14 +189,14 @@ export function FinalizePurchaseSheet({
   }
 
   const allPantrySelected =
-    checkedItems.length > 0 && checkedItems.every((item) => pantrySelection.has(item.productId))
+    pantryItems.length > 0 && pantryItems.every((item) => pantrySelection.has(item.productId))
 
   function toggleSelectAllPantry() {
     if (allPantrySelected) {
       setPantrySelection(new Set())
       return
     }
-    setPantrySelection(new Set(checkedItems.map((item) => item.productId)))
+    setPantrySelection(new Set(pantryItems.map((item) => item.productId)))
   }
 
   const stepTitle =
@@ -402,7 +420,7 @@ export function FinalizePurchaseSheet({
             <>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  {pantrySelection.size} de {checkedItems.length} selecionados
+                  {pantrySelection.size} de {pantryItems.length} selecionados
                 </p>
                 <Button
                   type="button"
@@ -415,7 +433,7 @@ export function FinalizePurchaseSheet({
                 </Button>
               </div>
               <div className="space-y-1">
-                {checkedItems.map((item) => {
+                {pantryItems.map((item) => {
                   const selected = pantrySelection.has(item.productId)
                   return (
                     <button

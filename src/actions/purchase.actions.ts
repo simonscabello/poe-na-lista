@@ -30,6 +30,10 @@ export async function finalizePurchaseAction(
       throw new Error("Lista não encontrada")
     }
 
+    if (list.status === "COMPLETED") {
+      throw new Error("Esta lista já foi finalizada")
+    }
+
     const checkedListItems = list.items.filter((item) => item.checked)
     const pendingListItems = list.items.filter((item) => !item.checked)
 
