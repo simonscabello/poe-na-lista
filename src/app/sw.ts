@@ -45,3 +45,50 @@ const serwist = new Serwist({
 })
 
 serwist.addEventListeners()
+
+type PushMessage = {
+  title?: string
+  body?: string
+  link?: string | null
+}
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return
+
+  let payload: PushMessage = {}
+  try {
+    payload = event.data.json() as PushMessage
+  } catch {
+    payload = { body: event.data.text() }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title ?? "Põe na Lista", {
+      body: payload.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { link: payload.link ?? "/dashboard" },
+    }),
+  )
+})
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  const link = (event.notification.data as { link?: string } | undefined)?.link ?? "/dashboard"
+
+  event.waitUntil(
+    (async () => {
+      const windowClients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      const existing = windowClients[0]
+      if (existing) {
+        await existing.focus()
+        await existing.navigate(link).catch(() => null)
+        return
+      }
+      await self.clients.openWindow(link)
+    })(),
+  )
+})

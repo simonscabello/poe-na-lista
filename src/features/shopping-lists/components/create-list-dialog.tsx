@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { GenerateInviteLink } from "@/features/households/components/generate-invite-link"
 import {
   type ShoppingListNameValues,
   shoppingListNameSchema,
@@ -32,11 +33,15 @@ import {
 
 type CreateListDialogProps = {
   householdId: string
+  /** Mostra o passo de convite após criar (primeira lista de um grupo solo). */
+  showInviteStep?: boolean
 }
 
-export function CreateListDialog({ householdId }: CreateListDialogProps) {
+export function CreateListDialog({ householdId, showInviteStep = false }: CreateListDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [step, setStep] = useState<"form" | "invite">("form")
+  const [createdListId, setCreatedListId] = useState<string | null>(null)
   const form = useForm<ShoppingListNameValues>({
     resolver: zodResolver(shoppingListNameSchema),
     defaultValues: { name: "" },
@@ -48,13 +53,38 @@ export function CreateListDialog({ householdId }: CreateListDialogProps) {
       toast.error(result.error)
       return
     }
-    setOpen(false)
     form.reset()
+    if (showInviteStep) {
+      setCreatedListId(result.data.id)
+      setStep("invite")
+      return
+    }
+    setOpen(false)
     router.push(`/dashboard/lists/${result.data.id}`)
   }
 
+  function goToCreatedList() {
+    setOpen(false)
+    setStep("form")
+    if (createdListId) {
+      router.push(`/dashboard/lists/${createdListId}`)
+    }
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    // Fechar durante o passo de convite não pode "perder" a lista recém-criada.
+    if (!nextOpen && step === "invite") {
+      goToCreatedList()
+      return
+    }
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setStep("form")
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
           <Button>
@@ -64,30 +94,49 @@ export function CreateListDialog({ householdId }: CreateListDialogProps) {
         }
       />
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nova lista</DialogTitle>
-          <DialogDescription>Dê um nome para sua lista de compras.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Compras da semana" autoFocus {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-              Criar lista
-            </Button>
-          </form>
-        </Form>
+        {step === "form" ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Nova lista</DialogTitle>
+              <DialogDescription>Dê um nome para sua lista de compras.</DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Compras da semana" autoFocus {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
+                  Criar lista
+                </Button>
+              </form>
+            </Form>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Lista criada!</DialogTitle>
+              <DialogDescription>
+                Chame quem mora com você — a lista fica sincronizada para todos.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <GenerateInviteLink householdId={householdId} />
+              <Button className="w-full" onClick={goToCreatedList}>
+                Ir para a lista
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

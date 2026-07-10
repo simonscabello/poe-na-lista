@@ -88,6 +88,30 @@ export async function deleteShoppingList(listId: string): Promise<void> {
   await prisma.shoppingList.delete({ where: { id: listId } })
 }
 
+export async function createShoppingListWithItems(
+  householdId: string,
+  createdById: string,
+  name: string,
+  items: Array<{ productId: string; quantity: number; unit: string | null }>,
+): Promise<string> {
+  const list = await prisma.shoppingList.create({
+    data: {
+      householdId,
+      createdById,
+      name,
+      items: {
+        create: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unit: item.unit,
+        })),
+      },
+    },
+  })
+
+  return list.id
+}
+
 export async function duplicateShoppingList(listId: string, createdById: string): Promise<string> {
   const source = await prisma.shoppingList.findUniqueOrThrow({
     where: { id: listId },

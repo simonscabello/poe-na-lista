@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { JoinHouseholdForm } from "@/features/households/components/join-household-form"
 import { HelpFaqSection } from "@/features/profile/components/help-faq-section"
 import { ProfileHeader } from "@/features/profile/components/profile-header"
+import { PushSettingsCard } from "@/features/profile/components/push-settings-card"
 import { RecommendFriendSheet } from "@/features/profile/components/recommend-friend-sheet"
 import { SignOutButton } from "@/features/profile/components/sign-out-button"
 
@@ -32,6 +33,8 @@ export function ProfileView({ name, email, image }: ProfileViewProps) {
         </span>
         <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
       </Link>
+
+      <PushSettingsCard />
 
       <Card>
         <CardHeader>

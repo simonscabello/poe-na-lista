@@ -1,5 +1,6 @@
 "use client"
 
+import { useAtom } from "jotai"
 import { ListPlus, RotateCcw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, useTransition } from "react"
@@ -17,6 +18,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Textarea } from "@/components/ui/textarea"
+import { pendingHandlingAtom } from "@/lib/atoms"
 import { localDateString } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
 import { computeLineTotal } from "@/lib/pricing"
@@ -24,13 +26,13 @@ import { cn } from "@/lib/utils"
 import type { ShoppingListItemDTO, StoreDTO } from "@/types/domain"
 
 type Step = "pending" | "details"
-type PendingHandling = "NEW_LIST" | "KEEP_IN_LIST"
 
 type FinalizePurchaseSheetProps = {
   listId: string
   listName: string
   items: ShoppingListItemDTO[]
   stores: StoreDTO[]
+  lastStoreName?: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -40,6 +42,7 @@ export function FinalizePurchaseSheet({
   listName,
   items,
   stores,
+  lastStoreName = null,
   open,
   onOpenChange,
 }: FinalizePurchaseSheetProps) {
@@ -52,7 +55,8 @@ export function FinalizePurchaseSheet({
   const pendingItems = useMemo(() => items.filter((item) => !item.checked), [items])
   const hasPending = pendingItems.length > 0
 
-  const [pendingHandling, setPendingHandling] = useState<PendingHandling>("NEW_LIST")
+  // Persistido por dispositivo: a próxima finalização abre com a última escolha.
+  const [pendingHandling, setPendingHandling] = useAtom(pendingHandlingAtom)
   const [pendingListName, setPendingListName] = useState(`${listName} · pendências`)
 
   const [manualTotal, setManualTotal] = useState<number | null>(null)
@@ -81,12 +85,13 @@ export function FinalizePurchaseSheet({
 
     setStep(initialHasPending ? "pending" : "details")
     setPendingListName(`${listName} · pendências`)
-    setPendingHandling("NEW_LIST")
     setManualTotal(null)
     setPurchasedAt(localDateString())
-    setStoreName("")
+    // Pré-seleciona o mercado da última compra; pendingHandling vem do atom
+    // persistido, então não é resetado aqui.
+    setStoreName(lastStoreName ?? "")
     setNotes("")
-  }, [open, items, listName])
+  }, [open, items, listName, lastStoreName])
 
   useEffect(() => {
     if (open && !allPriced && itemsTotal > 0) {

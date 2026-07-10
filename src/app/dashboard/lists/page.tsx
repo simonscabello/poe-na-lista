@@ -1,17 +1,20 @@
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { Container } from "@/components/layout/container"
+import { PushBanner } from "@/components/notifications/push-banner"
 import { OverviewCards } from "@/features/dashboard/components/overview-cards"
 import { OnboardingView } from "@/features/households/components/onboarding-view"
 import { CreateListDialog } from "@/features/shopping-lists/components/create-list-dialog"
 import { ListsGrid } from "@/features/shopping-lists/components/lists-grid"
 import { ListsPageSkeleton } from "@/features/shopping-lists/components/lists-page-skeleton"
+import { SuggestedListCard } from "@/features/shopping-lists/components/suggested-list-card"
 import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
 import { getExpenseEstimate, getExpenseMetrics } from "@/services/expense-metrics.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
+import { getSuggestedListPreview } from "@/services/suggestion.service"
 
 export default function ListsPage() {
   return (
@@ -35,14 +38,18 @@ async function ListsContent() {
   }
 
   const canInvite = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
-  const [lists, members, metrics] = await Promise.all([
+  const [lists, members, metrics, suggestedPreview] = await Promise.all([
     getListsByHousehold(active.id),
     getHouseholdMembers(active.id),
     getExpenseMetrics(active.id),
+    getSuggestedListPreview(active.id),
   ])
 
   const activeList = lists.find((list) => list.status === "ACTIVE")
   const estimate = await getExpenseEstimate(active.id, activeList?.id ?? null)
+
+  // Primeira lista de um grupo ainda solo: vale convidar quem mora junto.
+  const showInviteStep = lists.length === 0 && members.length === 1 && canInvite
 
   return (
     <Container size="wide" className="space-y-6 py-6">
@@ -51,12 +58,24 @@ async function ListsContent() {
           <h1 className="text-page-title">Olá, {firstName(session.user.name)}</h1>
           <p className="text-sm text-muted-foreground">Listas de {active.name}</p>
         </div>
-        <CreateListDialog householdId={active.id} />
+        <CreateListDialog householdId={active.id} showInviteStep={showInviteStep} />
       </div>
+
+      <PushBanner />
 
       <OverviewCards currentMonthTotal={metrics.currentMonthTotal} estimate={estimate} />
 
-      <ListsGrid lists={lists} members={members} householdId={active.id} canInvite={canInvite} />
+      {suggestedPreview && (
+        <SuggestedListCard householdId={active.id} items={suggestedPreview.items} />
+      )}
+
+      <ListsGrid
+        lists={lists}
+        members={members}
+        householdId={active.id}
+        canInvite={canInvite}
+        showInviteStep={showInviteStep}
+      />
     </Container>
   )
 }

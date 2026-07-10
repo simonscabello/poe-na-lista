@@ -1,5 +1,6 @@
 "use client"
 
+import { useAtomValue } from "jotai"
 import { CheckCircle2, ShoppingBag } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useOptimistic, useState, useTransition } from "react"
@@ -19,6 +20,8 @@ import { AddMeasurableProductSheet } from "@/features/shopping-lists/components/
 import { AddProductsBar } from "@/features/shopping-lists/components/add-products-bar"
 import { ListHeader } from "@/features/shopping-lists/components/list-header"
 import { ListItems } from "@/features/shopping-lists/components/list-items"
+import { MarketModeFooter } from "@/features/shopping-lists/components/market-mode-footer"
+import { marketModeAtom } from "@/lib/atoms"
 import { formatCurrency } from "@/lib/format-currency"
 import { haptic } from "@/lib/haptics"
 import {
@@ -109,6 +112,8 @@ type ListViewProps = {
   categories: CategoryDTO[]
   initialShare: ShoppingListShareDTO | null
   stores: StoreDTO[]
+  lastPrices: Record<string, number>
+  lastStoreName: string | null
 }
 
 export function ListView({
@@ -118,6 +123,8 @@ export function ListView({
   categories,
   initialShare,
   stores,
+  lastPrices,
+  lastStoreName,
 }: ListViewProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -125,6 +132,7 @@ export function ListView({
   const [shareOpen, setShareOpen] = useState(false)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
   const [measurableProduct, setMeasurableProduct] = useState<ProductDTO | null>(null)
+  const [autoFilledIds, setAutoFilledIds] = useState<Set<string>>(new Set())
 
   const productsById = useMemo(
     () => new Map(catalog.map((product) => [product.id, product])),
@@ -142,16 +150,43 @@ export function ListView({
       0,
     )
 
+  const marketMode = useAtomValue(marketModeAtom)
+  // Estimativa do que ainda falta comprar: usa o preço já informado ou o último
+  // preço unitário pago; itens sem nenhuma referência entram só na contagem.
+  let remainingEstimate = 0
+  let remainingUnknownCount = 0
+  for (const item of items) {
+    if (item.checked) continue
+    const lineTotal = computeLineTotal(item.price, item.quantity, item.priceMode)
+    if (lineTotal != null && lineTotal > 0) {
+      remainingEstimate += lineTotal
+    } else if (item.priceMode === "UNIT" && lastPrices[item.productId] != null) {
+      remainingEstimate += lastPrices[item.productId] * item.quantity
+    } else {
+      remainingUnknownCount += 1
+    }
+  }
+
   const inList = new Map<string, number>()
   for (const item of items) {
     inList.set(item.productId, (inList.get(item.productId) ?? 0) + item.quantity)
   }
 
   function toggle(item: ShoppingListItemDTO) {
+    const willCheck = !item.checked
+    // Espelha o prefill do último preço feito pelo servidor no toggleItemAction.
+    const prefillPrice =
+      willCheck && item.price == null && item.priceMode === "UNIT"
+        ? (lastPrices[item.productId] ?? null)
+        : null
     startTransition(async () => {
       haptic("tap")
-      applyOptimistic({ type: "toggle", id: item.id, checked: !item.checked })
-      const result = await toggleItemAction(item.id, !item.checked)
+      applyOptimistic({ type: "toggle", id: item.id, checked: willCheck })
+      if (prefillPrice != null) {
+        applyOptimistic({ type: "setPrice", id: item.id, price: prefillPrice })
+        setAutoFilledIds((prev) => new Set(prev).add(item.id))
+      }
+      const result = await toggleItemAction(item.id, willCheck)
       if (!result.success) {
         toast.error(result.error)
         return
@@ -276,6 +311,12 @@ export function ListView({
   }
 
   function changePrice(item: ShoppingListItemDTO, nextPrice: number | null) {
+    setAutoFilledIds((prev) => {
+      if (!prev.has(item.id)) return prev
+      const next = new Set(prev)
+      next.delete(item.id)
+      return next
+    })
     startTransition(async () => {
       applyOptimistic({ type: "setPrice", id: item.id, price: nextPrice })
       const result = await updateItemPriceAction(item.id, {
@@ -343,6 +384,7 @@ export function ListView({
         <ListItems
           items={items}
           productsById={productsById}
+          autoFilledIds={autoFilledIds}
           onToggle={toggle}
           onRemove={remove}
           onChangeQuantity={changeQuantity}
@@ -377,6 +419,15 @@ export function ListView({
           frequent={frequent}
           categories={categories}
           inList={inList}
+          topSlot={
+            marketMode && items.length > 0 ? (
+              <MarketModeFooter
+                checkedTotal={checkedItemsTotal}
+                remainingEstimate={remainingEstimate}
+                remainingUnknownCount={remainingUnknownCount}
+              />
+            ) : null
+          }
           onAdd={requestAdd}
           onAddOne={addOne}
           onRemoveOne={removeOne}
@@ -405,6 +456,7 @@ export function ListView({
         listName={list.name}
         items={items}
         stores={stores}
+        lastStoreName={lastStoreName}
         open={finalizeOpen}
         onOpenChange={setFinalizeOpen}
       />

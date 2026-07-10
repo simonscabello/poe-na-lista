@@ -38,6 +38,7 @@ enum NotificationType {
   LIST_CREATED
   PURCHASE_FINALIZED
   MEMBER_JOINED
+  ITEM_ADDED
 }
 
 model User {
@@ -57,6 +58,7 @@ model User {
   createdShares    ShoppingListShare[]   @relation("ShareCreator")
   createdPurchases Purchase[]            @relation("PurchaseCreator")
   notifications    Notification[]
+  pushSubscriptions PushSubscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -363,12 +365,31 @@ model PurchaseItem {
   @@index([productId])
 }
 
+model PushSubscription {
+  id        String  @id @default(cuid())
+  userId    String
+  // VarChar(500) mantém o índice único dentro do limite de 3072 bytes do InnoDB.
+  endpoint  String  @unique @db.VarChar(500)
+  p256dh    String
+  auth      String
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
 model Notification {
   id          String           @id @default(cuid())
   householdId String
   userId      String
   type        NotificationType
   actorName   String
+  // Identifica o autor para agrupar eventos (actorName pode colidir entre homônimos).
+  actorUserId String?
   entityLabel String?
   amount      Decimal?         @db.Decimal(10, 2)
   link        String?

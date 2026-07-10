@@ -11,6 +11,7 @@ type ItemPriceFieldsProps = {
   item: ShoppingListItemDTO
   unitLabel: string
   priceLabel: string
+  autoFilled?: boolean
   onChangePrice: (item: ShoppingListItemDTO, nextPrice: number | null) => void
   onChangePriceMode: (item: ShoppingListItemDTO, nextPriceMode: PriceModeDTO) => void
   priceInputRef?: RefObject<HTMLInputElement | null>
@@ -22,6 +23,7 @@ export function ItemPriceFields({
   item,
   unitLabel,
   priceLabel,
+  autoFilled = false,
   onChangePrice,
   onChangePriceMode,
   priceInputRef,
@@ -77,6 +79,10 @@ export function ItemPriceFields({
         <span className="text-xs text-muted-foreground tabular-nums">
           = {formatCurrency(lineTotal)}
         </span>
+      )}
+
+      {autoFilled && item.price != null && (
+        <span className="text-xs text-muted-foreground italic">último preço</span>
       )}
     </div>
   )

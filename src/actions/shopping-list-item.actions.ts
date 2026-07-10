@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache"
 import { addItemSchema, itemPriceSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
-import { syncPurchaseItemFromListItem } from "@/services/purchase.service"
+import { notifyItemAdded } from "@/services/notification.service"
+import { getLastKnownUnitPrices, syncPurchaseItemFromListItem } from "@/services/purchase.service"
 import { getListHouseholdId } from "@/services/shopping-list.service"
 import {
   addShoppingListItem,
   getItemListId,
+  getItemToggleContext,
   removeShoppingListItem,
   setItemChecked,
   setItemPrice,
@@ -18,7 +20,7 @@ import { type ActionResult, actionError, actionOk } from "@/types/action"
 
 export async function addItemAction(listId: string, input: unknown): Promise<ActionResult> {
   try {
-    await requireListAccess(listId)
+    const user = await requireListAccess(listId)
     const values = addItemSchema.parse(input)
     await addShoppingListItem({
       shoppingListId: listId,
@@ -27,6 +29,11 @@ export async function addItemAction(listId: string, input: unknown): Promise<Act
       unit: values.unit || null,
       notes: values.notes || null,
       priceMode: values.priceMode,
+    })
+    await notifyItemAdded({
+      listId,
+      actorUserId: user.id,
+      actorName: user.name ?? "Alguém",
     })
     revalidatePath(`/dashboard/lists/${listId}`)
     return actionOk(undefined)
@@ -37,9 +44,23 @@ export async function addItemAction(listId: string, input: unknown): Promise<Act
 
 export async function toggleItemAction(itemId: string, checked: boolean): Promise<ActionResult> {
   try {
-    const listId = await requireItemAccess(itemId)
+    const item = await getItemToggleContext(itemId)
+    if (!item) {
+      throw new Error("Item não encontrado")
+    }
+    await requireHouseholdMember(item.householdId)
     await setItemChecked(itemId, checked)
-    revalidatePath(`/dashboard/lists/${listId}`)
+    // Ao marcar um item sem preço, semeia o último preço unitário pago pelo
+    // household — itens TOTAL (pesados) ficam de fora porque o histórico só
+    // guarda preço unitário.
+    if (checked && item.price == null && item.priceMode === "UNIT") {
+      const lastPrices = await getLastKnownUnitPrices(item.householdId, [item.productId])
+      const lastPrice = lastPrices.get(item.productId)
+      if (lastPrice != null) {
+        await setItemPrice(itemId, lastPrice, "UNIT")
+      }
+    }
+    revalidatePath(`/dashboard/lists/${item.listId}`)
     return actionOk(undefined)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
@@ -91,14 +112,15 @@ export async function removeItemAction(itemId: string): Promise<ActionResult> {
   }
 }
 
-async function requireListAccess(listId: string): Promise<void> {
+async function requireListAccess(listId: string) {
   const householdId = await getListHouseholdId(listId)
 
   if (!householdId) {
     throw new Error("Lista não encontrada")
   }
 
-  await requireHouseholdMember(householdId)
+  const { user } = await requireHouseholdMember(householdId)
+  return user
 }
 
 async function requireItemAccess(itemId: string): Promise<string> {

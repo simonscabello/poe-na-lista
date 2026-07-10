@@ -3,8 +3,32 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "wsl.exe",
+      "runtimeArgs": [
+        "-d",
+        "ubuntu-24.04",
+        "--",
+        "sh",
+        "/home/scabello/.claude-runner.sh",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "prod",
+      "runtimeExecutable": "wsl.exe",
+      "runtimeArgs": [
+        "-d",
+        "ubuntu-24.04",
+        "--",
+        "sh",
+        "/home/scabello/.claude-runner.sh",
+        "npm",
+        "run",
+        "start"
+      ],
       "port": 3000
     }
   ]

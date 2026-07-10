@@ -12,7 +12,7 @@ import {
   groupByCategory,
   sortAlphabetically,
 } from "@/features/shopping-lists/lib/sort-list-items"
-import { hideCheckedItemsAtom, listItemsSortModeAtom } from "@/lib/atoms"
+import { hideCheckedItemsAtom, listItemsSortModeAtom, marketModeAtom } from "@/lib/atoms"
 import { categoryEmoji } from "@/lib/categories"
 import { formatCurrency } from "@/lib/format-currency"
 import { formatQuantity, getMeasureConfigForItem } from "@/lib/measure"
@@ -23,6 +23,7 @@ import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/doma
 type ListItemsProps = {
   items: ShoppingListItemDTO[]
   productsById: Map<string, ProductDTO>
+  autoFilledIds?: Set<string>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -32,9 +33,12 @@ type ListItemsProps = {
   priceOnly?: boolean
 }
 
+const EMPTY_AUTO_FILLED = new Set<string>()
+
 export function ListItems({
   items,
   productsById,
+  autoFilledIds = EMPTY_AUTO_FILLED,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -44,7 +48,12 @@ export function ListItems({
   priceOnly = false,
 }: ListItemsProps) {
   const [hideChecked, setHideChecked] = useAtom(hideCheckedItemsAtom)
-  const [sortMode] = useAtom(listItemsSortModeAtom)
+  const [storedSortMode] = useAtom(listItemsSortModeAtom)
+  const [marketMode] = useAtom(marketModeAtom)
+
+  // Modo mercado só vale na lista interativa e força o agrupamento por categoria.
+  const marketActive = marketMode && !readOnly && !priceOnly
+  const sortMode = marketActive ? "category" : storedSortMode
 
   const pending = useMemo(() => items.filter((item) => !item.checked), [items])
   const checked = useMemo(() => items.filter((item) => item.checked), [items])
@@ -100,13 +109,14 @@ export function ListItems({
 
   return (
     <div className="space-y-4">
-      <ListItemsSortBar itemCount={items.length} />
+      <ListItemsSortBar itemCount={items.length} showMarketToggle />
 
       <div className="space-y-6">
         <PendingItemsList
           sorted={sortedPending}
           sortMode={sortMode}
           productsById={productsById}
+          autoFilledIds={autoFilledIds}
           onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}
@@ -134,6 +144,7 @@ export function ListItems({
                 sorted={sortedChecked}
                 sortMode={sortMode}
                 productsById={productsById}
+                autoFilledIds={autoFilledIds}
                 onToggle={onToggle}
                 onRemove={onRemove}
                 onChangeQuantity={onChangeQuantity}
@@ -150,6 +161,7 @@ export function ListItems({
 
 type ItemHandlers = {
   productsById: Map<string, ProductDTO>
+  autoFilledIds: Set<string>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -166,6 +178,7 @@ function PendingItemsList({
   sorted,
   sortMode,
   productsById,
+  autoFilledIds,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -185,6 +198,7 @@ function PendingItemsList({
       <ItemRowList
         items={items}
         productsById={productsById}
+        autoFilledIds={autoFilledIds}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -210,6 +224,7 @@ function PendingItemsList({
           <ItemRowList
             items={group.items}
             productsById={productsById}
+            autoFilledIds={autoFilledIds}
             onToggle={onToggle}
             onRemove={onRemove}
             onChangeQuantity={onChangeQuantity}
@@ -226,6 +241,7 @@ function CheckedItemsList({
   sorted,
   sortMode,
   productsById,
+  autoFilledIds,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -237,6 +253,7 @@ function CheckedItemsList({
       <ItemRowList
         items={sorted as ShoppingListItemDTO[]}
         productsById={productsById}
+        autoFilledIds={autoFilledIds}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -252,6 +269,7 @@ function CheckedItemsList({
       <ItemRowList
         items={groups[0].items}
         productsById={productsById}
+        autoFilledIds={autoFilledIds}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -268,6 +286,7 @@ function CheckedItemsList({
           <ItemRowList
             items={group.items}
             productsById={productsById}
+            autoFilledIds={autoFilledIds}
             onToggle={onToggle}
             onRemove={onRemove}
             onChangeQuantity={onChangeQuantity}
@@ -400,6 +419,7 @@ function CategorySection({ category, children }: { category: string; children: R
 function ItemRowList({
   items,
   productsById,
+  autoFilledIds,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -413,6 +433,7 @@ function ItemRowList({
           key={item.id}
           item={item}
           product={productsById.get(item.productId)}
+          autoFilledPrice={autoFilledIds.has(item.id)}
           onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}

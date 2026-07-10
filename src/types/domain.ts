@@ -171,7 +171,19 @@ export type ExpenseEstimateDTO = {
   method: string
 }
 
-export type NotificationTypeDTO = "LIST_CREATED" | "PURCHASE_FINALIZED" | "MEMBER_JOINED"
+export type SuggestedProductDTO = {
+  productId: string
+  productName: string
+  quantity: number
+  unit: string | null
+  purchaseCount: number
+}
+
+export type NotificationTypeDTO =
+  | "LIST_CREATED"
+  | "PURCHASE_FINALIZED"
+  | "MEMBER_JOINED"
+  | "ITEM_ADDED"
 
 export type NotificationDTO = {
   id: string

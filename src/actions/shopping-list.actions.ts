@@ -7,12 +7,16 @@ import { requireHouseholdMember } from "@/lib/permissions"
 import { notifyHousehold } from "@/services/notification.service"
 import {
   createShoppingList,
+  createShoppingListWithItems,
   deleteShoppingList,
   duplicateShoppingList,
   getListHouseholdId,
   renameShoppingList,
 } from "@/services/shopping-list.service"
+import { getFrequentlyPurchasedProducts } from "@/services/suggestion.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
+
+const SUGGESTED_LIST_NAME = "Lista da semana"
 
 export async function createListAction(
   householdId: string,
@@ -56,6 +60,42 @@ export async function deleteListAction(listId: string): Promise<ActionResult> {
     await deleteShoppingList(listId)
     revalidatePath("/dashboard")
     return actionOk(undefined)
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+export async function createSuggestedListAction(
+  householdId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const { user } = await requireHouseholdMember(householdId)
+    // Recomputa no servidor: não confia em produtos vindos do cliente e evita
+    // apontar para produtos removidos entre o preview e o clique.
+    const suggestions = await getFrequentlyPurchasedProducts(householdId)
+    if (suggestions.length === 0) {
+      return actionError("Ainda não há histórico suficiente para sugerir uma lista")
+    }
+    const id = await createShoppingListWithItems(
+      householdId,
+      user.id,
+      SUGGESTED_LIST_NAME,
+      suggestions.map((suggestion) => ({
+        productId: suggestion.productId,
+        quantity: suggestion.quantity,
+        unit: suggestion.unit,
+      })),
+    )
+    await notifyHousehold({
+      householdId,
+      excludeUserId: user.id,
+      type: "LIST_CREATED",
+      actorName: user.name ?? "Alguém",
+      entityLabel: SUGGESTED_LIST_NAME,
+      link: `/dashboard/lists/${id}`,
+    })
+    revalidatePath("/dashboard")
+    return actionOk({ id })
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

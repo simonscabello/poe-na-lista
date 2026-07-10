@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus } from "lucide-react"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 import { Container } from "@/components/layout/container"
 import { Button } from "@/components/ui/button"
 import { ProductCatalogSheet } from "@/features/products/components/product-catalog-sheet"
@@ -14,6 +14,8 @@ type AddProductsBarProps = {
   categories: CategoryDTO[]
   /** productId → quantity currently in the list, for live badges in the sheet. */
   inList: Map<string, number>
+  /** Rendered inside the sticky bar, above the button (e.g. market mode totals). */
+  topSlot?: ReactNode
   onAdd: (product: ProductDTO) => void
   onAddOne: (product: ProductDTO) => void
   onRemoveOne: (product: ProductDTO) => void
@@ -25,6 +27,7 @@ export function AddProductsBar({
   frequent,
   categories,
   inList,
+  topSlot,
   onAdd,
   onAddOne,
   onRemoveOne,
@@ -42,6 +45,7 @@ export function AddProductsBar({
       */}
       <div className="sticky bottom-[calc(4rem_+_env(safe-area-inset-bottom))] z-30 border-t bg-background/85 pt-3 pb-3 backdrop-blur-xl sm:bottom-0 sm:pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]">
         <Container size="wide">
+          {topSlot != null && <div className="mb-2">{topSlot}</div>}
           <Button
             type="button"
             onClick={() => setOpen(true)}

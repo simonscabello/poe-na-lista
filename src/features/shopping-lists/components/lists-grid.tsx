@@ -11,15 +11,22 @@ type ListsGridProps = {
   members: HouseholdMemberDTO[]
   householdId: string
   canInvite: boolean
+  showInviteStep?: boolean
 }
 
 const PAGE_SIZE = 5
 
-export function ListsGrid({ lists, members, householdId, canInvite }: ListsGridProps) {
+export function ListsGrid({
+  lists,
+  members,
+  householdId,
+  canInvite,
+  showInviteStep = false,
+}: ListsGridProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   if (lists.length === 0) {
-    return <ListsEmptyState householdId={householdId} />
+    return <ListsEmptyState householdId={householdId} showInviteStep={showInviteStep} />
   }
 
   const visibleLists = lists.slice(0, visibleCount)
@@ -50,7 +57,13 @@ export function ListsGrid({ lists, members, householdId, canInvite }: ListsGridP
   )
 }
 
-function ListsEmptyState({ householdId }: { householdId: string }) {
+function ListsEmptyState({
+  householdId,
+  showInviteStep,
+}: {
+  householdId: string
+  showInviteStep: boolean
+}) {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 rounded-2xl border border-dashed border-border/70 px-6 py-16 text-center">
       <div className="flex size-20 items-center justify-center rounded-full bg-primary/10">
@@ -74,7 +87,7 @@ function ListsEmptyState({ householdId }: { householdId: string }) {
           Crie sua primeira lista de compras para começar.
         </p>
       </div>
-      <CreateListDialog householdId={householdId} />
+      <CreateListDialog householdId={householdId} showInviteStep={showInviteStep} />
     </div>
   )
 }

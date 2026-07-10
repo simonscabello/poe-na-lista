@@ -244,6 +244,17 @@ export async function getPurchaseDetail(purchaseId: string): Promise<PurchaseDet
   }
 }
 
+/** Mercado da compra mais recente, para pré-selecionar na finalização. */
+export async function getLastPurchaseStoreName(householdId: string): Promise<string | null> {
+  const purchase = await prisma.purchase.findFirst({
+    where: { householdId },
+    orderBy: { purchasedAt: "desc" },
+    select: { storeName: true },
+  })
+
+  return purchase?.storeName ?? null
+}
+
 /** Totais das últimas compras da família (mais recentes primeiro), para a estimativa. */
 export async function getRecentPurchaseTotals(householdId: string, limit = 5): Promise<number[]> {
   const purchases = await prisma.purchase.findMany({

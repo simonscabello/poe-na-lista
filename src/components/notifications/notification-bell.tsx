@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Bell, ListPlus, ShoppingBag, UserPlus } from "lucide-react"
+import { Bell, ListPlus, PackagePlus, ShoppingBag, UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -35,6 +35,7 @@ const ICONS: Record<NotificationTypeDTO, typeof Bell> = {
   LIST_CREATED: ListPlus,
   PURCHASE_FINALIZED: ShoppingBag,
   MEMBER_JOINED: UserPlus,
+  ITEM_ADDED: PackagePlus,
 }
 
 export function NotificationBell({

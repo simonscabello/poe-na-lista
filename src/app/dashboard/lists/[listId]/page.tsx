@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getActiveShareForList } from "@/services/list-share.service"
 import { getCategories, getFrequentProducts, getProductCatalog } from "@/services/product.service"
+import { getLastKnownUnitPrices, getLastPurchaseStoreName } from "@/services/purchase.service"
 import { getListDetail } from "@/services/shopping-list.service"
 import { getHouseholdStores } from "@/services/store.service"
 
@@ -43,13 +44,19 @@ async function ListDetailContent({ listId }: { listId: string }) {
     notFound()
   }
 
-  const [catalog, frequent, categories, initialShare, stores] = await Promise.all([
-    getProductCatalog(list.householdId),
-    getFrequentProducts(list.householdId),
-    getCategories(),
-    getActiveShareForList(list.id),
-    getHouseholdStores(list.householdId),
-  ])
+  const [catalog, frequent, categories, initialShare, stores, lastPricesMap, lastStoreName] =
+    await Promise.all([
+      getProductCatalog(list.householdId),
+      getFrequentProducts(list.householdId),
+      getCategories(),
+      getActiveShareForList(list.id),
+      getHouseholdStores(list.householdId),
+      getLastKnownUnitPrices(
+        list.householdId,
+        list.items.map((item) => item.productId),
+      ),
+      getLastPurchaseStoreName(list.householdId),
+    ])
 
   return (
     <ListView
@@ -59,6 +66,8 @@ async function ListDetailContent({ listId }: { listId: string }) {
       categories={categories}
       initialShare={initialShare}
       stores={stores}
+      lastPrices={Object.fromEntries(lastPricesMap)}
+      lastStoreName={lastStoreName}
     />
   )
 }

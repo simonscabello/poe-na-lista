@@ -10,6 +10,37 @@ export async function getItemListId(itemId: string): Promise<string | null> {
   return item?.shoppingListId ?? null
 }
 
+export type ItemToggleContext = {
+  listId: string
+  householdId: string
+  productId: string
+  price: number | null
+  priceMode: PriceModeDTO
+}
+
+export async function getItemToggleContext(itemId: string): Promise<ItemToggleContext | null> {
+  const item = await prisma.shoppingListItem.findUnique({
+    where: { id: itemId },
+    select: {
+      shoppingListId: true,
+      productId: true,
+      price: true,
+      priceMode: true,
+      shoppingList: { select: { householdId: true } },
+    },
+  })
+
+  if (!item) return null
+
+  return {
+    listId: item.shoppingListId,
+    householdId: item.shoppingList.householdId,
+    productId: item.productId,
+    price: item.price != null ? Number(item.price) : null,
+    priceMode: item.priceMode,
+  }
+}
+
 export async function addShoppingListItem(input: {
   shoppingListId: string
   productId: string
