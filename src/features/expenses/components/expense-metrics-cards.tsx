@@ -21,7 +21,11 @@ export function ExpenseMetricsCards({ metrics }: { metrics: ExpenseMetricsDTO })
         <MetricCard label="Mês anterior" value={formatCurrency(metrics.previousMonthTotal)} />
         <MetricCard label="Média por compra" value={formatCurrency(metrics.averageLastPurchases)} />
         <MetricCard label="Média mensal" value={formatCurrency(metrics.monthlyAverage)} />
-        <MetricCard label="Maior compra" value={formatCurrency(metrics.largestPurchase)} />
+        <MetricCard
+          label="Maior compra"
+          value={formatCurrency(metrics.largestPurchase)}
+          hint={metrics.largestPurchaseStoreName}
+        />
       </div>
     </div>
   )
@@ -57,11 +61,20 @@ function MonthComparison({
   )
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint?: string | null
+}) {
   return (
     <div className="rounded-2xl bg-card p-4 ring-1 ring-border/70">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 font-heading text-lg font-semibold tabular-nums">{value}</p>
+      {hint && <p className="mt-0.5 truncate text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }

@@ -7,20 +7,30 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     include: {
       items: { select: { checked: true, price: true } },
+      purchases: {
+        orderBy: { purchasedAt: "desc" },
+        take: 1,
+        select: { storeName: true, totalAmount: true },
+      },
       _count: { select: { purchases: true } },
     },
   })
 
-  return lists.map((list) => ({
-    id: list.id,
-    name: list.name,
-    totalItems: list.items.length,
-    checkedItems: list.items.filter((item) => item.checked).length,
-    unpricedCheckedItems: list.items.filter((item) => item.checked && item.price == null).length,
-    purchaseCount: list._count.purchases,
-    status: list.status,
-    updatedAt: list.updatedAt.toISOString(),
-  }))
+  return lists.map((list) => {
+    const lastPurchase = list.purchases[0] ?? null
+    return {
+      id: list.id,
+      name: list.name,
+      totalItems: list.items.length,
+      checkedItems: list.items.filter((item) => item.checked).length,
+      unpricedCheckedItems: list.items.filter((item) => item.checked && item.price == null).length,
+      purchaseCount: list._count.purchases,
+      status: list.status,
+      updatedAt: list.updatedAt.toISOString(),
+      lastPurchaseStoreName: lastPurchase?.storeName ?? null,
+      lastPurchaseTotal: lastPurchase != null ? Number(lastPurchase.totalAmount) : null,
+    }
+  })
 }
 
 export async function getListDetail(listId: string): Promise<ShoppingListDetail | null> {
@@ -31,6 +41,11 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
         orderBy: [{ checked: "asc" }, { createdAt: "asc" }],
         include: { product: { include: { category: true } } },
       },
+      purchases: {
+        orderBy: { purchasedAt: "desc" },
+        take: 1,
+        select: { id: true, storeName: true, purchasedAt: true, totalAmount: true },
+      },
     },
   })
 
@@ -38,12 +53,22 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
     return null
   }
 
+  const latestPurchase = list.purchases[0] ?? null
+
   return {
     id: list.id,
     name: list.name,
     householdId: list.householdId,
     status: list.status,
     completedAt: list.completedAt?.toISOString() ?? null,
+    latestPurchase: latestPurchase
+      ? {
+          id: latestPurchase.id,
+          storeName: latestPurchase.storeName,
+          purchasedAt: latestPurchase.purchasedAt.toISOString(),
+          totalAmount: Number(latestPurchase.totalAmount),
+        }
+      : null,
     items: list.items.map((item) => ({
       id: item.id,
       productId: item.productId,

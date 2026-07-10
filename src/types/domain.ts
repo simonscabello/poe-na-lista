@@ -35,6 +35,8 @@ export type ShoppingListSummary = {
   purchaseCount: number
   status: ShoppingListStatusDTO
   updatedAt: string
+  lastPurchaseStoreName: string | null
+  lastPurchaseTotal: number | null
 }
 
 export type CategoryDTO = {
@@ -78,6 +80,13 @@ export type ShoppingListItemDTO = {
 
 export type ShoppingListStatusDTO = "ACTIVE" | "COMPLETED"
 
+export type ListPurchaseInfoDTO = {
+  id: string
+  storeName: string | null
+  purchasedAt: string
+  totalAmount: number
+}
+
 export type ShoppingListDetail = {
   id: string
   name: string
@@ -85,6 +94,8 @@ export type ShoppingListDetail = {
   status: ShoppingListStatusDTO
   completedAt: string | null
   items: ShoppingListItemDTO[]
+  /** Compra mais recente registrada a partir desta lista (contexto da lista finalizada). */
+  latestPurchase: ListPurchaseInfoDTO | null
 }
 
 export type ShoppingListShareDTO = {
@@ -151,6 +162,13 @@ export type CategoryExpenseDTO = {
   total: number
 }
 
+export type StoreExpenseDTO = {
+  store: string
+  total: number
+  purchaseCount: number
+  averagePerPurchase: number
+}
+
 export type ExpenseMetricsDTO = {
   currentMonthTotal: number
   previousMonthTotal: number
@@ -159,8 +177,10 @@ export type ExpenseMetricsDTO = {
   monthlyAverage: number
   purchaseCount: number
   largestPurchase: number
+  largestPurchaseStoreName: string | null
   monthlySeries: MonthlyExpensePointDTO[]
   categoryBreakdown: CategoryExpenseDTO[]
+  storeBreakdown: StoreExpenseDTO[]
 }
 
 export type ExpenseEstimateDTO = {

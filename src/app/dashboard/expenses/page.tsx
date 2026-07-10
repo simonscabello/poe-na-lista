@@ -9,6 +9,7 @@ import { ExpenseMetricsCards } from "@/features/expenses/components/expense-metr
 import { ExpensesSkeleton } from "@/features/expenses/components/expenses-skeleton"
 import { MonthlyExpensesChart } from "@/features/expenses/components/monthly-expenses-chart"
 import { PurchaseHistoryList } from "@/features/expenses/components/purchase-history-list"
+import { StoreBreakdown } from "@/features/expenses/components/store-breakdown"
 import { OnboardingView } from "@/features/households/components/onboarding-view"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
@@ -68,6 +69,8 @@ async function ExpensesContent() {
           {metrics.categoryBreakdown.length > 0 && (
             <CategoryBreakdown categories={metrics.categoryBreakdown} />
           )}
+
+          {metrics.storeBreakdown.length > 0 && <StoreBreakdown stores={metrics.storeBreakdown} />}
 
           <section className="space-y-3">
             <h2 className="text-section-label px-0.5">Histórico</h2>

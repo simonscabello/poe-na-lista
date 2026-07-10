@@ -2,6 +2,7 @@
 
 import { useAtomValue } from "jotai"
 import { CheckCircle2, ShoppingBag } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useOptimistic, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -22,6 +23,7 @@ import { ListHeader } from "@/features/shopping-lists/components/list-header"
 import { ListItems } from "@/features/shopping-lists/components/list-items"
 import { MarketModeFooter } from "@/features/shopping-lists/components/market-mode-footer"
 import { marketModeAtom } from "@/lib/atoms"
+import { formatCalendarDate } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
 import { haptic } from "@/lib/haptics"
 import {
@@ -371,13 +373,31 @@ export function ListView({
         <ListHeader listId={list.id} name={list.name} onShare={() => setShareOpen(true)} />
 
         {isCompleted && (
-          <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
-            <CheckCircle2 className="size-4 shrink-0" />
-            <span>
-              Compra finalizada. Informe os preços dos produtos pesados no caixa.
-              {unpricedCheckedCount > 0 &&
-                ` ${unpricedCheckedCount} ${unpricedCheckedCount === 1 ? "produto ainda" : "produtos ainda"} sem preço.`}
-            </span>
+          <div className="space-y-1.5 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 shrink-0" />
+              <span className="min-w-0 font-medium">
+                {list.latestPurchase?.storeName
+                  ? `Comprada no ${list.latestPurchase.storeName}`
+                  : "Compra finalizada"}
+                {list.latestPurchase &&
+                  ` · ${formatCalendarDate(list.latestPurchase.purchasedAt)} · ${formatCurrency(list.latestPurchase.totalAmount)}`}
+              </span>
+            </div>
+            {unpricedCheckedCount > 0 && (
+              <p className="pl-6 text-xs">
+                Informe os preços dos produtos pesados no caixa.{" "}
+                {`${unpricedCheckedCount} ${unpricedCheckedCount === 1 ? "produto ainda" : "produtos ainda"} sem preço.`}
+              </p>
+            )}
+            {list.latestPurchase && (
+              <Link
+                href={`/dashboard/expenses/${list.latestPurchase.id}`}
+                className="inline-block pl-6 text-xs font-medium underline underline-offset-2"
+              >
+                Ver em Gastos
+              </Link>
+            )}
           </div>
         )}
 

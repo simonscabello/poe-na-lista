@@ -7,6 +7,7 @@ import type {
   ExpenseEstimateDTO,
   ExpenseMetricsDTO,
   MonthlyExpensePointDTO,
+  StoreExpenseDTO,
 } from "@/types/domain"
 
 const MONTHS_IN_SERIES = 6
@@ -21,7 +22,7 @@ export async function getExpenseMetrics(householdId: string): Promise<ExpenseMet
   const purchases = await prisma.purchase.findMany({
     where: { householdId },
     orderBy: { purchasedAt: "desc" },
-    select: { totalAmount: true, purchasedAt: true },
+    select: { totalAmount: true, purchasedAt: true, storeName: true },
   })
 
   const now = new Date()
@@ -30,18 +31,43 @@ export async function getExpenseMetrics(householdId: string): Promise<ExpenseMet
   const previousKey = currentCalendarMonthKey(previousDate)
 
   const totalsByMonth = new Map<string, number>()
+  const totalsByStore = new Map<string, { total: number; purchaseCount: number }>()
   let currentMonthTotal = 0
   let previousMonthTotal = 0
   let largestPurchase = 0
+  let largestPurchaseStoreName: string | null = null
 
   for (const purchase of purchases) {
     const amount = Number(purchase.totalAmount)
     const key = calendarMonthKey(purchase.purchasedAt)
     totalsByMonth.set(key, (totalsByMonth.get(key) ?? 0) + amount)
 
+    const storeKey = purchase.storeName ?? "Sem mercado"
+    const storeAcc = totalsByStore.get(storeKey) ?? { total: 0, purchaseCount: 0 }
+    storeAcc.total += amount
+    storeAcc.purchaseCount += 1
+    totalsByStore.set(storeKey, storeAcc)
+
     if (key === currentKey) currentMonthTotal += amount
     if (key === previousKey) previousMonthTotal += amount
-    if (amount > largestPurchase) largestPurchase = amount
+    if (amount > largestPurchase) {
+      largestPurchase = amount
+      largestPurchaseStoreName = purchase.storeName
+    }
+  }
+
+  let storeBreakdown: StoreExpenseDTO[] = [...totalsByStore.entries()]
+    .map(([store, acc]) => ({
+      store,
+      total: round(acc.total),
+      purchaseCount: acc.purchaseCount,
+      averagePerPurchase: round(acc.total / acc.purchaseCount),
+    }))
+    .sort((a, b) => b.total - a.total)
+
+  // O bloco só faz sentido quando há pelo menos um mercado nomeado.
+  if (storeBreakdown.every((entry) => entry.store === "Sem mercado")) {
+    storeBreakdown = []
   }
 
   const percentChange =
@@ -79,8 +105,10 @@ export async function getExpenseMetrics(householdId: string): Promise<ExpenseMet
     monthlyAverage: round(monthlyAverage),
     purchaseCount: purchases.length,
     largestPurchase: round(largestPurchase),
+    largestPurchaseStoreName,
     monthlySeries,
     categoryBreakdown: await getCategoryBreakdown(householdId),
+    storeBreakdown,
   }
 }
 

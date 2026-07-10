@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertCircle, Check, Copy, MoreVertical, Trash2 } from "lucide-react"
+import { AlertCircle, Check, Copy, MoreVertical, Store, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -16,6 +16,7 @@ import {
 import { ListCardIllustration } from "@/features/shopping-lists/components/list-card-illustration"
 import { ListCardInviteButton } from "@/features/shopping-lists/components/list-card-invite-button"
 import { ListCardMembers } from "@/features/shopping-lists/components/list-card-members"
+import { formatCurrency } from "@/lib/format-currency"
 import { cn } from "@/lib/utils"
 import type { HouseholdMemberDTO, ShoppingListSummary } from "@/types/domain"
 
@@ -126,6 +127,18 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
           purchaseCount={list.purchaseCount}
         />
       </div>
+
+      {isCompleted && (list.lastPurchaseStoreName || list.lastPurchaseTotal != null) && (
+        <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">
+          <Store className="size-3.5 shrink-0" />
+          {[
+            list.lastPurchaseStoreName,
+            list.lastPurchaseTotal != null ? formatCurrency(list.lastPurchaseTotal) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      )}
 
       {showProgress && (
         <div className="pointer-events-none relative z-[1] mt-3 space-y-1.5">
