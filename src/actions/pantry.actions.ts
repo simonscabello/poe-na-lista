@@ -11,7 +11,7 @@ import {
   getPantryItemForListAdd,
   getPantryItemHouseholdId,
   getPantryItemRestockQuantityAfterListCoverage,
-  type PantryListAddItem,
+  type PantryListAddInput,
   removePantryItem,
   updatePantryItem,
 } from "@/services/pantry.service"
@@ -150,7 +150,7 @@ async function addPantryItemsToHouseholdList(input: {
   householdId: string
   userId: string
   userName: string
-  items: PantryListAddItem[]
+  items: PantryListAddInput[]
   notifyExistingList: boolean
 }): Promise<string> {
   let listId = await getMostRecentActiveListId(input.householdId)

@@ -120,6 +120,11 @@ export type PantryListAddItem = {
   priceMode: "UNIT" | "TOTAL"
 }
 
+export type PantryListAddInput = Pick<
+  PantryListAddItem,
+  "productId" | "quantity" | "unit" | "priceMode"
+>
+
 export type LowStockItem = PantryListAddItem & {
   /** Quanto repor: o déficit até o mínimo, arredondado para cima em produtos unitários. */
   restockQuantity: number
