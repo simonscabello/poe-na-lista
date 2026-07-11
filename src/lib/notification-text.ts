@@ -14,5 +14,8 @@ export function getNotificationMessage(notification: NotificationDTO): string {
       const count = notification.amount ?? 1
       return `${notification.actorName} adicionou ${count} ${count === 1 ? "item" : "itens"} em "${notification.entityLabel}"`
     }
+    case "BUDGET_ALERT":
+      // amount = fechamento projetado; entityLabel = orçamento já formatado.
+      return `No ritmo atual, o mês fecha em ~${formatCurrency(notification.amount ?? 0)} — acima do orçamento de ${notification.entityLabel}`
   }
 }

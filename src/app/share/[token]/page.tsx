@@ -44,5 +44,5 @@ async function PublicShareContent({ token }: { token: string }) {
     )
   }
 
-  return <PublicListView list={list} />
+  return <PublicListView list={list} token={token} />
 }

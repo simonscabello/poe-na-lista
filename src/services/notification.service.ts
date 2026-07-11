@@ -1,7 +1,9 @@
 import { after } from "next/server"
+import { formatCurrency } from "@/lib/format-currency"
 import { getNotificationMessage } from "@/lib/notification-text"
 import { prisma } from "@/lib/prisma"
 import { sendPushToUsers } from "@/lib/push"
+import { getBudgetStatus } from "@/services/budget.service"
 import { getHouseholdMembers } from "@/services/household.service"
 import type { NotificationDTO, NotificationTypeDTO } from "@/types/domain"
 
@@ -139,6 +141,67 @@ export async function notifyItemAdded(input: {
           link,
         }),
       ),
+    ),
+  )
+}
+
+/**
+ * Alerta quando a projeção de fechamento do mês cruza o orçamento. Dispara no
+ * máximo uma vez por mês por household (guard pela própria tabela de
+ * notificações) e vai para TODOS os membros — orçamento é assunto coletivo,
+ * inclusive de quem fez a compra.
+ */
+export async function notifyBudgetProjectionAlert(householdId: string): Promise<void> {
+  const status = await getBudgetStatus(householdId)
+  if (!status || status.projectedTotal == null || status.projectedTotal <= status.budget) {
+    return
+  }
+
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const alreadyAlerted = await prisma.notification.findFirst({
+    where: { householdId, type: "BUDGET_ALERT", createdAt: { gte: monthStart } },
+    select: { id: true },
+  })
+  if (alreadyAlerted) {
+    return
+  }
+
+  const members = await getHouseholdMembers(householdId)
+  if (members.length === 0) {
+    return
+  }
+
+  const entityLabel = formatCurrency(status.budget)
+  const link = "/dashboard/expenses"
+
+  await prisma.notification.createMany({
+    data: members.map((member) => ({
+      householdId,
+      userId: member.userId,
+      type: "BUDGET_ALERT" as const,
+      actorName: "Orçamento",
+      entityLabel,
+      amount: status.projectedTotal,
+      link,
+    })),
+  })
+
+  const body = getNotificationMessage({
+    id: "push",
+    type: "BUDGET_ALERT",
+    actorName: "Orçamento",
+    entityLabel,
+    amount: status.projectedTotal,
+    link,
+    read: false,
+    createdAt: now.toISOString(),
+  })
+
+  after(() =>
+    sendPushToUsers(
+      members.map((member) => member.userId),
+      { title: "Põe na Lista", body, link },
     ),
   )
 }

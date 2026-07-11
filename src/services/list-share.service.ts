@@ -112,7 +112,9 @@ export async function getPublicListByToken(token: string): Promise<PublicListDTO
 
   return {
     name: share.shoppingList.name,
+    canCheck: share.shoppingList.status === "ACTIVE",
     items: share.shoppingList.items.map((item) => ({
+      id: item.id,
       productName: item.product.name,
       category: item.product.category?.name ?? null,
       quantity: Number(item.quantity),
@@ -120,4 +122,37 @@ export async function getPublicListByToken(token: string): Promise<PublicListDTO
       checked: item.checked,
     })),
   }
+}
+
+/**
+ * Marca/desmarca um item via link público. O token é a credencial: precisa
+ * estar ativo (não revogado/expirado), a lista precisa estar ACTIVE e o item
+ * precisa pertencer à lista do próprio token. Retorna o id da lista para
+ * revalidação, ou `null` quando qualquer condição falha.
+ */
+export async function togglePublicItem(
+  token: string,
+  itemId: string,
+  checked: boolean,
+): Promise<{ listId: string } | null> {
+  const share = await prisma.shoppingListShare.findUnique({
+    where: { token },
+    select: {
+      revokedAt: true,
+      expiresAt: true,
+      shoppingListId: true,
+      shoppingList: { select: { status: true } },
+    },
+  })
+
+  if (!share || share.revokedAt) return null
+  if (share.expiresAt && share.expiresAt <= new Date()) return null
+  if (share.shoppingList.status !== "ACTIVE") return null
+
+  const result = await prisma.shoppingListItem.updateMany({
+    where: { id: itemId, shoppingListId: share.shoppingListId },
+    data: { checked },
+  })
+
+  return result.count > 0 ? { listId: share.shoppingListId } : null
 }

@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache"
 import { addItemSchema, itemPriceSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
-import { notifyItemAdded } from "@/services/notification.service"
-import { getLastKnownUnitPrices, syncPurchaseItemFromListItem } from "@/services/purchase.service"
+import { notifyBudgetProjectionAlert, notifyItemAdded } from "@/services/notification.service"
+import {
+  getLastKnownUnitPrices,
+  getPurchaseHouseholdId,
+  syncPurchaseItemFromListItem,
+} from "@/services/purchase.service"
 import { getListHouseholdId } from "@/services/shopping-list.service"
 import {
   addShoppingListItem,
@@ -88,6 +92,14 @@ export async function updateItemPriceAction(itemId: string, input: unknown): Pro
     const { price, priceMode } = itemPriceSchema.parse(input)
     await setItemPrice(itemId, price, priceMode)
     const purchaseId = await syncPurchaseItemFromListItem(itemId)
+    // Preço informado depois da finalização pode elevar o total do mês e
+    // cruzar o orçamento — mesmo alerta da finalização de compra.
+    if (purchaseId) {
+      const purchaseHouseholdId = await getPurchaseHouseholdId(purchaseId)
+      if (purchaseHouseholdId) {
+        await notifyBudgetProjectionAlert(purchaseHouseholdId)
+      }
+    }
     revalidatePath(`/dashboard/lists/${listId}`)
     revalidatePath("/dashboard/lists")
     revalidatePath("/dashboard")

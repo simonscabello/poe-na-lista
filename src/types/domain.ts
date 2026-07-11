@@ -106,6 +106,8 @@ export type ShoppingListShareDTO = {
 }
 
 export type PublicListItemDTO = {
+  /** Cuid do item — necessário para o check público; inócuo sem o token. */
+  id: string
   productName: string
   category: string | null
   quantity: number
@@ -115,6 +117,8 @@ export type PublicListItemDTO = {
 
 export type PublicListDTO = {
   name: string
+  /** false quando a lista já foi finalizada (link vira somente leitura). */
+  canCheck: boolean
   items: PublicListItemDTO[]
 }
 
@@ -183,6 +187,18 @@ export type ExpenseMetricsDTO = {
   storeBreakdown: StoreExpenseDTO[]
 }
 
+export type BudgetStatusDTO = {
+  budget: number
+  spent: number
+  /** budget - spent; negativo quando o orçamento já estourou. */
+  remaining: number
+  /** Pode passar de 100 quando o gasto excede o orçamento. */
+  percentUsed: number
+  /** Fechamento projetado pelo ritmo do mês; null sem compras no mês. */
+  projectedTotal: number | null
+  daysRemaining: number
+}
+
 export type ExpenseEstimateDTO = {
   min: number
   max: number
@@ -204,6 +220,7 @@ export type NotificationTypeDTO =
   | "PURCHASE_FINALIZED"
   | "MEMBER_JOINED"
   | "ITEM_ADDED"
+  | "BUDGET_ALERT"
 
 export type NotificationDTO = {
   id: string

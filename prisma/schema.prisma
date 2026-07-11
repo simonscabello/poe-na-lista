@@ -39,6 +39,7 @@ enum NotificationType {
   PURCHASE_FINALIZED
   MEMBER_JOINED
   ITEM_ADDED
+  BUDGET_ALERT
 }
 
 model User {
@@ -106,6 +107,8 @@ model VerificationToken {
 model Household {
   id   String @id @default(cuid())
   name String
+  // Teto de gasto mensal definido pela família; null = sem orçamento.
+  monthlyBudget Decimal? @db.Decimal(10, 2)
 
   members       HouseholdMember[]
   invitations   HouseholdInvitation[]

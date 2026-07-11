@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { EmptyState } from "@/components/common/empty-state"
 import { Container } from "@/components/layout/container"
+import { BudgetCard } from "@/features/expenses/components/budget-card"
 import { CategoryBreakdown } from "@/features/expenses/components/category-breakdown"
 import { ExpenseEstimateCard } from "@/features/expenses/components/expense-estimate-card"
 import { ExpenseMetricsCards } from "@/features/expenses/components/expense-metrics-cards"
@@ -11,8 +12,10 @@ import { MonthlyExpensesChart } from "@/features/expenses/components/monthly-exp
 import { PurchaseHistoryList } from "@/features/expenses/components/purchase-history-list"
 import { StoreBreakdown } from "@/features/expenses/components/store-breakdown"
 import { OnboardingView } from "@/features/households/components/onboarding-view"
+import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
+import { getBudgetStatus } from "@/services/budget.service"
 import { getExpenseEstimate, getExpenseMetrics } from "@/services/expense-metrics.service"
 import { getUserHouseholds } from "@/services/household.service"
 import { getPurchaseHistory } from "@/services/purchase.service"
@@ -39,10 +42,12 @@ async function ExpensesContent() {
     return <OnboardingView />
   }
 
-  const [metrics, purchases, lists] = await Promise.all([
+  const canManage = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
+  const [metrics, purchases, lists, budgetStatus] = await Promise.all([
     getExpenseMetrics(active.id),
     getPurchaseHistory(active.id),
     getListsByHousehold(active.id),
+    getBudgetStatus(active.id),
   ])
 
   const activeList = lists.find((list) => list.status === "ACTIVE")
@@ -51,6 +56,8 @@ async function ExpensesContent() {
   return (
     <Container size="wide" className="space-y-6 py-6">
       <h1 className="text-page-title">Gastos</h1>
+
+      <BudgetCard householdId={active.id} status={budgetStatus} canManage={canManage} />
 
       {purchases.length === 0 ? (
         <EmptyState

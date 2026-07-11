@@ -1,14 +1,23 @@
 import { Receipt, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/format-currency"
+import { cn } from "@/lib/utils"
 import type { ExpenseEstimateDTO } from "@/types/domain"
 
 type OverviewCardsProps = {
   currentMonthTotal: number
+  monthlyBudget?: number | null
   estimate: ExpenseEstimateDTO | null
 }
 
-export function OverviewCards({ currentMonthTotal, estimate }: OverviewCardsProps) {
+export function OverviewCards({
+  currentMonthTotal,
+  monthlyBudget = null,
+  estimate,
+}: OverviewCardsProps) {
+  const budgetPercent =
+    monthlyBudget != null && monthlyBudget > 0 ? (currentMonthTotal / monthlyBudget) * 100 : null
+
   return (
     <div className="space-y-3">
       <Link
@@ -21,7 +30,28 @@ export function OverviewCards({ currentMonthTotal, estimate }: OverviewCardsProp
         </span>
         <span className="mt-1 block font-heading text-xl font-semibold tabular-nums">
           {formatCurrency(currentMonthTotal)}
+          {monthlyBudget != null && (
+            <span className="text-sm font-normal text-muted-foreground">
+              {" "}
+              de {formatCurrency(monthlyBudget)}
+            </span>
+          )}
         </span>
+        {budgetPercent != null && (
+          <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted">
+            <span
+              className={cn(
+                "block h-full rounded-full",
+                budgetPercent > 100
+                  ? "bg-destructive"
+                  : budgetPercent >= 80
+                    ? "bg-amber-500"
+                    : "bg-primary",
+              )}
+              style={{ width: `${Math.min(budgetPercent, 100)}%` }}
+            />
+          </span>
+        )}
       </Link>
 
       {estimate && (

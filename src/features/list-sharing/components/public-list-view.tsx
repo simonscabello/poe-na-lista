@@ -1,7 +1,13 @@
+"use client"
+
 import { Check } from "lucide-react"
 import Link from "next/link"
+import { useOptimistic, useTransition } from "react"
+import { toast } from "sonner"
+import { togglePublicItemAction } from "@/actions/list-share.actions"
 import { AppLogo } from "@/components/common/app-logo"
 import { categoryEmoji } from "@/lib/categories"
+import { haptic } from "@/lib/haptics"
 import { cn } from "@/lib/utils"
 import type { PublicListDTO, PublicListItemDTO } from "@/types/domain"
 
@@ -32,39 +38,63 @@ function formatQuantity(item: PublicListItemDTO): string | null {
   return item.unit ? `${value} ${item.unit}` : value
 }
 
-export function PublicListView({ list }: { list: PublicListDTO }) {
-  const groups = groupByCategory(list.items)
-  const pendingCount = list.items.filter((item) => !item.checked).length
+export function PublicListView({ list, token }: { list: PublicListDTO; token: string }) {
+  const [, startTransition] = useTransition()
+  const [items, applyToggle] = useOptimistic(
+    list.items,
+    (state: PublicListItemDTO[], action: { id: string; checked: boolean }) =>
+      state.map((item) => (item.id === action.id ? { ...item, checked: action.checked } : item)),
+  )
+
+  const groups = groupByCategory(items)
+  const pendingCount = items.filter((item) => !item.checked).length
+
+  function toggle(item: PublicListItemDTO) {
+    startTransition(async () => {
+      haptic("tap")
+      applyToggle({ id: item.id, checked: !item.checked })
+      const result = await togglePublicItemAction({
+        token,
+        itemId: item.id,
+        checked: !item.checked,
+      })
+      if (!result.success) {
+        toast.error(result.error)
+      }
+    })
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 py-8">
       <header className="space-y-1">
         <h1 className="text-page-title text-2xl">{list.name}</h1>
         <p className="text-sm text-muted-foreground">
-          {list.items.length === 0
+          {items.length === 0
             ? "Lista sem itens"
             : `${pendingCount} ${pendingCount === 1 ? "item para comprar" : "itens para comprar"}`}
         </p>
+        {list.canCheck && items.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Toque em um item para marcar como comprado — quem compartilhou vê na hora.
+          </p>
+        )}
       </header>
 
       <div className="mt-6 flex-1 space-y-6">
-        {groups.map(([category, items]) => (
+        {groups.map(([category, categoryItems]) => (
           <section key={category} className="space-y-2">
             <h2 className="text-section-label flex items-center gap-2">
               <span aria-hidden>{categoryEmoji(category)}</span>
               {category}
             </h2>
             <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card ring-1 ring-border/70">
-              {items.map((item) => {
+              {categoryItems.map((item) => {
                 const quantity = formatQuantity(item)
-                return (
-                  <li
-                    key={`${item.productName}-${item.unit ?? ""}-${item.checked}`}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
+                const content = (
+                  <>
                     <span
                       className={cn(
-                        "flex size-5 shrink-0 items-center justify-center rounded-full ring-1",
+                        "flex size-5 shrink-0 items-center justify-center rounded-full ring-1 transition-colors",
                         item.checked
                           ? "bg-primary text-primary-foreground ring-primary"
                           : "ring-border",
@@ -74,7 +104,7 @@ export function PublicListView({ list }: { list: PublicListDTO }) {
                     </span>
                     <span
                       className={cn(
-                        "flex-1 text-sm",
+                        "flex-1 text-left text-sm",
                         item.checked && "text-muted-foreground line-through",
                       )}
                     >
@@ -84,6 +114,28 @@ export function PublicListView({ list }: { list: PublicListDTO }) {
                       <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
                         {quantity}
                       </span>
+                    )}
+                  </>
+                )
+
+                return (
+                  <li key={item.id}>
+                    {list.canCheck ? (
+                      <button
+                        type="button"
+                        onClick={() => toggle(item)}
+                        aria-pressed={item.checked}
+                        aria-label={
+                          item.checked
+                            ? `Desmarcar ${item.productName}`
+                            : `Marcar ${item.productName} como comprado`
+                        }
+                        className="flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 active:bg-muted/60"
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-3 px-4 py-3">{content}</div>
                     )}
                   </li>
                 )

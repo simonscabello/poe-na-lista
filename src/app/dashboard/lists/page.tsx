@@ -11,6 +11,7 @@ import { SuggestedListCard } from "@/features/shopping-lists/components/suggeste
 import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
+import { getMonthlyBudget } from "@/services/budget.service"
 import { getExpenseEstimate, getExpenseMetrics } from "@/services/expense-metrics.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
@@ -38,11 +39,12 @@ async function ListsContent() {
   }
 
   const canInvite = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
-  const [lists, members, metrics, suggestedPreview] = await Promise.all([
+  const [lists, members, metrics, suggestedPreview, monthlyBudget] = await Promise.all([
     getListsByHousehold(active.id),
     getHouseholdMembers(active.id),
     getExpenseMetrics(active.id),
     getSuggestedListPreview(active.id),
+    getMonthlyBudget(active.id),
   ])
 
   const activeList = lists.find((list) => list.status === "ACTIVE")
@@ -63,7 +65,11 @@ async function ListsContent() {
 
       <PushBanner />
 
-      <OverviewCards currentMonthTotal={metrics.currentMonthTotal} estimate={estimate} />
+      <OverviewCards
+        currentMonthTotal={metrics.currentMonthTotal}
+        monthlyBudget={monthlyBudget}
+        estimate={estimate}
+      />
 
       {suggestedPreview && (
         <SuggestedListCard householdId={active.id} items={suggestedPreview.items} />
