@@ -415,6 +415,7 @@ export function ListView({
           items={items}
           productsById={productsById}
           autoFilledIds={autoFilledIds}
+          lastPrices={lastPrices}
           onToggle={toggle}
           onRemove={remove}
           onChangeQuantity={changeQuantity}

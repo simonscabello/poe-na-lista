@@ -2,7 +2,7 @@
 
 import { useAtomValue } from "jotai"
 import { Check, RotateCcw, Trash2 } from "lucide-react"
-import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react"
+import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -25,6 +25,7 @@ type SwipeableItemRowProps = {
   item: ShoppingListItemDTO
   product?: ProductDTO
   autoFilledPrice?: boolean
+  suggestedPrice?: number | null
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -36,6 +37,7 @@ export function SwipeableItemRow({
   item,
   product,
   autoFilledPrice = false,
+  suggestedPrice = null,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -48,22 +50,9 @@ export function SwipeableItemRow({
   const gesture = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null)
   const crossed = useRef(false)
 
-  const priceRef = useRef<HTMLInputElement>(null)
-  const wasChecked = useRef(item.checked)
-
   const measure = getMeasureConfigForItem(product, item.unit)
   const unitLabel = item.unit || "un"
   const priceLabel = item.priceMode === "TOTAL" ? "valor total" : measure.pricePlaceholder
-  // Preço só aparece quando o item foi marcado (ou já tem preço), mantendo a
-  // linha enxuta para quem só quer riscar itens durante a compra.
-  const showPriceFields = item.checked || item.price != null
-
-  useEffect(() => {
-    if (item.checked && !wasChecked.current) {
-      priceRef.current?.focus()
-    }
-    wasChecked.current = item.checked
-  }, [item.checked])
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse") return
@@ -227,19 +216,17 @@ export function SwipeableItemRow({
           )}
         </div>
 
-        {showPriceFields && (
-          <ItemPriceFields
-            item={item}
-            unitLabel={unitLabel}
-            priceLabel={priceLabel}
-            autoFilled={autoFilledPrice}
-            onChangePrice={onChangePrice}
-            onChangePriceMode={onChangePriceMode}
-            priceInputRef={priceRef}
-            onPointerDown={(event) => event.stopPropagation()}
-            className="pl-9"
-          />
-        )}
+        <ItemPriceFields
+          item={item}
+          unitLabel={unitLabel}
+          priceLabel={priceLabel}
+          autoFilled={autoFilledPrice}
+          suggestedPrice={suggestedPrice}
+          onChangePrice={onChangePrice}
+          onChangePriceMode={onChangePriceMode}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="pl-9"
+        />
       </div>
     </li>
   )

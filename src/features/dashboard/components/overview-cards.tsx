@@ -1,20 +1,14 @@
-import { Receipt, TrendingUp } from "lucide-react"
+import { Receipt } from "lucide-react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/format-currency"
 import { cn } from "@/lib/utils"
-import type { ExpenseEstimateDTO } from "@/types/domain"
 
 type OverviewCardsProps = {
   currentMonthTotal: number
   monthlyBudget?: number | null
-  estimate: ExpenseEstimateDTO | null
 }
 
-export function OverviewCards({
-  currentMonthTotal,
-  monthlyBudget = null,
-  estimate,
-}: OverviewCardsProps) {
+export function OverviewCards({ currentMonthTotal, monthlyBudget = null }: OverviewCardsProps) {
   const budgetPercent =
     monthlyBudget != null && monthlyBudget > 0 ? (currentMonthTotal / monthlyBudget) * 100 : null
 
@@ -53,25 +47,6 @@ export function OverviewCards({
           </span>
         )}
       </Link>
-
-      {estimate && (
-        <Link
-          href="/dashboard/expenses"
-          className="flex items-center gap-3 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/20 transition-colors hover:bg-primary/10 active:scale-[0.99]"
-        >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <TrendingUp className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs text-muted-foreground">
-              Estimativa da próxima compra
-            </span>
-            <span className="block font-heading text-base font-semibold tabular-nums">
-              {formatCurrency(estimate.min)} a {formatCurrency(estimate.max)}
-            </span>
-          </span>
-        </Link>
-      )}
     </div>
   )
 }

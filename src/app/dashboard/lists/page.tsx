@@ -12,10 +12,9 @@ import { SuggestedListCard } from "@/features/shopping-lists/components/suggeste
 import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
-import { getMonthlyBudget } from "@/services/budget.service"
-import { getExpenseEstimate, getExpenseMetrics } from "@/services/expense-metrics.service"
+import { getCurrentMonthSpent, getMonthlyBudget } from "@/services/budget.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
-import { getLowStockPantryItems } from "@/services/pantry.service"
+import { getLowStockPantryItemsNeedingRestock } from "@/services/pantry.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
 import { getSuggestedListPreview } from "@/services/suggestion.service"
 
@@ -41,18 +40,15 @@ async function ListsContent() {
   }
 
   const canInvite = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
-  const [lists, members, metrics, suggestedPreview, monthlyBudget, lowStockItems] =
+  const [lists, members, currentMonthTotal, suggestedPreview, monthlyBudget, lowStockItems] =
     await Promise.all([
       getListsByHousehold(active.id),
       getHouseholdMembers(active.id),
-      getExpenseMetrics(active.id),
+      getCurrentMonthSpent(active.id),
       getSuggestedListPreview(active.id),
       getMonthlyBudget(active.id),
-      getLowStockPantryItems(active.id),
+      getLowStockPantryItemsNeedingRestock(active.id),
     ])
-
-  const activeList = lists.find((list) => list.status === "ACTIVE")
-  const estimate = await getExpenseEstimate(active.id, activeList?.id ?? null)
 
   // Primeira lista de um grupo ainda solo: vale convidar quem mora junto.
   const showInviteStep = lists.length === 0 && members.length === 1 && canInvite
@@ -69,11 +65,7 @@ async function ListsContent() {
 
       <PushBanner />
 
-      <OverviewCards
-        currentMonthTotal={metrics.currentMonthTotal}
-        monthlyBudget={monthlyBudget}
-        estimate={estimate}
-      />
+      <OverviewCards currentMonthTotal={currentMonthTotal} monthlyBudget={monthlyBudget} />
 
       {lowStockItems.length > 0 && (
         <PantryRestockCard

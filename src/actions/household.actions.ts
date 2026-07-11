@@ -77,7 +77,10 @@ export async function removeMemberAction(
       throw new ForbiddenError("O dono não pode se remover")
     }
 
-    await removeHouseholdMember(memberId)
+    const removed = await removeHouseholdMember(memberId, householdId)
+    if (!removed) {
+      throw new ForbiddenError("Membro não encontrado neste grupo")
+    }
     revalidatePath("/dashboard/household")
     return actionOk(undefined)
   } catch (error) {

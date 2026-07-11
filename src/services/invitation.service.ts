@@ -28,15 +28,28 @@ export async function createInvitation(input: {
 
 export async function getPendingInvitations(householdId: string): Promise<InvitationDTO[]> {
   const invitations = await prisma.householdInvitation.findMany({
-    where: { householdId, status: InvitationStatus.PENDING },
+    // Convite vencido não é mais "pendente", mesmo que ninguém tenha tentado
+    // usá-lo (o status só vira EXPIRED no momento do aceite).
+    where: { householdId, status: InvitationStatus.PENDING, expiresAt: { gt: new Date() } },
     orderBy: { createdAt: "desc" },
   })
 
   return invitations.map(mapInvitation)
 }
 
-export async function revokeInvitation(invitationId: string): Promise<void> {
-  await prisma.householdInvitation.delete({ where: { id: invitationId } })
+/**
+ * Revoga um convite garantindo que ele pertence ao household informado — o
+ * escopo evita que um admin de outro grupo apague convites alheios. Retorna
+ * `false` quando nada foi removido.
+ */
+export async function revokeInvitation(
+  invitationId: string,
+  householdId: string,
+): Promise<boolean> {
+  const result = await prisma.householdInvitation.deleteMany({
+    where: { id: invitationId, householdId },
+  })
+  return result.count > 0
 }
 
 export async function getInvitationByToken(token: string) {
@@ -71,25 +84,26 @@ export async function acceptInvitation(input: {
     throw new Error("Convite expirado")
   }
 
-  const existing = await prisma.householdMember.findUnique({
-    where: {
-      userId_householdId: { userId: input.userId, householdId: invitation.householdId },
-    },
-  })
-
-  if (!existing) {
-    await prisma.householdMember.create({
-      data: {
+  // Ingressar e marcar o convite como aceito precisam ser atômicos: sem a
+  // transação, uma falha entre os dois passos deixaria o membro dentro do
+  // grupo com o convite ainda PENDING (reutilizável).
+  await prisma.$transaction(async (tx) => {
+    await tx.householdMember.upsert({
+      where: {
+        userId_householdId: { userId: input.userId, householdId: invitation.householdId },
+      },
+      update: {},
+      create: {
         userId: input.userId,
         householdId: invitation.householdId,
         role: HouseholdRole.MEMBER,
       },
     })
-  }
 
-  await prisma.householdInvitation.update({
-    where: { id: invitation.id },
-    data: { status: InvitationStatus.ACCEPTED },
+    await tx.householdInvitation.update({
+      where: { id: invitation.id },
+      data: { status: InvitationStatus.ACCEPTED },
+    })
   })
 
   return { householdId: invitation.householdId }

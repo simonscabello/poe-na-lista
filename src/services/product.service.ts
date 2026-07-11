@@ -479,11 +479,71 @@ export async function mergeProductIntoGlobal(
   }
 
   const itemsMoved = await prisma.$transaction(async (tx) => {
-    const listItems = await tx.shoppingListItem.updateMany({
+    // Itens de lista: repontar para o destino, mas sem criar duas linhas do
+    // mesmo produto na mesma lista (não há unique em (lista, produto)). Quando
+    // a lista já tem o destino na mesma unidade, somamos e apagamos a origem.
+    const sourceListItems = await tx.shoppingListItem.findMany({
       where: { productId: sourceId },
-      data: { productId: targetId },
+      select: { id: true, shoppingListId: true, unit: true, quantity: true },
     })
 
+    let listItemsMoved = 0
+    for (const item of sourceListItems) {
+      const twin = await tx.shoppingListItem.findFirst({
+        where: {
+          shoppingListId: item.shoppingListId,
+          productId: targetId,
+          unit: item.unit,
+        },
+        select: { id: true },
+      })
+
+      if (twin) {
+        await tx.shoppingListItem.update({
+          where: { id: twin.id },
+          data: { quantity: { increment: item.quantity } },
+        })
+        await tx.shoppingListItem.delete({ where: { id: item.id } })
+      } else {
+        await tx.shoppingListItem.update({
+          where: { id: item.id },
+          data: { productId: targetId },
+        })
+      }
+      listItemsMoved += 1
+    }
+
+    // Despensa: PantryItem tem unique (household, produto) e cascade no delete
+    // do produto — sem migrar antes, o registro seria apagado junto. Quando a
+    // casa já tem o destino, somamos as quantidades; senão, repontamos.
+    const sourcePantryItems = await tx.pantryItem.findMany({
+      where: { productId: sourceId },
+      select: { id: true, householdId: true, quantity: true },
+    })
+
+    for (const pantry of sourcePantryItems) {
+      const twin = await tx.pantryItem.findUnique({
+        where: {
+          householdId_productId: { householdId: pantry.householdId, productId: targetId },
+        },
+        select: { id: true },
+      })
+
+      if (twin) {
+        await tx.pantryItem.update({
+          where: { id: twin.id },
+          data: { quantity: { increment: pantry.quantity } },
+        })
+        await tx.pantryItem.delete({ where: { id: pantry.id } })
+      } else {
+        await tx.pantryItem.update({
+          where: { id: pantry.id },
+          data: { productId: targetId },
+        })
+      }
+    }
+
+    // Histórico de compra: sem unique por produto, basta repontar.
     const purchaseItems = await tx.purchaseItem.updateMany({
       where: { productId: sourceId },
       data: { productId: targetId },
@@ -491,7 +551,7 @@ export async function mergeProductIntoGlobal(
 
     await tx.product.delete({ where: { id: sourceId } })
 
-    return listItems.count + purchaseItems.count
+    return listItemsMoved + purchaseItems.count
   })
 
   return { merged: true, itemsMoved }

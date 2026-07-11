@@ -64,6 +64,17 @@ export async function updateHouseholdName(householdId: string, name: string): Pr
   await prisma.household.update({ where: { id: householdId }, data: { name } })
 }
 
-export async function removeHouseholdMember(memberId: string): Promise<void> {
-  await prisma.householdMember.delete({ where: { id: memberId } })
+/**
+ * Remove um membro garantindo que ele pertence ao household informado — o
+ * escopo evita que um dono de outro grupo apague membros alheios passando um
+ * memberId arbitrário. Retorna `false` quando nada foi removido.
+ */
+export async function removeHouseholdMember(
+  memberId: string,
+  householdId: string,
+): Promise<boolean> {
+  const result = await prisma.householdMember.deleteMany({
+    where: { id: memberId, householdId },
+  })
+  return result.count > 0
 }

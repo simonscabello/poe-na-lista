@@ -5,10 +5,13 @@ import { z } from "zod"
 import { parseCalendarDate } from "@/lib/calendar-date"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
-import { notifyHousehold } from "@/services/notification.service"
+import { notifyHousehold, notifyItemAdded } from "@/services/notification.service"
 import {
-  getLowStockPantryItems,
+  getLowStockPantryItemsNeedingRestock,
+  getPantryItemForListAdd,
   getPantryItemHouseholdId,
+  getPantryItemRestockQuantityAfterListCoverage,
+  type PantryListAddItem,
   removePantryItem,
   updatePantryItem,
 } from "@/services/pantry.service"
@@ -72,52 +75,136 @@ export async function restockPantryAction(
 ): Promise<ActionResult<{ listId: string; added: number }>> {
   try {
     const { user } = await requireHouseholdMember(householdId)
-    const lowItems = await getLowStockPantryItems(householdId)
+    const lowItems = await getLowStockPantryItemsNeedingRestock(householdId)
     if (lowItems.length === 0) {
-      return actionError("Nada abaixo do mínimo na despensa")
+      return actionError("Os itens em falta já estão na lista ativa")
     }
 
-    let listId = await getMostRecentActiveListId(householdId)
+    const listId = await addPantryItemsToHouseholdList({
+      householdId,
+      userId: user.id,
+      userName: user.name ?? "Alguém",
+      items: lowItems.map((item) => ({
+        productId: item.productId,
+        quantity: item.restockQuantity,
+        unit: item.unit,
+        priceMode: item.priceMode,
+      })),
+      notifyExistingList: false,
+    })
 
-    if (listId) {
-      for (const item of lowItems) {
-        await addShoppingListItem({
-          shoppingListId: listId,
-          productId: item.productId,
-          quantity: item.restockQuantity,
-          unit: item.unit,
-          priceMode: item.priceMode,
-        })
-      }
-    } else {
-      listId = await createShoppingListWithItems(
-        householdId,
-        user.id,
-        RESTOCK_LIST_NAME,
-        lowItems.map((item) => ({
-          productId: item.productId,
-          quantity: item.restockQuantity,
-          unit: item.unit,
-        })),
-      )
-      await notifyHousehold({
-        householdId,
-        excludeUserId: user.id,
-        type: "LIST_CREATED",
-        actorName: user.name ?? "Alguém",
-        entityLabel: RESTOCK_LIST_NAME,
-        link: `/dashboard/lists/${listId}`,
-      })
-    }
-
-    revalidatePath("/dashboard")
-    revalidatePath("/dashboard/lists")
-    revalidatePath(`/dashboard/lists/${listId}`)
-    revalidatePath("/dashboard/pantry")
+    revalidatePantryListPaths(listId)
     return actionOk({ listId, added: lowItems.length })
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }
+}
+
+/** Adiciona um item da despensa à lista ativa mais recente do household. */
+export async function addPantryItemToListAction(
+  pantryItemId: string,
+): Promise<ActionResult<{ listId: string; quantity: number }>> {
+  try {
+    const { user } = await requirePantryAccess(pantryItemId)
+    const payload = await getPantryItemForListAdd(pantryItemId)
+
+    if (!payload) {
+      return actionError("Item não encontrado na despensa")
+    }
+
+    let quantity = payload.quantity
+    if (payload.belowMinimum) {
+      const remaining = await getPantryItemRestockQuantityAfterListCoverage(
+        payload.householdId,
+        payload,
+      )
+      if (remaining == null) {
+        return actionError("Este produto já está na lista")
+      }
+      quantity = remaining
+    }
+
+    const listId = await addPantryItemsToHouseholdList({
+      householdId: payload.householdId,
+      userId: user.id,
+      userName: user.name ?? "Alguém",
+      items: [
+        {
+          productId: payload.productId,
+          quantity,
+          unit: payload.unit,
+          priceMode: payload.priceMode,
+        },
+      ],
+      notifyExistingList: true,
+    })
+
+    revalidatePantryListPaths(listId)
+    return actionOk({ listId, quantity })
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+async function addPantryItemsToHouseholdList(input: {
+  householdId: string
+  userId: string
+  userName: string
+  items: PantryListAddItem[]
+  notifyExistingList: boolean
+}): Promise<string> {
+  let listId = await getMostRecentActiveListId(input.householdId)
+
+  if (listId) {
+    for (const item of input.items) {
+      await addShoppingListItem({
+        shoppingListId: listId,
+        productId: item.productId,
+        quantity: item.quantity,
+        unit: item.unit,
+        priceMode: item.priceMode,
+      })
+    }
+
+    if (input.notifyExistingList) {
+      await notifyItemAdded({
+        listId,
+        actorUserId: input.userId,
+        actorName: input.userName,
+      })
+    }
+
+    return listId
+  }
+
+  listId = await createShoppingListWithItems(
+    input.householdId,
+    input.userId,
+    RESTOCK_LIST_NAME,
+    input.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unit: item.unit,
+    })),
+  )
+
+  await notifyHousehold({
+    householdId: input.householdId,
+    excludeUserId: input.userId,
+    type: "LIST_CREATED",
+    actorName: input.userName,
+    entityLabel: RESTOCK_LIST_NAME,
+    link: `/dashboard/lists/${listId}`,
+  })
+
+  return listId
+}
+
+function revalidatePantryListPaths(listId: string) {
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/lists")
+  revalidatePath(`/dashboard/lists/${listId}`)
+  revalidatePath("/dashboard/pantry")
 }
 
 async function requirePantryAccess(itemId: string) {

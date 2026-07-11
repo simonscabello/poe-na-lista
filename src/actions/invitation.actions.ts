@@ -28,7 +28,10 @@ export async function revokeInvitationAction(
 ): Promise<ActionResult> {
   try {
     await requireHouseholdMember(householdId, HouseholdRole.ADMIN)
-    await revokeInvitation(invitationId)
+    const revoked = await revokeInvitation(invitationId, householdId)
+    if (!revoked) {
+      throw new Error("Convite não encontrado neste grupo")
+    }
     revalidatePath("/dashboard/household")
     return actionOk(undefined)
   } catch (error) {

@@ -6,7 +6,7 @@ import { PantryView } from "@/features/pantry/components/pantry-view"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
 import { getUserHouseholds } from "@/services/household.service"
-import { getPantryItems } from "@/services/pantry.service"
+import { getLowStockPantryItemsNeedingRestock, getPantryItems } from "@/services/pantry.service"
 
 export default function PantryPage() {
   return (
@@ -29,7 +29,10 @@ async function PantryContent() {
     return <OnboardingView />
   }
 
-  const items = await getPantryItems(active.id)
+  const [items, restockItems] = await Promise.all([
+    getPantryItems(active.id),
+    getLowStockPantryItemsNeedingRestock(active.id),
+  ])
 
-  return <PantryView householdId={active.id} items={items} />
+  return <PantryView householdId={active.id} items={items} restockCount={restockItems.length} />
 }

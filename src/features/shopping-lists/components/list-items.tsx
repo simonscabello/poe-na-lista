@@ -24,6 +24,7 @@ type ListItemsProps = {
   items: ShoppingListItemDTO[]
   productsById: Map<string, ProductDTO>
   autoFilledIds?: Set<string>
+  lastPrices?: Record<string, number>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -34,11 +35,13 @@ type ListItemsProps = {
 }
 
 const EMPTY_AUTO_FILLED = new Set<string>()
+const EMPTY_LAST_PRICES: Record<string, number> = {}
 
 export function ListItems({
   items,
   productsById,
   autoFilledIds = EMPTY_AUTO_FILLED,
+  lastPrices = EMPTY_LAST_PRICES,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -117,6 +120,7 @@ export function ListItems({
           sortMode={sortMode}
           productsById={productsById}
           autoFilledIds={autoFilledIds}
+          lastPrices={lastPrices}
           onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}
@@ -145,6 +149,7 @@ export function ListItems({
                 sortMode={sortMode}
                 productsById={productsById}
                 autoFilledIds={autoFilledIds}
+                lastPrices={lastPrices}
                 onToggle={onToggle}
                 onRemove={onRemove}
                 onChangeQuantity={onChangeQuantity}
@@ -162,6 +167,7 @@ export function ListItems({
 type ItemHandlers = {
   productsById: Map<string, ProductDTO>
   autoFilledIds: Set<string>
+  lastPrices: Record<string, number>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -179,6 +185,7 @@ function PendingItemsList({
   sortMode,
   productsById,
   autoFilledIds,
+  lastPrices,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -199,6 +206,7 @@ function PendingItemsList({
         items={items}
         productsById={productsById}
         autoFilledIds={autoFilledIds}
+        lastPrices={lastPrices}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -225,6 +233,7 @@ function PendingItemsList({
             items={group.items}
             productsById={productsById}
             autoFilledIds={autoFilledIds}
+            lastPrices={lastPrices}
             onToggle={onToggle}
             onRemove={onRemove}
             onChangeQuantity={onChangeQuantity}
@@ -242,6 +251,7 @@ function CheckedItemsList({
   sortMode,
   productsById,
   autoFilledIds,
+  lastPrices,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -254,6 +264,7 @@ function CheckedItemsList({
         items={sorted as ShoppingListItemDTO[]}
         productsById={productsById}
         autoFilledIds={autoFilledIds}
+        lastPrices={lastPrices}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -270,6 +281,7 @@ function CheckedItemsList({
         items={groups[0].items}
         productsById={productsById}
         autoFilledIds={autoFilledIds}
+        lastPrices={lastPrices}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -287,6 +299,7 @@ function CheckedItemsList({
             items={group.items}
             productsById={productsById}
             autoFilledIds={autoFilledIds}
+            lastPrices={lastPrices}
             onToggle={onToggle}
             onRemove={onRemove}
             onChangeQuantity={onChangeQuantity}
@@ -420,6 +433,7 @@ function ItemRowList({
   items,
   productsById,
   autoFilledIds,
+  lastPrices,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -434,6 +448,7 @@ function ItemRowList({
           item={item}
           product={productsById.get(item.productId)}
           autoFilledPrice={autoFilledIds.has(item.id)}
+          suggestedPrice={item.priceMode === "UNIT" ? (lastPrices[item.productId] ?? null) : null}
           onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}

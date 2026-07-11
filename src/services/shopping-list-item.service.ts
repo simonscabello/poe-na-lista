@@ -49,6 +49,31 @@ export async function addShoppingListItem(input: {
   notes?: string | null
   priceMode?: PriceModeDTO
 }): Promise<void> {
+  // Não confiar só na UI: a lista precisa existir e estar ativa, e o produto
+  // precisa ser global ou do próprio grupo da lista (evita referenciar produto
+  // privado de outra família por id).
+  const list = await prisma.shoppingList.findUnique({
+    where: { id: input.shoppingListId },
+    select: { status: true, householdId: true },
+  })
+  if (!list) {
+    throw new Error("Lista não encontrada")
+  }
+  if (list.status !== "ACTIVE") {
+    throw new Error("Esta lista já foi finalizada")
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id: input.productId },
+    select: { active: true, isGlobal: true, householdId: true },
+  })
+  if (!product?.active) {
+    throw new Error("Produto indisponível")
+  }
+  if (!product.isGlobal && product.householdId !== list.householdId) {
+    throw new Error("Produto indisponível")
+  }
+
   const existing = await prisma.shoppingListItem.findFirst({
     where: {
       shoppingListId: input.shoppingListId,

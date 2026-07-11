@@ -1,4 +1,6 @@
 import { after } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
+import type { NotificationType } from "@/generated/prisma/enums"
 import { formatCurrency } from "@/lib/format-currency"
 import { getNotificationMessage } from "@/lib/notification-text"
 import { prisma } from "@/lib/prisma"
@@ -7,6 +9,27 @@ import { getBudgetStatus } from "@/services/budget.service"
 import { getHouseholdMembers } from "@/services/household.service"
 import { getExpiringPantryItems } from "@/services/pantry.service"
 import type { NotificationDTO, NotificationTypeDTO } from "@/types/domain"
+
+/**
+ * Tenta reservar um alerta coletivo para o período. Retorna `true` só para quem
+ * de fato inseriu a linha — o unique (household, type, periodKey) resolve o
+ * empate entre polls concorrentes, garantindo um único envio por período.
+ */
+async function claimAlert(
+  householdId: string,
+  type: NotificationType,
+  periodKey: string,
+): Promise<boolean> {
+  try {
+    await prisma.sentAlert.create({ data: { householdId, type, periodKey } })
+    return true
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return false
+    }
+    throw error
+  }
+}
 
 export async function notifyHousehold(input: {
   householdId: string
@@ -148,9 +171,9 @@ export async function notifyItemAdded(input: {
 
 /**
  * Alerta quando a projeção de fechamento do mês cruza o orçamento. Dispara no
- * máximo uma vez por mês por household (guard pela própria tabela de
- * notificações) e vai para TODOS os membros — orçamento é assunto coletivo,
- * inclusive de quem fez a compra.
+ * máximo uma vez por mês por household (guard atômico via SentAlert) e vai para
+ * TODOS os membros — orçamento é assunto coletivo, inclusive de quem fez a
+ * compra.
  */
 export async function notifyBudgetProjectionAlert(householdId: string): Promise<void> {
   const status = await getBudgetStatus(householdId)
@@ -158,18 +181,15 @@ export async function notifyBudgetProjectionAlert(householdId: string): Promise<
     return
   }
 
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const alreadyAlerted = await prisma.notification.findFirst({
-    where: { householdId, type: "BUDGET_ALERT", createdAt: { gte: monthStart } },
-    select: { id: true },
-  })
-  if (alreadyAlerted) {
+  const members = await getHouseholdMembers(householdId)
+  if (members.length === 0) {
     return
   }
 
-  const members = await getHouseholdMembers(householdId)
-  if (members.length === 0) {
+  // Guard atômico: 1 alerta por household por mês (period "YYYY-MM").
+  const now = new Date()
+  const periodKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  if (!(await claimAlert(householdId, "BUDGET_ALERT", periodKey))) {
     return
   }
 
@@ -214,16 +234,6 @@ export async function notifyBudgetProjectionAlert(householdId: string): Promise<
  * query pequena. Vai para todos os membros.
  */
 export async function notifyPantryExpiryAlert(householdId: string): Promise<void> {
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const alreadyAlerted = await prisma.notification.findFirst({
-    where: { householdId, type: "PANTRY_EXPIRING", createdAt: { gte: todayStart } },
-    select: { id: true },
-  })
-  if (alreadyAlerted) {
-    return
-  }
-
   const expiring = await getExpiringPantryItems(householdId)
   if (expiring.length === 0) {
     return
@@ -231,6 +241,17 @@ export async function notifyPantryExpiryAlert(householdId: string): Promise<void
 
   const members = await getHouseholdMembers(householdId)
   if (members.length === 0) {
+    return
+  }
+
+  // Guard atômico: 1 alerta por household por dia (period "YYYY-MM-DD"). Só
+  // reservamos depois de confirmar que há itens vencendo, para não "gastar" o
+  // alerta do dia à toa.
+  const now = new Date()
+  const periodKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate(),
+  ).padStart(2, "0")}`
+  if (!(await claimAlert(householdId, "PANTRY_EXPIRING", periodKey))) {
     return
   }
 

@@ -8,13 +8,18 @@ export function localDateString(date = new Date()): string {
   return `${year}-${month}-${day}`
 }
 
-/** Interpreta YYYY-MM-DD como data de calendário, sem deslocamento de fuso. */
+/**
+ * Interpreta YYYY-MM-DD como data de calendário e grava meia-noite UTC. Assim a
+ * leitura (calendarDateFromStored, via getUTC*) recupera o mesmo dia em
+ * qualquer fuso de servidor — gravar meia-noite local quebraria o dia em
+ * servidores com offset positivo (ex.: UTC+9).
+ */
 export function parseCalendarDate(dateStr: string): Date {
   if (!DATE_ONLY.test(dateStr)) {
     throw new Error("Data inválida")
   }
   const [year, month, day] = dateStr.split("-").map(Number)
-  return new Date(year, month - 1, day)
+  return new Date(Date.UTC(year, month - 1, day))
 }
 
 /**

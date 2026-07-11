@@ -39,8 +39,13 @@ export async function findOrCreateStore(
   const globalStore = await getActiveGlobalStoreByNormalizedName(normalizedName)
   const displayName = globalStore?.name ?? trimmed
 
-  const created = await tx.store.create({
-    data: { householdId, name: displayName, normalizedName },
+  // upsert (não create) porque duas finalizações concorrentes com o mesmo
+  // mercado novo violariam o unique (household, normalizedName) e derrubariam a
+  // transação inteira da compra. O update no-op resolve o empate.
+  const created = await tx.store.upsert({
+    where: { householdId_normalizedName: { householdId, normalizedName } },
+    create: { householdId, name: displayName, normalizedName },
+    update: {},
     select: { id: true, name: true },
   })
   return { id: created.id, name: created.name }

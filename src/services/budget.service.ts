@@ -18,10 +18,12 @@ export async function setMonthlyBudget(householdId: string, value: number | null
   })
 }
 
-export async function getBudgetStatus(householdId: string): Promise<BudgetStatusDTO | null> {
-  const budget = await getMonthlyBudget(householdId)
-  if (budget == null || budget <= 0) return null
-
+/**
+ * Total gasto no mês corrente. Consulta só as compras da janela do mês
+ * (indexadas por [householdId, purchasedAt]) em vez de carregar todo o
+ * histórico — usado no dashboard e no cálculo de orçamento.
+ */
+export async function getCurrentMonthSpent(householdId: string): Promise<number> {
   const now = new Date()
   const currentKey = currentCalendarMonthKey(now)
 
@@ -43,6 +45,16 @@ export async function getBudgetStatus(householdId: string): Promise<BudgetStatus
       spent += Number(purchase.totalAmount)
     }
   }
+
+  return round(spent)
+}
+
+export async function getBudgetStatus(householdId: string): Promise<BudgetStatusDTO | null> {
+  const budget = await getMonthlyBudget(householdId)
+  if (budget == null || budget <= 0) return null
+
+  const now = new Date()
+  const spent = await getCurrentMonthSpent(householdId)
 
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const dayOfMonth = now.getDate()

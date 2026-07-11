@@ -119,6 +119,7 @@ model Household {
   purchases     Purchase[]
   stores        Store[]
   notifications Notification[]
+  sentAlerts    SentAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -405,4 +406,26 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, householdId, createdAt])
+  // Suporta os guards de alerta (filtro por household + type + createdAt), que
+  // não têm o userId como prefixo e por isso não usam o índice acima.
+  @@index([householdId, type, createdAt])
+}
+
+/**
+ * Trava de idempotência para alertas coletivos (orçamento/validade). O unique
+ * garante, no banco, no máximo um alerta por household+tipo+período, evitando
+ * duplicatas quando dois polls concorrentes passam pelo guard ao mesmo tempo.
+ */
+model SentAlert {
+  id          String           @id @default(cuid())
+  householdId String
+  type        NotificationType
+  // Chave do período: "YYYY-MM" para orçamento, "YYYY-MM-DD" para validade.
+  periodKey   String
+  createdAt   DateTime         @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, type, periodKey])
+  @@index([householdId])
 }

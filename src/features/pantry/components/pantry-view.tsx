@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useOptimistic, useState, useTransition } from "react"
 import { toast } from "sonner"
 import {
+  addPantryItemToListAction,
   removePantryItemAction,
   restockPantryAction,
   updatePantryItemAction,
@@ -63,9 +64,11 @@ function reducer(state: PantryItemDTO[], action: OptimisticAction): PantryItemDT
 export function PantryView({
   householdId,
   items: initialItems,
+  restockCount,
 }: {
   householdId: string
   items: PantryItemDTO[]
+  restockCount: number
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -130,6 +133,17 @@ export function PantryView({
     })
   }
 
+  function addToList(item: PantryItemDTO) {
+    startTransition(async () => {
+      const result = await addPantryItemToListAction(item.id)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast.success(`${item.productName} adicionado à lista`)
+    })
+  }
+
   function remove(item: PantryItemDTO) {
     startTransition(async () => {
       applyOptimistic({ type: "remove", id: item.id })
@@ -138,7 +152,7 @@ export function PantryView({
         toast.error(result.error)
         return
       }
-      toast(`${item.productName} removido da despensa`)
+      toast(`${item.productName} excluído da despensa`)
       router.refresh()
     })
   }
@@ -168,7 +182,7 @@ export function PantryView({
               : `${items.length} ${items.length === 1 ? "produto" : "produtos"}${lowCount > 0 ? ` · ${lowCount} em falta` : ""}`}
           </p>
         </div>
-        {lowCount > 0 && (
+        {restockCount > 0 && (
           <Button onClick={restock} loading={isPending}>
             <ListPlus className="size-4" />
             Repor em falta
@@ -212,6 +226,8 @@ export function PantryView({
                     onChangeMinimum={changeMinimum}
                     onChangeExpiration={changeExpiration}
                     onRemove={remove}
+                    onAddToList={addToList}
+                    isPending={isPending}
                   />
                 ))}
               </ul>
@@ -231,6 +247,8 @@ function PantryItemRow({
   onChangeMinimum,
   onChangeExpiration,
   onRemove,
+  onAddToList,
+  isPending,
 }: {
   item: PantryItemDTO
   expanded: boolean
@@ -239,8 +257,11 @@ function PantryItemRow({
   onChangeMinimum: (item: PantryItemDTO, nextMinimum: number) => void
   onChangeExpiration: (item: PantryItemDTO, value: string | null) => void
   onRemove: (item: PantryItemDTO) => void
+  onAddToList: (item: PantryItemDTO) => void
+  isPending: boolean
 }) {
   const measure = getMeasureConfigForItem(undefined, item.unit)
+  const stepLabel = measure.step < 1 ? String(measure.step).replace(".", ",") : String(measure.step)
   const expiryDays = item.expirationDate != null ? daysUntilExpiry(item.expirationDate) : null
   const badge =
     expiryDays != null && expiryDays <= EXPIRY_WARNING_DAYS && item.quantity > 0
@@ -289,15 +310,28 @@ function PantryItemRow({
           </span>
         </button>
 
-        <QuantityStepper
-          count={item.quantity}
-          name={item.productName}
-          size="md"
-          step={measure.step}
-          formatValue={(value) => formatQuantity(value, item.unit)}
-          onAdd={() => onChangeQuantity(item, item.quantity + measure.step)}
-          onRemove={() => onChangeQuantity(item, item.quantity - measure.step)}
-        />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onAddToList(item)}
+            disabled={isPending}
+            aria-label={`Adicionar ${item.productName} à lista`}
+            className="text-muted-foreground"
+          >
+            <ListPlus className="size-4" />
+          </Button>
+          <QuantityStepper
+            count={item.quantity}
+            name={item.productName}
+            size="md"
+            step={measure.step}
+            formatValue={(value) => formatQuantity(value, item.unit)}
+            removeLabel={`Consumir ${stepLabel} de ${item.productName}`}
+            onAdd={() => onChangeQuantity(item, item.quantity + measure.step)}
+            onRemove={() => onChangeQuantity(item, item.quantity - measure.step)}
+          />
+        </div>
       </div>
 
       {expanded && (
@@ -343,6 +377,11 @@ function PantryItemRow({
             </div>
           </div>
 
+          <p className="text-xs text-muted-foreground">
+            O botão − registra consumo. Quando o estoque ficar abaixo do mínimo, o produto aparece
+            como em falta. Excluir remove o produto da despensa por completo.
+          </p>
+
           <Button
             variant="ghost"
             size="sm"
@@ -350,7 +389,7 @@ function PantryItemRow({
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="size-4" />
-            Remover da despensa
+            Excluir da despensa
           </Button>
         </div>
       )}
