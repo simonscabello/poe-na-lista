@@ -2,10 +2,11 @@
 
 import { Check } from "lucide-react"
 import Link from "next/link"
-import { useOptimistic, useTransition } from "react"
+import { useCallback, useOptimistic, useTransition } from "react"
 import { toast } from "sonner"
-import { togglePublicItemAction } from "@/actions/list-share.actions"
+import { getPublicListVersionAction, togglePublicItemAction } from "@/actions/list-share.actions"
 import { AppLogo } from "@/components/common/app-logo"
+import { useListSync } from "@/hooks/use-list-sync"
 import { categoryEmoji } from "@/lib/categories"
 import { haptic } from "@/lib/haptics"
 import { cn } from "@/lib/utils"
@@ -48,6 +49,14 @@ export function PublicListView({ list, token }: { list: PublicListDTO; token: st
 
   const groups = groupByCategory(items)
   const pendingCount = items.filter((item) => !item.checked).length
+
+  // Convidado vê as mudanças da casa (e vice-versa) sem recarregar a página.
+  useListSync(
+    useCallback(async () => {
+      const result = await getPublicListVersionAction(token)
+      return result.success ? result.data.version : null
+    }, [token]),
+  )
 
   function toggle(item: PublicListItemDTO) {
     startTransition(async () => {

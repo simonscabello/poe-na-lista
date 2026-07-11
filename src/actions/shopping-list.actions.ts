@@ -11,6 +11,7 @@ import {
   deleteShoppingList,
   duplicateShoppingList,
   getListHouseholdId,
+  getListVersion,
   renameShoppingList,
 } from "@/services/shopping-list.service"
 import { getFrequentlyPurchasedProducts } from "@/services/suggestion.service"
@@ -111,6 +112,22 @@ export async function duplicateListAction(listId: string): Promise<ActionResult<
     const id = await duplicateShoppingList(listId, user.id)
     revalidatePath("/dashboard")
     return actionOk({ id })
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+/** Leitura leve para o polling de sincronização — sem revalidatePath. */
+export async function getListVersionAction(
+  listId: string,
+): Promise<ActionResult<{ version: string }>> {
+  try {
+    await requireListAccess(listId)
+    const version = await getListVersion(listId)
+    if (version == null) {
+      return actionError("Lista não encontrada")
+    }
+    return actionOk({ version })
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

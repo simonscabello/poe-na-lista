@@ -7,6 +7,7 @@ import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
 import {
   createShareLink,
+  getPublicListVersion,
   getShareHouseholdId,
   revokeShareLink,
   togglePublicItem,
@@ -64,6 +65,21 @@ export async function togglePublicItemAction(input: unknown): Promise<ActionResu
     revalidatePath(`/share/${token}`)
     revalidatePath(`/dashboard/lists/${result.listId}`)
     return actionOk(undefined)
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+/** Leitura leve para o polling da página pública — o token é a credencial. */
+export async function getPublicListVersionAction(
+  token: string,
+): Promise<ActionResult<{ version: string }>> {
+  try {
+    const version = await getPublicListVersion(token)
+    if (version == null) {
+      return actionError("Este link não está mais disponível")
+    }
+    return actionOk({ version })
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

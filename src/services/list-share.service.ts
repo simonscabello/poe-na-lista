@@ -125,6 +125,37 @@ export async function getPublicListByToken(token: string): Promise<PublicListDTO
 }
 
 /**
+ * Versão da lista para o polling da página pública. Mesma assinatura de
+ * getListVersion, mas com o token como credencial.
+ */
+export async function getPublicListVersion(token: string): Promise<string | null> {
+  const share = await prisma.shoppingListShare.findUnique({
+    where: { token },
+    select: {
+      revokedAt: true,
+      expiresAt: true,
+      shoppingList: { select: { status: true, updatedAt: true, id: true } },
+    },
+  })
+
+  if (!share || share.revokedAt) return null
+  if (share.expiresAt && share.expiresAt <= new Date()) return null
+
+  const items = await prisma.shoppingListItem.aggregate({
+    where: { shoppingListId: share.shoppingList.id },
+    _count: { _all: true },
+    _max: { updatedAt: true },
+  })
+
+  return [
+    share.shoppingList.status,
+    share.shoppingList.updatedAt.getTime(),
+    items._count._all,
+    items._max.updatedAt?.getTime() ?? 0,
+  ].join(":")
+}
+
+/**
  * Marca/desmarca um item via link público. O token é a credencial: precisa
  * estar ativo (não revogado/expirado), a lista precisa estar ACTIVE e o item
  * precisa pertencer à lista do próprio token. Retorna o id da lista para

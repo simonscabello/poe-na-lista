@@ -4,8 +4,9 @@ import { useAtomValue } from "jotai"
 import { CheckCircle2, ShoppingBag } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useMemo, useOptimistic, useState, useTransition } from "react"
+import { useCallback, useMemo, useOptimistic, useState, useTransition } from "react"
 import { toast } from "sonner"
+import { getListVersionAction } from "@/actions/shopping-list.actions"
 import {
   addItemAction,
   removeItemAction,
@@ -22,6 +23,7 @@ import { AddProductsBar } from "@/features/shopping-lists/components/add-product
 import { ListHeader } from "@/features/shopping-lists/components/list-header"
 import { ListItems } from "@/features/shopping-lists/components/list-items"
 import { MarketModeFooter } from "@/features/shopping-lists/components/market-mode-footer"
+import { useListSync } from "@/hooks/use-list-sync"
 import { marketModeAtom } from "@/lib/atoms"
 import { formatCalendarDate } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
@@ -139,6 +141,14 @@ export function ListView({
   const productsById = useMemo(
     () => new Map(catalog.map((product) => [product.id, product])),
     [catalog],
+  )
+
+  // Mudanças de outros membros (ou do link público) aparecem sem recarregar.
+  useListSync(
+    useCallback(async () => {
+      const result = await getListVersionAction(list.id)
+      return result.success ? result.data.version : null
+    }, [list.id]),
   )
 
   const isCompleted = list.status === "COMPLETED"

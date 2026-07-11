@@ -84,6 +84,34 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
   }
 }
 
+/**
+ * Assinatura barata do estado da lista para o polling de sincronização.
+ * Mutações de item não tocam o updatedAt da lista, então a versão agrega
+ * contagem + maior updatedAt dos itens, além de status/updatedAt da lista
+ * (finalização e rename). Qualquer mudança altera a string.
+ */
+export async function getListVersion(listId: string): Promise<string | null> {
+  const list = await prisma.shoppingList.findUnique({
+    where: { id: listId },
+    select: { status: true, updatedAt: true },
+  })
+
+  if (!list) return null
+
+  const items = await prisma.shoppingListItem.aggregate({
+    where: { shoppingListId: listId },
+    _count: { _all: true },
+    _max: { updatedAt: true },
+  })
+
+  return [
+    list.status,
+    list.updatedAt.getTime(),
+    items._count._all,
+    items._max.updatedAt?.getTime() ?? 0,
+  ].join(":")
+}
+
 export async function getListHouseholdId(listId: string): Promise<string | null> {
   const list = await prisma.shoppingList.findUnique({
     where: { id: listId },
