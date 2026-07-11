@@ -112,6 +112,17 @@ export async function getListVersion(listId: string): Promise<string | null> {
   ].join(":")
 }
 
+/** Lista ativa mais recente do household (destino padrão da reposição). */
+export async function getMostRecentActiveListId(householdId: string): Promise<string | null> {
+  const list = await prisma.shoppingList.findFirst({
+    where: { householdId, status: "ACTIVE" },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
+  })
+
+  return list?.id ?? null
+}
+
 export async function getListHouseholdId(listId: string): Promise<string | null> {
   const list = await prisma.shoppingList.findUnique({
     where: { id: listId },

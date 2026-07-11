@@ -4,6 +4,7 @@ import { Container } from "@/components/layout/container"
 import { PushBanner } from "@/components/notifications/push-banner"
 import { OverviewCards } from "@/features/dashboard/components/overview-cards"
 import { OnboardingView } from "@/features/households/components/onboarding-view"
+import { PantryRestockCard } from "@/features/pantry/components/pantry-restock-card"
 import { CreateListDialog } from "@/features/shopping-lists/components/create-list-dialog"
 import { ListsGrid } from "@/features/shopping-lists/components/lists-grid"
 import { ListsPageSkeleton } from "@/features/shopping-lists/components/lists-page-skeleton"
@@ -14,6 +15,7 @@ import { auth } from "@/lib/auth"
 import { getMonthlyBudget } from "@/services/budget.service"
 import { getExpenseEstimate, getExpenseMetrics } from "@/services/expense-metrics.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
+import { getLowStockPantryItems } from "@/services/pantry.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
 import { getSuggestedListPreview } from "@/services/suggestion.service"
 
@@ -39,13 +41,15 @@ async function ListsContent() {
   }
 
   const canInvite = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
-  const [lists, members, metrics, suggestedPreview, monthlyBudget] = await Promise.all([
-    getListsByHousehold(active.id),
-    getHouseholdMembers(active.id),
-    getExpenseMetrics(active.id),
-    getSuggestedListPreview(active.id),
-    getMonthlyBudget(active.id),
-  ])
+  const [lists, members, metrics, suggestedPreview, monthlyBudget, lowStockItems] =
+    await Promise.all([
+      getListsByHousehold(active.id),
+      getHouseholdMembers(active.id),
+      getExpenseMetrics(active.id),
+      getSuggestedListPreview(active.id),
+      getMonthlyBudget(active.id),
+      getLowStockPantryItems(active.id),
+    ])
 
   const activeList = lists.find((list) => list.status === "ACTIVE")
   const estimate = await getExpenseEstimate(active.id, activeList?.id ?? null)
@@ -70,6 +74,13 @@ async function ListsContent() {
         monthlyBudget={monthlyBudget}
         estimate={estimate}
       />
+
+      {lowStockItems.length > 0 && (
+        <PantryRestockCard
+          householdId={active.id}
+          productNames={lowStockItems.map((item) => item.productName)}
+        />
+      )}
 
       {suggestedPreview && (
         <SuggestedListCard householdId={active.id} items={suggestedPreview.items} />

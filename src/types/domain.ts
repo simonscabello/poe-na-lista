@@ -207,6 +207,18 @@ export type ExpenseEstimateDTO = {
   method: string
 }
 
+export type PantryItemDTO = {
+  id: string
+  productId: string
+  productName: string
+  category: string | null
+  quantity: number
+  minimumQuantity: number
+  unit: string | null
+  expirationDate: string | null
+  belowMinimum: boolean
+}
+
 export type SuggestedProductDTO = {
   productId: string
   productName: string
@@ -221,6 +233,7 @@ export type NotificationTypeDTO =
   | "MEMBER_JOINED"
   | "ITEM_ADDED"
   | "BUDGET_ALERT"
+  | "PANTRY_EXPIRING"
 
 export type NotificationDTO = {
   id: string

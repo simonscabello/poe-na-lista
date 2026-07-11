@@ -1,5 +1,35 @@
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
+import { OnboardingView } from "@/features/households/components/onboarding-view"
+import { PantrySkeleton } from "@/features/pantry/components/pantry-skeleton"
+import { PantryView } from "@/features/pantry/components/pantry-view"
+import { resolveActiveHousehold } from "@/lib/active-household"
+import { auth } from "@/lib/auth"
+import { getUserHouseholds } from "@/services/household.service"
+import { getPantryItems } from "@/services/pantry.service"
 
 export default function PantryPage() {
-  redirect("/dashboard/lists")
+  return (
+    <Suspense fallback={<PantrySkeleton />}>
+      <PantryContent />
+    </Suspense>
+  )
+}
+
+async function PantryContent() {
+  const session = await auth()
+  if (!session?.user) {
+    redirect("/login?callbackUrl=/dashboard/pantry")
+  }
+
+  const households = await getUserHouseholds(session.user.id)
+  const active = await resolveActiveHousehold(households)
+
+  if (!active) {
+    return <OnboardingView />
+  }
+
+  const items = await getPantryItems(active.id)
+
+  return <PantryView householdId={active.id} items={items} />
 }

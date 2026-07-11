@@ -1,6 +1,7 @@
 import { ShoppingListStatus } from "@/generated/prisma/enums"
 import { computeLineTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
+import { addPurchaseToPantry } from "@/services/pantry.service"
 import { findOrCreateStore } from "@/services/store.service"
 import type { PurchaseDetailDTO, PurchaseSummaryDTO } from "@/types/domain"
 
@@ -65,6 +66,19 @@ export async function finalizePurchase(input: {
           })),
         },
       },
+    })
+
+    // Despensa automática: tudo que foi comprado entra no estoque da casa.
+    await addPurchaseToPantry(tx, {
+      householdId: input.householdId,
+      updatedById: input.createdById,
+      items: input.items
+        .filter((item) => item.productId != null)
+        .map((item) => ({
+          productId: item.productId as string,
+          quantity: item.quantity,
+          unit: item.unit ?? null,
+        })),
     })
 
     let pendingListId: string | undefined

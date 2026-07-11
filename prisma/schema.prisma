@@ -40,6 +40,7 @@ enum NotificationType {
   MEMBER_JOINED
   ITEM_ADDED
   BUDGET_ALERT
+  PANTRY_EXPIRING
 }
 
 model User {

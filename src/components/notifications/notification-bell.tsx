@@ -1,7 +1,15 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Bell, ListPlus, PackagePlus, PiggyBank, ShoppingBag, UserPlus } from "lucide-react"
+import {
+  Bell,
+  CalendarClock,
+  ListPlus,
+  PackagePlus,
+  PiggyBank,
+  ShoppingBag,
+  UserPlus,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -37,6 +45,7 @@ const ICONS: Record<NotificationTypeDTO, typeof Bell> = {
   MEMBER_JOINED: UserPlus,
   ITEM_ADDED: PackagePlus,
   BUDGET_ALERT: PiggyBank,
+  PANTRY_EXPIRING: CalendarClock,
 }
 
 export function NotificationBell({

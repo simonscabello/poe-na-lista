@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { sendPushToUsers } from "@/lib/push"
 import { getBudgetStatus } from "@/services/budget.service"
 import { getHouseholdMembers } from "@/services/household.service"
+import { getExpiringPantryItems } from "@/services/pantry.service"
 import type { NotificationDTO, NotificationTypeDTO } from "@/types/domain"
 
 export async function notifyHousehold(input: {
@@ -193,6 +194,70 @@ export async function notifyBudgetProjectionAlert(householdId: string): Promise<
     actorName: "Orçamento",
     entityLabel,
     amount: status.projectedTotal,
+    link,
+    read: false,
+    createdAt: now.toISOString(),
+  })
+
+  after(() =>
+    sendPushToUsers(
+      members.map((member) => member.userId),
+      { title: "Põe na Lista", body, link },
+    ),
+  )
+}
+
+/**
+ * Alerta de validade da despensa. Sem infraestrutura de cron, o gatilho é o
+ * polling do sino (a cada 30s por aba aberta): esta função roda com guard de
+ * no máximo 1 alerta por dia por household, então o custo por poll é uma
+ * query pequena. Vai para todos os membros.
+ */
+export async function notifyPantryExpiryAlert(householdId: string): Promise<void> {
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const alreadyAlerted = await prisma.notification.findFirst({
+    where: { householdId, type: "PANTRY_EXPIRING", createdAt: { gte: todayStart } },
+    select: { id: true },
+  })
+  if (alreadyAlerted) {
+    return
+  }
+
+  const expiring = await getExpiringPantryItems(householdId)
+  if (expiring.length === 0) {
+    return
+  }
+
+  const members = await getHouseholdMembers(householdId)
+  if (members.length === 0) {
+    return
+  }
+
+  // Prévia dos nomes no entityLabel; amount carrega o total.
+  const names = expiring.map((item) => item.productName)
+  const preview = names.slice(0, 3).join(", ")
+  const entityLabel = names.length > 3 ? `${preview} +${names.length - 3}` : preview
+  const link = "/dashboard/pantry"
+
+  await prisma.notification.createMany({
+    data: members.map((member) => ({
+      householdId,
+      userId: member.userId,
+      type: "PANTRY_EXPIRING" as const,
+      actorName: "Despensa",
+      entityLabel,
+      amount: expiring.length,
+      link,
+    })),
+  })
+
+  const body = getNotificationMessage({
+    id: "push",
+    type: "PANTRY_EXPIRING",
+    actorName: "Despensa",
+    entityLabel,
+    amount: expiring.length,
     link,
     read: false,
     createdAt: now.toISOString(),
