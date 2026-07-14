@@ -37,6 +37,13 @@ type CreateListDialogProps = {
   showInviteStep?: boolean
 }
 
+function getDefaultListName(): string {
+  const today = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(
+    new Date(),
+  )
+  return `Compras de ${today}`
+}
+
 export function CreateListDialog({ householdId, showInviteStep = false }: CreateListDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -44,7 +51,7 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
   const [createdListId, setCreatedListId] = useState<string | null>(null)
   const form = useForm<ShoppingListNameValues>({
     resolver: zodResolver(shoppingListNameSchema),
-    defaultValues: { name: "" },
+    defaultValues: { name: getDefaultListName() },
   })
 
   async function onSubmit(values: ShoppingListNameValues) {
@@ -53,7 +60,7 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
       toast.error(result.error)
       return
     }
-    form.reset()
+    form.reset({ name: getDefaultListName() })
     if (showInviteStep) {
       setCreatedListId(result.data.id)
       setStep("invite")
@@ -109,7 +116,12 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
                     <FormItem>
                       <FormLabel>Nome</FormLabel>
                       <FormControl>
-                        <Input placeholder="Compras da semana" autoFocus {...field} />
+                        <Input
+                          placeholder="Compras da semana"
+                          autoFocus
+                          {...field}
+                          onFocus={(event) => event.target.select()}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
