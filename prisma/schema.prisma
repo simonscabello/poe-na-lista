@@ -41,6 +41,7 @@ enum NotificationType {
   ITEM_ADDED
   BUDGET_ALERT
   PANTRY_EXPIRING
+  LIST_NUDGE
 }
 
 model User {

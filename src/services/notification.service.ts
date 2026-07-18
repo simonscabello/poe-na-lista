@@ -31,6 +31,7 @@ async function claimAlert(
   }
 }
 
+/** Retorna quantos membros foram notificados (0 quando o autor está sozinho). */
 export async function notifyHousehold(input: {
   householdId: string
   excludeUserId: string
@@ -39,12 +40,12 @@ export async function notifyHousehold(input: {
   entityLabel?: string | null
   amount?: number | null
   link?: string | null
-}): Promise<void> {
+}): Promise<number> {
   const members = await getHouseholdMembers(input.householdId)
   const recipients = members.filter((member) => member.userId !== input.excludeUserId)
 
   if (recipients.length === 0) {
-    return
+    return 0
   }
 
   await prisma.notification.createMany({
@@ -80,93 +81,53 @@ export async function notifyHousehold(input: {
       link: input.link ?? null,
     }),
   )
+
+  return recipients.length
 }
 
-const ITEM_ADDED_GROUP_WINDOW_MS = 5 * 60 * 1000
+const LIST_NUDGE_COOLDOWN_MS = 30 * 60 * 1000
+
+export type ListNudgeResult = "sent" | "alone" | "cooldown" | "not-found"
 
 /**
- * Notifica adição de item agrupando por janela: adições do mesmo autor na
- * mesma lista dentro de 5 minutos incrementam a notificação não lida existente
- * em vez de criar uma nova (amount é o contador de itens).
+ * Aviso manual "estou montando a lista, dá uma olhada" — disparado pelo autor,
+ * não por mutação automática (adição de item não notifica; era ruidoso).
+ * Cooldown de 30 minutos por lista evita spam de toques repetidos.
  */
-export async function notifyItemAdded(input: {
+export async function notifyListNudge(input: {
   listId: string
   actorUserId: string
   actorName: string
-}): Promise<void> {
+}): Promise<ListNudgeResult> {
   const list = await prisma.shoppingList.findUnique({
     where: { id: input.listId },
-    select: { name: true, householdId: true },
+    select: { name: true, householdId: true, status: true },
   })
-  if (!list) return
-
-  const members = await getHouseholdMembers(list.householdId)
-  const recipients = members.filter((member) => member.userId !== input.actorUserId)
-  if (recipients.length === 0) return
+  if (list?.status !== "ACTIVE") return "not-found"
 
   const link = `/dashboard/lists/${input.listId}`
-  const windowStart = new Date(Date.now() - ITEM_ADDED_GROUP_WINDOW_MS)
-  const pushTargets: Array<{ userId: string; count: number }> = []
+  const windowStart = new Date(Date.now() - LIST_NUDGE_COOLDOWN_MS)
+  const recentNudge = await prisma.notification.findFirst({
+    where: {
+      householdId: list.householdId,
+      type: "LIST_NUDGE",
+      link,
+      createdAt: { gte: windowStart },
+    },
+    select: { id: true },
+  })
+  if (recentNudge) return "cooldown"
 
-  for (const member of recipients) {
-    const existing = await prisma.notification.findFirst({
-      where: {
-        userId: member.userId,
-        householdId: list.householdId,
-        type: "ITEM_ADDED",
-        actorUserId: input.actorUserId,
-        link,
-        readAt: null,
-        createdAt: { gte: windowStart },
-      },
-      orderBy: { createdAt: "desc" },
-      select: { id: true },
-    })
+  const recipients = await notifyHousehold({
+    householdId: list.householdId,
+    excludeUserId: input.actorUserId,
+    type: "LIST_NUDGE",
+    actorName: input.actorName,
+    entityLabel: list.name,
+    link,
+  })
 
-    if (existing) {
-      const updated = await prisma.notification.update({
-        where: { id: existing.id },
-        data: { amount: { increment: 1 } },
-        select: { amount: true },
-      })
-      pushTargets.push({ userId: member.userId, count: Number(updated.amount ?? 1) })
-    } else {
-      await prisma.notification.create({
-        data: {
-          householdId: list.householdId,
-          userId: member.userId,
-          type: "ITEM_ADDED",
-          actorName: input.actorName,
-          actorUserId: input.actorUserId,
-          entityLabel: list.name,
-          amount: 1,
-          link,
-        },
-      })
-      pushTargets.push({ userId: member.userId, count: 1 })
-    }
-  }
-
-  after(() =>
-    Promise.allSettled(
-      pushTargets.map((target) =>
-        sendPushToUsers([target.userId], {
-          title: "Põe na Lista",
-          body: getNotificationMessage({
-            id: "push",
-            type: "ITEM_ADDED",
-            actorName: input.actorName,
-            entityLabel: list.name,
-            amount: target.count,
-            link,
-            read: false,
-            createdAt: new Date().toISOString(),
-          }),
-          link,
-        }),
-      ),
-    ),
-  )
+  return recipients === 0 ? "alone" : "sent"
 }
 
 /**

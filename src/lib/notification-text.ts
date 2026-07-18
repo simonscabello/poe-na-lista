@@ -24,5 +24,7 @@ export function getNotificationMessage(notification: NotificationDTO): string {
         ? `${notification.entityLabel} está vencendo — confira a despensa`
         : `${count} produtos da despensa estão vencendo: ${notification.entityLabel}`
     }
+    case "LIST_NUDGE":
+      return `${notification.actorName} está montando a lista "${notification.entityLabel}" — dá uma olhada e adicione o que precisar`
   }
 }

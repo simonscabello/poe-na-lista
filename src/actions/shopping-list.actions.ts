@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { shoppingListNameSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
-import { notifyHousehold } from "@/services/notification.service"
+import { notifyHousehold, notifyListNudge } from "@/services/notification.service"
 import {
   createShoppingList,
   createShoppingListWithItems,
@@ -112,6 +112,36 @@ export async function duplicateListAction(listId: string): Promise<ActionResult<
     const id = await duplicateShoppingList(listId, user.id)
     revalidatePath("/dashboard")
     return actionOk({ id })
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+/** "Estou montando a lista, dá uma olhada" — aviso manual para o grupo. */
+export async function nudgeListAction(listId: string): Promise<ActionResult> {
+  try {
+    const householdId = await getListHouseholdId(listId)
+    if (!householdId) {
+      throw new Error("Lista não encontrada")
+    }
+    const { user } = await requireHouseholdMember(householdId)
+
+    const result = await notifyListNudge({
+      listId,
+      actorUserId: user.id,
+      actorName: user.name ?? "Alguém",
+    })
+
+    switch (result) {
+      case "sent":
+        return actionOk(undefined)
+      case "alone":
+        return actionError("Você ainda está sozinho no grupo — convide alguém primeiro")
+      case "cooldown":
+        return actionError("O grupo já foi avisado há pouco — aguarde um momento")
+      case "not-found":
+        return actionError("Lista não encontrada ou já finalizada")
+    }
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

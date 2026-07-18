@@ -5,6 +5,7 @@ import {
   Bell,
   CalendarClock,
   ListPlus,
+  Megaphone,
   PackagePlus,
   PiggyBank,
   ShoppingBag,
@@ -46,6 +47,7 @@ const ICONS: Record<NotificationTypeDTO, typeof Bell> = {
   ITEM_ADDED: PackagePlus,
   BUDGET_ALERT: PiggyBank,
   PANTRY_EXPIRING: CalendarClock,
+  LIST_NUDGE: Megaphone,
 }
 
 export function NotificationBell({

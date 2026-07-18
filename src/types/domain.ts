@@ -231,9 +231,12 @@ export type NotificationTypeDTO =
   | "LIST_CREATED"
   | "PURCHASE_FINALIZED"
   | "MEMBER_JOINED"
+  // ITEM_ADDED não é mais gerado (virava um push por item); mantido para
+  // renderizar notificações históricas.
   | "ITEM_ADDED"
   | "BUDGET_ALERT"
   | "PANTRY_EXPIRING"
+  | "LIST_NUDGE"
 
 export type NotificationDTO = {
   id: string

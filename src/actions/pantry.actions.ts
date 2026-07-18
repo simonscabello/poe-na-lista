@@ -5,7 +5,7 @@ import { z } from "zod"
 import { parseCalendarDate } from "@/lib/calendar-date"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
-import { notifyHousehold, notifyItemAdded } from "@/services/notification.service"
+import { notifyHousehold } from "@/services/notification.service"
 import {
   getLowStockPantryItemsNeedingRestock,
   getPantryItemForListAdd,
@@ -90,7 +90,6 @@ export async function restockPantryAction(
         unit: item.unit,
         priceMode: item.priceMode,
       })),
-      notifyExistingList: false,
     })
 
     revalidatePantryListPaths(listId)
@@ -136,7 +135,6 @@ export async function addPantryItemToListAction(
           priceMode: payload.priceMode,
         },
       ],
-      notifyExistingList: true,
     })
 
     revalidatePantryListPaths(listId)
@@ -151,7 +149,6 @@ async function addPantryItemsToHouseholdList(input: {
   userId: string
   userName: string
   items: PantryListAddInput[]
-  notifyExistingList: boolean
 }): Promise<string> {
   let listId = await getMostRecentActiveListId(input.householdId)
 
@@ -163,14 +160,6 @@ async function addPantryItemsToHouseholdList(input: {
         quantity: item.quantity,
         unit: item.unit,
         priceMode: item.priceMode,
-      })
-    }
-
-    if (input.notifyExistingList) {
-      await notifyItemAdded({
-        listId,
-        actorUserId: input.userId,
-        actorName: input.userName,
       })
     }
 

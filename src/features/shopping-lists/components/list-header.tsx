@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, Copy, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Copy, Megaphone, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import {
   deleteListAction,
   duplicateListAction,
+  nudgeListAction,
   renameListAction,
 } from "@/actions/shopping-list.actions"
 import { ConfirmDialog } from "@/components/common/confirm-dialog"
@@ -37,10 +38,12 @@ import {
 type ListHeaderProps = {
   listId: string
   name: string
+  /** Mostra "Avisar o grupo" (só em listas ativas). */
+  canNudge?: boolean
   onShare?: () => void
 }
 
-export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
+export function ListHeader({ listId, name, canNudge = false, onShare }: ListHeaderProps) {
   const router = useRouter()
   const [renameOpen, setRenameOpen] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -86,6 +89,17 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
     })
   }
 
+  function handleNudge() {
+    startTransition(async () => {
+      const result = await nudgeListAction(listId)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast.success("Grupo avisado — todos recebem o convite para olhar a lista")
+    })
+  }
+
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -108,6 +122,12 @@ export function ListHeader({ listId, name, onShare }: ListHeaderProps) {
             }
           />
           <DropdownMenuContent align="end">
+            {canNudge && (
+              <DropdownMenuItem disabled={isPending} onClick={handleNudge}>
+                <Megaphone className="size-4" />
+                Avisar o grupo
+              </DropdownMenuItem>
+            )}
             {onShare && (
               <DropdownMenuItem onClick={onShare}>
                 <Share2 className="size-4" />

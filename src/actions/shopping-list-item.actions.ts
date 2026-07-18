@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { addItemSchema, itemPriceSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
-import { notifyBudgetProjectionAlert, notifyItemAdded } from "@/services/notification.service"
+import { notifyBudgetProjectionAlert } from "@/services/notification.service"
 import {
   getLastKnownUnitPrices,
   getPurchaseHouseholdId,
@@ -24,7 +24,7 @@ import { type ActionResult, actionError, actionOk } from "@/types/action"
 
 export async function addItemAction(listId: string, input: unknown): Promise<ActionResult> {
   try {
-    const user = await requireListAccess(listId)
+    await requireListAccess(listId)
     const values = addItemSchema.parse(input)
     await addShoppingListItem({
       shoppingListId: listId,
@@ -34,11 +34,8 @@ export async function addItemAction(listId: string, input: unknown): Promise<Act
       notes: values.notes || null,
       priceMode: values.priceMode,
     })
-    await notifyItemAdded({
-      listId,
-      actorUserId: user.id,
-      actorName: user.name ?? "Alguém",
-    })
+    // Adição de item não notifica: virava um push por item (ruído). Quem monta
+    // a lista avisa o grupo explicitamente pelo "Avisar o grupo".
     revalidatePath(`/dashboard/lists/${listId}`)
     return actionOk(undefined)
   } catch (error) {

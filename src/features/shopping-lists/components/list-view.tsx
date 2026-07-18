@@ -380,7 +380,12 @@ export function ListView({
   return (
     <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
       <Container size="wide" className="flex-1 space-y-4 py-4">
-        <ListHeader listId={list.id} name={list.name} onShare={() => setShareOpen(true)} />
+        <ListHeader
+          listId={list.id}
+          name={list.name}
+          canNudge={!isCompleted}
+          onShare={() => setShareOpen(true)}
+        />
 
         {isCompleted && (
           <div className="space-y-1.5 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
