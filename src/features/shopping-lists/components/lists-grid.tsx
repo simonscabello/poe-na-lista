@@ -12,6 +12,8 @@ type ListsGridProps = {
   householdId: string
   canInvite: boolean
   showInviteStep?: boolean
+  /** Estimativa de total por lista ativa (id → valor), pelos últimos preços pagos. */
+  estimates?: Record<string, number>
 }
 
 const PAGE_SIZE = 5
@@ -22,6 +24,7 @@ export function ListsGrid({
   householdId,
   canInvite,
   showInviteStep = false,
+  estimates = {},
 }: ListsGridProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
@@ -41,6 +44,7 @@ export function ListsGrid({
           members={members}
           householdId={householdId}
           canInvite={canInvite}
+          estimatedTotal={estimates[list.id] ?? null}
         />
       ))}
 

@@ -1,4 +1,4 @@
-import { ArrowRight, ListChecks, Users } from "lucide-react"
+import { Archive, ArrowRight, Receipt, ShoppingCart, Users } from "lucide-react"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { AppLogo } from "@/components/common/app-logo"
@@ -32,10 +32,11 @@ function HomeLanding() {
       <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">
         <AppLogo size="xl" />
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Listas de compras compartilhadas com quem você quiser
+          A compra da casa em um só lugar: lista, gastos e despensa
         </h1>
         <p className="text-base text-muted-foreground sm:text-lg">
-          Organize as compras em grupo, convide membros e mantenha tudo sincronizado no celular.
+          Monte a lista com quem divide a casa, marque os itens no mercado e finalize: o app lembra
+          os preços que você pagou, acompanha o orçamento do mês e mantém a despensa em dia.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <LinkButton size="lg" href="/dashboard">
@@ -53,24 +54,52 @@ function HomeLanding() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="size-4 text-primary" />
-              Grupos colaborativos
+              Compras em grupo
             </CardTitle>
-            <CardDescription>Convide quem quiser e gerencie listas em conjunto.</CardDescription>
+            <CardDescription>Uma lista só, sincronizada no celular de todos.</CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Cada grupo tem seus membros, produtos e listas próprias.
+            Convide a família ou quem divide a casa: todo mundo adiciona, marca e acompanha em tempo
+            real.
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ListChecks className="size-4 text-primary" />
-              Listas inteligentes
+              <ShoppingCart className="size-4 text-primary" />
+              Modo mercado
             </CardTitle>
-            <CardDescription>Produtos globais e por grupo, com itens vinculados.</CardDescription>
+            <CardDescription>Feito para a mão que empurra o carrinho.</CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Marque itens conforme compra e acompanhe o progresso em tempo real.
+            Itens agrupados por categoria, total do carrinho e estimativa do que falta — com os
+            últimos preços que você pagou.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="size-4 text-primary" />
+              Gastos e orçamento
+            </CardTitle>
+            <CardDescription>Cada compra finalizada vira histórico.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Veja o gasto do mês por categoria e por mercado, defina um teto e receba alerta antes de
+            estourar.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Archive className="size-4 text-primary" />
+              Despensa automática
+            </CardTitle>
+            <CardDescription>O estoque da casa se atualiza sozinho.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            O que você compra entra na despensa; quando algo está acabando ou vencendo, volta para a
+            lista em um toque.
           </CardContent>
         </Card>
       </section>
@@ -91,6 +120,8 @@ function HomeSkeleton() {
         </div>
       </section>
       <section className="mt-12 grid gap-4 sm:grid-cols-2">
+        <Skeleton className="h-36 rounded-xl" />
+        <Skeleton className="h-36 rounded-xl" />
         <Skeleton className="h-36 rounded-xl" />
         <Skeleton className="h-36 rounded-xl" />
       </section>

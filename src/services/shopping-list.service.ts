@@ -176,6 +176,54 @@ export async function createShoppingListWithItems(
   return list.id
 }
 
+/**
+ * Cria uma lista nova a partir dos itens de uma compra ("comprar de novo").
+ * Itens sem produto vinculado (ou com produto inativo) ficam de fora e são
+ * reportados em skippedCount.
+ */
+export async function createListFromPurchase(
+  purchaseId: string,
+  createdById: string,
+): Promise<{ id: string; skippedCount: number } | null> {
+  const purchase = await prisma.purchase.findUnique({
+    where: { id: purchaseId },
+    include: {
+      items: { include: { product: { select: { active: true } } } },
+      shoppingList: { select: { name: true } },
+    },
+  })
+
+  if (!purchase) {
+    return null
+  }
+
+  const usable = purchase.items.filter((item) => item.productId != null && item.product?.active)
+  if (usable.length === 0) {
+    throw new Error("Os produtos desta compra não estão mais disponíveis no catálogo")
+  }
+
+  const name =
+    purchase.shoppingList?.name ??
+    (purchase.storeName ? `Compra do ${purchase.storeName}` : "Compra avulsa")
+
+  const list = await prisma.shoppingList.create({
+    data: {
+      householdId: purchase.householdId,
+      createdById,
+      name,
+      items: {
+        create: usable.map((item) => ({
+          productId: item.productId as string,
+          quantity: item.quantity,
+          unit: item.unit,
+        })),
+      },
+    },
+  })
+
+  return { id: list.id, skippedCount: purchase.items.length - usable.length }
+}
+
 export async function duplicateShoppingList(listId: string, createdById: string): Promise<string> {
   const source = await prisma.shoppingList.findUniqueOrThrow({
     where: { id: listId },

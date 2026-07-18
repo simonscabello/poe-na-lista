@@ -15,6 +15,7 @@ import { auth } from "@/lib/auth"
 import { getCurrentMonthSpent, getMonthlyBudget } from "@/services/budget.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getLowStockPantryItemsNeedingRestock } from "@/services/pantry.service"
+import { getActiveListEstimates } from "@/services/purchase.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
 import { getSuggestedListPreview } from "@/services/suggestion.service"
 
@@ -40,15 +41,23 @@ async function ListsContent() {
   }
 
   const canInvite = active.role === HouseholdRole.OWNER || active.role === HouseholdRole.ADMIN
-  const [lists, members, currentMonthTotal, suggestedPreview, monthlyBudget, lowStockItems] =
-    await Promise.all([
-      getListsByHousehold(active.id),
-      getHouseholdMembers(active.id),
-      getCurrentMonthSpent(active.id),
-      getSuggestedListPreview(active.id),
-      getMonthlyBudget(active.id),
-      getLowStockPantryItemsNeedingRestock(active.id),
-    ])
+  const [
+    lists,
+    members,
+    currentMonthTotal,
+    suggestedPreview,
+    monthlyBudget,
+    lowStockItems,
+    listEstimates,
+  ] = await Promise.all([
+    getListsByHousehold(active.id),
+    getHouseholdMembers(active.id),
+    getCurrentMonthSpent(active.id),
+    getSuggestedListPreview(active.id),
+    getMonthlyBudget(active.id),
+    getLowStockPantryItemsNeedingRestock(active.id),
+    getActiveListEstimates(active.id),
+  ])
 
   // Primeira lista de um grupo ainda solo: vale convidar quem mora junto.
   const showInviteStep = lists.length === 0 && members.length === 1 && canInvite
@@ -84,6 +93,7 @@ async function ListsContent() {
         householdId={active.id}
         canInvite={canInvite}
         showInviteStep={showInviteStep}
+        estimates={Object.fromEntries(listEstimates)}
       />
     </Container>
   )

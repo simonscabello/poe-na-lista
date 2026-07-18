@@ -1,9 +1,9 @@
 import { ShoppingListStatus } from "@/generated/prisma/enums"
-import { computeLineTotal } from "@/lib/pricing"
+import { computeLineTotal, type EstimatableItem, estimateItemsTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
 import { addPurchaseToPantry } from "@/services/pantry.service"
 import { findOrCreateStore } from "@/services/store.service"
-import type { PurchaseDetailDTO, PurchaseSummaryDTO } from "@/types/domain"
+import type { LastPriceDTO, PurchaseDetailDTO, PurchaseSummaryDTO } from "@/types/domain"
 
 export type PurchaseItemInput = {
   productId?: string | null
@@ -281,11 +281,16 @@ export async function getRecentPurchaseTotals(householdId: string, limit = 5): P
   return purchases.map((purchase) => Number(purchase.totalAmount))
 }
 
-/** Último preço unitário conhecido por produto, para estimar a próxima compra. */
-export async function getLastKnownUnitPrices(
+/**
+ * Último preço pago por produto (com mercado e data), para lembrar o usuário e
+ * estimar a próxima compra. Quando a compra só registrou o valor total (itens
+ * pesados), o preço unitário é derivado de totalPrice/quantity — a referência
+ * fica sempre por unidade (R$/kg, R$/un).
+ */
+export async function getLastPaidPrices(
   householdId: string,
   productIds: string[],
-): Promise<Map<string, number>> {
+): Promise<Map<string, LastPriceDTO>> {
   if (productIds.length === 0) {
     return new Map()
   }
@@ -293,19 +298,90 @@ export async function getLastKnownUnitPrices(
   const rows = await prisma.purchaseItem.findMany({
     where: {
       productId: { in: productIds },
-      unitPrice: { not: null },
       purchase: { householdId },
+      OR: [{ unitPrice: { not: null } }, { totalPrice: { not: null } }],
     },
     orderBy: { purchase: { purchasedAt: "desc" } },
-    select: { productId: true, unitPrice: true },
+    select: {
+      productId: true,
+      unitPrice: true,
+      totalPrice: true,
+      quantity: true,
+      purchase: { select: { storeName: true, purchasedAt: true } },
+    },
   })
 
-  const prices = new Map<string, number>()
+  const prices = new Map<string, LastPriceDTO>()
   for (const row of rows) {
-    if (row.productId && !prices.has(row.productId) && row.unitPrice != null) {
-      prices.set(row.productId, Number(row.unitPrice))
-    }
+    if (!row.productId || prices.has(row.productId)) continue
+
+    const quantity = Number(row.quantity)
+    const unitPrice =
+      row.unitPrice != null
+        ? Number(row.unitPrice)
+        : row.totalPrice != null && quantity > 0
+          ? Math.round((Number(row.totalPrice) / quantity) * 100) / 100
+          : null
+
+    if (unitPrice == null || unitPrice <= 0) continue
+
+    prices.set(row.productId, {
+      unitPrice,
+      storeName: row.purchase.storeName,
+      purchasedAt: row.purchase.purchasedAt.toISOString(),
+    })
   }
 
   return prices
+}
+
+/** Cobertura mínima de preços para o card da lista exibir uma estimativa honesta. */
+const ESTIMATE_MIN_COVERAGE = 0.5
+
+/**
+ * Estimativa de total por lista ativa do household, para os cards da grade.
+ * Só inclui listas em que ao menos metade dos itens tem preço ou referência.
+ */
+export async function getActiveListEstimates(householdId: string): Promise<Map<string, number>> {
+  const items = await prisma.shoppingListItem.findMany({
+    where: { shoppingList: { householdId, status: ShoppingListStatus.ACTIVE } },
+    select: {
+      shoppingListId: true,
+      productId: true,
+      quantity: true,
+      price: true,
+      priceMode: true,
+    },
+  })
+
+  if (items.length === 0) {
+    return new Map()
+  }
+
+  const lastPrices = await getLastPaidPrices(householdId, [
+    ...new Set(items.map((item) => item.productId)),
+  ])
+
+  const byList = new Map<string, EstimatableItem[]>()
+  for (const item of items) {
+    const group = byList.get(item.shoppingListId) ?? []
+    group.push({
+      productId: item.productId,
+      quantity: Number(item.quantity),
+      price: item.price != null ? Number(item.price) : null,
+      priceMode: item.priceMode,
+    })
+    byList.set(item.shoppingListId, group)
+  }
+
+  const estimates = new Map<string, number>()
+  for (const [listId, listItems] of byList) {
+    const estimate = estimateItemsTotal(listItems, (id) => lastPrices.get(id)?.unitPrice)
+    const coverage = (estimate.pricedCount + estimate.referencedCount) / listItems.length
+    if (estimate.total > 0 && coverage >= ESTIMATE_MIN_COVERAGE) {
+      estimates.set(listId, estimate.total)
+    }
+  }
+
+  return estimates
 }

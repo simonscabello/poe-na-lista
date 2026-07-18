@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
 import { Container } from "@/components/layout/container"
 import { Button } from "@/components/ui/button"
+import { BuyAgainButton } from "@/features/expenses/components/buy-again-button"
 import { auth } from "@/lib/auth"
 import { formatCalendarDateLong } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
@@ -81,6 +82,11 @@ async function PurchaseDetailContent({ purchaseId }: { purchaseId: string }) {
           )}
         </div>
         {purchase.notes && <p className="mt-3 text-sm text-muted-foreground">{purchase.notes}</p>}
+        {purchase.items.length > 0 && (
+          <div className="mt-4">
+            <BuyAgainButton purchaseId={purchase.id} />
+          </div>
+        )}
       </div>
 
       {purchase.items.length > 0 && (

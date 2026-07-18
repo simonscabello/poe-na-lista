@@ -1,7 +1,8 @@
 import { calendarMonthKey, currentCalendarMonthKey } from "@/lib/calendar-date"
 import { buildExpenseEstimate } from "@/lib/expense-estimate"
+import { estimateItemsTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
-import { getLastKnownUnitPrices, getRecentPurchaseTotals } from "@/services/purchase.service"
+import { getLastPaidPrices, getRecentPurchaseTotals } from "@/services/purchase.service"
 import type {
   CategoryExpenseDTO,
   ExpenseEstimateDTO,
@@ -150,22 +151,24 @@ export async function getExpenseEstimate(
   if (activeListId) {
     const items = await prisma.shoppingListItem.findMany({
       where: { shoppingListId: activeListId },
-      select: { productId: true, quantity: true },
+      select: { productId: true, quantity: true, price: true, priceMode: true },
     })
 
     if (items.length > 0) {
-      const prices = await getLastKnownUnitPrices(
+      const prices = await getLastPaidPrices(
         householdId,
         items.map((item) => item.productId),
       )
-      let sum = 0
-      for (const item of items) {
-        const price = prices.get(item.productId)
-        if (price != null) {
-          sum += price * Number(item.quantity)
-        }
-      }
-      itemBasedTotal = sum > 0 ? sum : null
+      const estimate = estimateItemsTotal(
+        items.map((item) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          price: item.price != null ? Number(item.price) : null,
+          priceMode: item.priceMode,
+        })),
+        (productId) => prices.get(productId)?.unitPrice,
+      )
+      itemBasedTotal = estimate.total > 0 ? estimate.total : null
     }
   }
 

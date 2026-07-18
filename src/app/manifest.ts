@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Põe na Lista",
     short_name: "Põe na Lista",
-    description: "Organize suas compras em grupo com quem você quiser",
+    description: "Lista de compras compartilhada com controle de gastos e despensa automática",
     start_url: "/",
     scope: "/",
     display: "standalone",

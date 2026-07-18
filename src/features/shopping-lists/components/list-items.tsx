@@ -18,13 +18,13 @@ import { formatCurrency } from "@/lib/format-currency"
 import { formatQuantity, getMeasureConfigForItem } from "@/lib/measure"
 import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
-import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
+import type { LastPriceDTO, PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
 type ListItemsProps = {
   items: ShoppingListItemDTO[]
   productsById: Map<string, ProductDTO>
   autoFilledIds?: Set<string>
-  lastPrices?: Record<string, number>
+  lastPrices?: Record<string, LastPriceDTO>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -35,7 +35,7 @@ type ListItemsProps = {
 }
 
 const EMPTY_AUTO_FILLED = new Set<string>()
-const EMPTY_LAST_PRICES: Record<string, number> = {}
+const EMPTY_LAST_PRICES: Record<string, LastPriceDTO> = {}
 
 export function ListItems({
   items,
@@ -167,7 +167,7 @@ export function ListItems({
 type ItemHandlers = {
   productsById: Map<string, ProductDTO>
   autoFilledIds: Set<string>
-  lastPrices: Record<string, number>
+  lastPrices: Record<string, LastPriceDTO>
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -448,7 +448,7 @@ function ItemRowList({
           item={item}
           product={productsById.get(item.productId)}
           autoFilledPrice={autoFilledIds.has(item.id)}
-          suggestedPrice={item.priceMode === "UNIT" ? (lastPrices[item.productId] ?? null) : null}
+          lastPrice={lastPrices[item.productId] ?? null}
           onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}

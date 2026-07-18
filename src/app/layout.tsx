@@ -22,7 +22,8 @@ export const metadata: Metadata = {
     default: "Põe na Lista",
     template: "%s | Põe na Lista",
   },
-  description: "Lista de compras compartilhada para qualquer grupo",
+  description:
+    "Lista de compras compartilhada com modo mercado, controle de gastos e despensa automática — para a família ou qualquer grupo",
   applicationName: "Põe na Lista",
   appleWebApp: {
     capable: true,

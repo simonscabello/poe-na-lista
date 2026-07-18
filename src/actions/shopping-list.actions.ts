@@ -5,7 +5,9 @@ import { shoppingListNameSchema } from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { notifyHousehold, notifyListNudge } from "@/services/notification.service"
+import { getPurchaseHouseholdId } from "@/services/purchase.service"
 import {
+  createListFromPurchase,
   createShoppingList,
   createShoppingListWithItems,
   deleteShoppingList,
@@ -97,6 +99,27 @@ export async function createSuggestedListAction(
     })
     revalidatePath("/dashboard")
     return actionOk({ id })
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+/** "Comprar de novo": cria uma lista nova com os itens de uma compra passada. */
+export async function createListFromPurchaseAction(
+  purchaseId: string,
+): Promise<ActionResult<{ id: string; skippedCount: number }>> {
+  try {
+    const householdId = await getPurchaseHouseholdId(purchaseId)
+    if (!householdId) {
+      throw new Error("Compra não encontrada")
+    }
+    const { user } = await requireHouseholdMember(householdId)
+    const created = await createListFromPurchase(purchaseId, user.id)
+    if (!created) {
+      throw new Error("Compra não encontrada")
+    }
+    revalidatePath("/dashboard")
+    return actionOk(created)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

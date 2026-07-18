@@ -55,3 +55,16 @@ export function formatCalendarDateLong(value: string | Date): string {
     year: "numeric",
   })
 }
+
+/** "hoje", "ontem", "há N dias" ou a data curta quando faz mais de um mês. */
+export function formatRelativeCalendarDate(value: string | Date): string {
+  const date = calendarDateFromStored(value)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const days = Math.round((today.getTime() - date.getTime()) / (24 * 60 * 60 * 1000))
+
+  if (days <= 0) return "hoje"
+  if (days === 1) return "ontem"
+  if (days < 30) return `há ${days} dias`
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+}

@@ -1,12 +1,12 @@
 "use client"
 
 import { useAtomValue } from "jotai"
-import { CheckCircle2, ShoppingBag } from "lucide-react"
+import { Calculator, CheckCircle2, ShoppingBag } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useMemo, useOptimistic, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { getListVersionAction } from "@/actions/shopping-list.actions"
+import { duplicateListAction, getListVersionAction } from "@/actions/shopping-list.actions"
 import {
   addItemAction,
   removeItemAction,
@@ -36,9 +36,10 @@ import {
   nextQuantityDown,
   nextQuantityUp,
 } from "@/lib/measure"
-import { computeLineTotal } from "@/lib/pricing"
+import { computeLineTotal, estimateItemsTotal } from "@/lib/pricing"
 import type {
   CategoryDTO,
+  LastPriceDTO,
   PriceModeDTO,
   ProductDTO,
   ShoppingListDetail,
@@ -116,7 +117,7 @@ type ListViewProps = {
   categories: CategoryDTO[]
   initialShare: ShoppingListShareDTO | null
   stores: StoreDTO[]
-  lastPrices: Record<string, number>
+  lastPrices: Record<string, LastPriceDTO>
   lastStoreName: string | null
 }
 
@@ -132,6 +133,7 @@ export function ListView({
 }: ListViewProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const [isBuyingAgain, startBuyAgainTransition] = useTransition()
   const [items, applyOptimistic] = useOptimistic(list.items, reducer)
   const [shareOpen, setShareOpen] = useState(false)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
@@ -163,21 +165,17 @@ export function ListView({
     )
 
   const marketMode = useAtomValue(marketModeAtom)
-  // Estimativa do que ainda falta comprar: usa o preço já informado ou o último
-  // preço unitário pago; itens sem nenhuma referência entram só na contagem.
-  let remainingEstimate = 0
-  let remainingUnknownCount = 0
-  for (const item of items) {
-    if (item.checked) continue
-    const lineTotal = computeLineTotal(item.price, item.quantity, item.priceMode)
-    if (lineTotal != null && lineTotal > 0) {
-      remainingEstimate += lineTotal
-    } else if (item.priceMode === "UNIT" && lastPrices[item.productId] != null) {
-      remainingEstimate += lastPrices[item.productId] * item.quantity
-    } else {
-      remainingUnknownCount += 1
-    }
-  }
+  const lastUnitPriceOf = useCallback(
+    (productId: string) => lastPrices[productId]?.unitPrice,
+    [lastPrices],
+  )
+  // Estimativas pelos preços informados + últimos preços pagos: da lista toda
+  // (planejamento antes do mercado) e do que ainda falta (modo mercado).
+  const listEstimate = estimateItemsTotal(items, lastUnitPriceOf)
+  const remaining = estimateItemsTotal(
+    items.filter((item) => !item.checked),
+    lastUnitPriceOf,
+  )
 
   const inList = new Map<string, number>()
   for (const item of items) {
@@ -189,7 +187,7 @@ export function ListView({
     // Espelha o prefill do último preço feito pelo servidor no toggleItemAction.
     const prefillPrice =
       willCheck && item.price == null && item.priceMode === "UNIT"
-        ? (lastPrices[item.productId] ?? null)
+        ? (lastPrices[item.productId]?.unitPrice ?? null)
         : null
     startTransition(async () => {
       haptic("tap")
@@ -271,6 +269,19 @@ export function ListView({
         return
       }
       router.refresh()
+    })
+  }
+
+  /** Recomeça a mesma compra: duplica a lista finalizada com tudo desmarcado. */
+  function buyAgain() {
+    startBuyAgainTransition(async () => {
+      const result = await duplicateListAction(list.id)
+      if (!result.success) {
+        toast.error(result.error)
+        return
+      }
+      toast.success("Nova lista criada com os mesmos itens")
+      router.push(`/dashboard/lists/${result.data.id}`)
     })
   }
 
@@ -405,14 +416,47 @@ export function ListView({
                 {`${unpricedCheckedCount} ${unpricedCheckedCount === 1 ? "produto ainda" : "produtos ainda"} sem preço.`}
               </p>
             )}
-            {list.latestPurchase && (
-              <Link
-                href={`/dashboard/expenses/${list.latestPurchase.id}`}
-                className="inline-block pl-6 text-xs font-medium underline underline-offset-2"
+            <div className="flex flex-wrap items-center gap-4 pl-6">
+              {list.latestPurchase && (
+                <Link
+                  href={`/dashboard/expenses/${list.latestPurchase.id}`}
+                  className="text-xs font-medium underline underline-offset-2"
+                >
+                  Ver em Gastos
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={buyAgain}
+                disabled={isBuyingAgain}
+                className="text-xs font-medium underline underline-offset-2 disabled:opacity-50"
               >
-                Ver em Gastos
-              </Link>
-            )}
+                Comprar de novo
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isCompleted && items.length > 0 && !marketMode && listEstimate.total > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-border/70">
+            <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
+              <Calculator className="size-4 shrink-0 text-primary" />
+              <span>
+                Estimativa da compra
+                <span className="block text-xs">pelos últimos preços que você pagou</span>
+              </span>
+            </span>
+            <span className="shrink-0 text-right">
+              <span className="font-heading text-base font-semibold tabular-nums">
+                ~{formatCurrency(listEstimate.total)}
+              </span>
+              {listEstimate.unknownCount > 0 && (
+                <span className="block text-xs text-muted-foreground tabular-nums">
+                  {listEstimate.unknownCount}{" "}
+                  {listEstimate.unknownCount === 1 ? "item sem referência" : "itens sem referência"}
+                </span>
+              )}
+            </span>
           </div>
         )}
 
@@ -458,9 +502,11 @@ export function ListView({
           topSlot={
             marketMode && items.length > 0 ? (
               <MarketModeFooter
+                checkedCount={checkedCount}
+                totalCount={items.length}
                 checkedTotal={checkedItemsTotal}
-                remainingEstimate={remainingEstimate}
-                remainingUnknownCount={remainingUnknownCount}
+                remainingEstimate={remaining.total}
+                remainingUnknownCount={remaining.unknownCount}
               />
             ) : null
           }

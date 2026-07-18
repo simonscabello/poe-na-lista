@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertCircle, Check, Copy, MoreVertical, Store, Trash2 } from "lucide-react"
+import { AlertCircle, Calculator, Check, Copy, MoreVertical, Store, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -25,9 +25,17 @@ type ListCardProps = {
   members: HouseholdMemberDTO[]
   householdId: string
   canInvite: boolean
+  /** Estimativa de total pelos últimos preços pagos; null quando não há referência suficiente. */
+  estimatedTotal?: number | null
 }
 
-export function ListCard({ list, members, householdId, canInvite }: ListCardProps) {
+export function ListCard({
+  list,
+  members,
+  householdId,
+  canInvite,
+  estimatedTotal = null,
+}: ListCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -127,6 +135,12 @@ export function ListCard({ list, members, householdId, canInvite }: ListCardProp
           purchaseCount={list.purchaseCount}
         />
       </div>
+
+      {!isCompleted && estimatedTotal != null && (
+        <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">
+          <Calculator className="size-3.5 shrink-0" />~{formatCurrency(estimatedTotal)} estimados
+        </p>
+      )}
 
       {isCompleted && (list.lastPurchaseStoreName || list.lastPurchaseTotal != null) && (
         <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">

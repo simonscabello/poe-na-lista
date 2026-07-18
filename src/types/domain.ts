@@ -65,6 +65,13 @@ export type ProductDTO = {
 
 export type PriceModeDTO = "UNIT" | "TOTAL"
 
+export type LastPriceDTO = {
+  /** Preço por unidade — informado na compra ou derivado de totalPrice/quantity. */
+  unitPrice: number
+  storeName: string | null
+  purchasedAt: string
+}
+
 export type ShoppingListItemDTO = {
   id: string
   productId: string

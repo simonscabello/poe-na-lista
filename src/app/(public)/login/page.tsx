@@ -43,11 +43,11 @@ async function LoginContent({ searchParams }: LoginPageProps) {
         <CardHeader>
           <CardTitle>Entrar no Põe na Lista</CardTitle>
           <CardDescription>
-            Use sua conta Google para acessar listas compartilhadas.
+            Use sua conta Google para acessar as compras do seu grupo.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Suas listas e grupos ficam disponíveis em qualquer dispositivo.
+          Listas, gastos e despensa ficam disponíveis em qualquer dispositivo.
         </CardContent>
         <CardFooter>
           <form

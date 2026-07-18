@@ -16,7 +16,7 @@ import {
   nextQuantityUp,
 } from "@/lib/measure"
 import { cn } from "@/lib/utils"
-import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
+import type { LastPriceDTO, PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
 const THRESHOLD = 72
 const MAX_TRAVEL = 100
@@ -25,7 +25,7 @@ type SwipeableItemRowProps = {
   item: ShoppingListItemDTO
   product?: ProductDTO
   autoFilledPrice?: boolean
-  suggestedPrice?: number | null
+  lastPrice?: LastPriceDTO | null
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -37,7 +37,7 @@ export function SwipeableItemRow({
   item,
   product,
   autoFilledPrice = false,
-  suggestedPrice = null,
+  lastPrice = null,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -221,7 +221,7 @@ export function SwipeableItemRow({
           unitLabel={unitLabel}
           priceLabel={priceLabel}
           autoFilled={autoFilledPrice}
-          suggestedPrice={suggestedPrice}
+          lastPrice={lastPrice}
           onChangePrice={onChangePrice}
           onChangePriceMode={onChangePriceMode}
           onPointerDown={(event) => event.stopPropagation()}

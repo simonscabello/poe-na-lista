@@ -1,6 +1,6 @@
 "use client"
 
-import { Archive, CalendarClock, ChevronDown, ListPlus, Trash2, X } from "lucide-react"
+import { Archive, CalendarClock, ChevronDown, ListPlus, PackageX, Trash2, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useOptimistic, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -40,6 +40,16 @@ function expiryBadge(days: number): { label: string; expired: boolean } {
   return { label: `Vence em ${days} dias`, expired: false }
 }
 
+type PantryFilter = "all" | "low" | "expiring"
+
+function isExpiring(item: PantryItemDTO): boolean {
+  return (
+    item.expirationDate != null &&
+    item.quantity > 0 &&
+    daysUntilExpiry(item.expirationDate) <= EXPIRY_WARNING_DAYS
+  )
+}
+
 type OptimisticAction =
   | { type: "setQty"; id: string; quantity: number }
   | { type: "remove"; id: string }
@@ -74,17 +84,25 @@ export function PantryView({
   const [isPending, startTransition] = useTransition()
   const [items, applyOptimistic] = useOptimistic(initialItems, reducer)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<PantryFilter>("all")
 
   const lowCount = items.filter((item) => item.belowMinimum).length
-  const expiringCount = items.filter(
-    (item) =>
-      item.expirationDate != null &&
-      item.quantity > 0 &&
-      daysUntilExpiry(item.expirationDate) <= EXPIRY_WARNING_DAYS,
-  ).length
+  const expiringCount = items.filter(isExpiring).length
+
+  // Se o filtro ativo ficar vazio (ex.: tudo reposto), volta para "Todos".
+  const activeFilter =
+    (filter === "low" && lowCount === 0) || (filter === "expiring" && expiringCount === 0)
+      ? "all"
+      : filter
+  const filteredItems =
+    activeFilter === "low"
+      ? items.filter((item) => item.belowMinimum)
+      : activeFilter === "expiring"
+        ? items.filter(isExpiring)
+        : items
 
   const groups = new Map<string, PantryItemDTO[]>()
-  for (const item of items) {
+  for (const item of filteredItems) {
     const key = item.category?.trim() || UNCATEGORIZED
     const group = groups.get(key) ?? []
     group.push(item)
@@ -190,13 +208,44 @@ export function PantryView({
         )}
       </div>
 
-      {expiringCount > 0 && (
-        <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400">
-          <CalendarClock className="size-4 shrink-0" />
-          {expiringCount === 1
-            ? "1 produto vencendo ou vencido — confira abaixo."
-            : `${expiringCount} produtos vencendo ou vencidos — confira abaixo.`}
+      {items.length > 0 && (lowCount > 0 || expiringCount > 0) && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <FilterChip
+            label="Todos"
+            active={activeFilter === "all"}
+            onClick={() => setFilter("all")}
+          />
+          {lowCount > 0 && (
+            <FilterChip
+              label={`Em falta · ${lowCount}`}
+              active={activeFilter === "low"}
+              onClick={() => setFilter("low")}
+            />
+          )}
+          {expiringCount > 0 && (
+            <FilterChip
+              label={`Vencendo · ${expiringCount}`}
+              active={activeFilter === "expiring"}
+              onClick={() => setFilter("expiring")}
+            />
+          )}
         </div>
+      )}
+
+      {expiringCount > 0 && activeFilter !== "expiring" && (
+        <button
+          type="button"
+          onClick={() => setFilter("expiring")}
+          className="flex w-full items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-left text-sm font-medium text-amber-700 transition-colors hover:bg-amber-500/15 dark:text-amber-400"
+        >
+          <CalendarClock className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            {expiringCount === 1
+              ? "1 produto vencendo ou vencido."
+              : `${expiringCount} produtos vencendo ou vencidos.`}
+          </span>
+          <span className="shrink-0 text-xs underline underline-offset-2">Ver itens</span>
+        </button>
       )}
 
       {items.length === 0 ? (
@@ -236,6 +285,32 @@ export function PantryView({
         </div>
       )}
     </Container>
+  )
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "flex h-8 shrink-0 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
+      )}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -382,15 +457,28 @@ function PantryItemRow({
             como em falta. Excluir remove o produto da despensa por completo.
           </p>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemove(item)}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="size-4" />
-            Excluir da despensa
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {item.quantity > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onChangeQuantity(item, 0)}
+                disabled={isPending}
+              >
+                <PackageX className="size-4" />
+                Acabou
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemove(item)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+              Excluir da despensa
+            </Button>
+          </div>
         </div>
       )}
     </li>
