@@ -1,10 +1,15 @@
 import type { Metadata, MetadataRoute } from "next"
 
+// Incrementar a cada mudança na arte dos ícones: muda as URLs no manifest e
+// nos metadados, invalidando caches HTTP e disparando a detecção de update
+// do ícone em PWAs instaladas (Android/desktop).
+const ICON_VERSION = 2
+
 export const APP_ICON_PATHS = {
-  favicon: "/icons/favicon.png",
-  icon192: "/icons/icon-192.png",
-  icon512: "/icons/icon-512.png",
-  iconMaskable512: "/icons/icon-maskable-512.png",
+  favicon: `/icons/favicon.png?v=${ICON_VERSION}`,
+  icon192: `/icons/icon-192.png?v=${ICON_VERSION}`,
+  icon512: `/icons/icon-512.png?v=${ICON_VERSION}`,
+  iconMaskable512: `/icons/icon-maskable-512.png?v=${ICON_VERSION}`,
 } as const
 
 export const appMetadataIcons: NonNullable<Metadata["icons"]> = {

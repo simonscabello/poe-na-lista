@@ -2,6 +2,7 @@
 import { defaultCache, PAGES_CACHE_NAME } from "@serwist/next/worker"
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist"
 import { Serwist } from "serwist"
+import { APP_ICON_PATHS } from "@/lib/app-icons"
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -65,8 +66,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title ?? "Põe na Lista", {
       body: payload.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      icon: APP_ICON_PATHS.icon192,
+      badge: APP_ICON_PATHS.icon192,
       data: { link: payload.link ?? "/dashboard" },
     }),
   )
