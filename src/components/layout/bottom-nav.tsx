@@ -62,7 +62,9 @@ export function BottomNav() {
               <span
                 className={cn(
                   "flex h-8 w-12 items-center justify-center rounded-full transition-colors duration-[var(--duration-normal)]",
-                  isActive ? "bg-primary/10" : "bg-transparent",
+                  isActive
+                    ? "animate-pop-in bg-primary/10 motion-reduce:animate-none"
+                    : "bg-transparent",
                 )}
               >
                 <Icon className="size-5" strokeWidth={isActive ? 2.4 : 2} />

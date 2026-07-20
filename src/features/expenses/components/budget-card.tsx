@@ -99,7 +99,7 @@ export function BudgetCard({ householdId, status, canManage }: BudgetCardProps) 
           <div
             className={cn(
               "h-full rounded-full transition-[width]",
-              over ? "bg-destructive" : warn ? "bg-amber-500" : "bg-primary",
+              over ? "bg-destructive" : warn ? "bg-warning" : "bg-primary",
             )}
             style={{ width: `${Math.min(status.percentUsed, 100)}%` }}
           />
@@ -120,9 +120,7 @@ export function BudgetCard({ householdId, status, canManage }: BudgetCardProps) 
           <p
             className={cn(
               "flex items-center gap-1.5 text-xs",
-              projectedOver
-                ? "font-medium text-amber-700 dark:text-amber-400"
-                : "text-muted-foreground",
+              projectedOver ? "font-medium text-warning" : "text-muted-foreground",
             )}
           >
             <TrendingUp className="size-3.5 shrink-0" />

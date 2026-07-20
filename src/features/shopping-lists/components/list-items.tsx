@@ -483,7 +483,7 @@ function PriceOnlyItemRow({
     <li
       className={cn(
         "flex flex-col gap-2 border-b px-4 py-3 last:border-b-0",
-        missingPrice && "border-l-2 border-l-amber-500 bg-amber-500/5",
+        missingPrice && "border-l-2 border-l-warning bg-warning/5",
       )}
     >
       <div className="flex items-center gap-3">
@@ -511,9 +511,7 @@ function PriceOnlyItemRow({
         </span>
       </div>
 
-      {missingPrice && (
-        <p className="pl-8 text-xs font-medium text-amber-700 dark:text-amber-400">Sem preço</p>
-      )}
+      {missingPrice && <p className="pl-8 text-xs font-medium text-warning">Sem preço</p>}
 
       <ItemPriceFields
         item={item}

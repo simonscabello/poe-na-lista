@@ -39,7 +39,7 @@ export function PantryRestockCard({ householdId, productNames }: PantryRestockCa
 
   return (
     <div className="flex items-start gap-3 rounded-2xl bg-card p-4 ring-1 ring-border/70">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning">
         <Archive className="size-5" />
       </span>
       <div className="min-w-0 flex-1 space-y-2">

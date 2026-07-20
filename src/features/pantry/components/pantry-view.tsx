@@ -236,7 +236,7 @@ export function PantryView({
         <button
           type="button"
           onClick={() => setFilter("expiring")}
-          className="flex w-full items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-left text-sm font-medium text-amber-700 transition-colors hover:bg-amber-500/15 dark:text-amber-400"
+          className="flex w-full items-center gap-2 rounded-xl bg-warning/10 px-4 py-3 text-left text-sm font-medium text-warning transition-colors hover:bg-warning/15"
         >
           <CalendarClock className="size-4 shrink-0" />
           <span className="min-w-0 flex-1">
@@ -364,7 +364,7 @@ function PantryItemRow({
             {(item.belowMinimum || badge) && (
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 {item.belowMinimum && (
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.7rem] font-medium text-amber-700 dark:text-amber-400">
+                  <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[0.7rem] font-medium text-warning">
                     Em falta
                   </span>
                 )}
@@ -374,7 +374,7 @@ function PantryItemRow({
                       "rounded-full px-2 py-0.5 text-[0.7rem] font-medium",
                       badge.expired
                         ? "bg-destructive/15 text-destructive"
-                        : "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                        : "bg-warning/15 text-warning",
                     )}
                   >
                     {badge.label}

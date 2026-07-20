@@ -30,7 +30,11 @@ export function ThemeToggle() {
       aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-      {isDark ? <Moon className="size-5" /> : <Sun className="size-5" />}
+      {isDark ? (
+        <Moon key="moon" className="size-5 animate-pop-in" />
+      ) : (
+        <Sun key="sun" className="size-5 animate-pop-in" />
+      )}
     </Button>
   )
 }

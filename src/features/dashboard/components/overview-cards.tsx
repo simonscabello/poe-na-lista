@@ -39,7 +39,7 @@ export function OverviewCards({ currentMonthTotal, monthlyBudget = null }: Overv
                 budgetPercent > 100
                   ? "bg-destructive"
                   : budgetPercent >= 80
-                    ? "bg-amber-500"
+                    ? "bg-warning"
                     : "bg-primary",
               )}
               style={{ width: `${Math.min(budgetPercent, 100)}%` }}

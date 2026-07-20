@@ -36,7 +36,7 @@ export function ListsGrid({
   const hasMore = visibleCount < lists.length
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+    <div className="stagger-children mx-auto flex w-full max-w-xl flex-col gap-4 motion-reduce:[&>*]:animate-none">
       {visibleLists.map((list) => (
         <ListCard
           key={list.id}
@@ -69,8 +69,8 @@ function ListsEmptyState({
   showInviteStep: boolean
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 rounded-2xl border border-dashed border-border/70 px-6 py-16 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-primary/10">
+    <div className="mx-auto flex w-full max-w-xl animate-fade-up flex-col items-center gap-5 rounded-2xl border border-dashed border-border/70 bg-card/50 px-6 py-16 text-center">
+      <div className="flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary/15 ring-1 ring-primary/10">
         <svg
           viewBox="0 0 100 100"
           fill="none"

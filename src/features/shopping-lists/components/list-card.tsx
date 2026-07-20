@@ -239,7 +239,7 @@ function StatusBadge({
       )}
 
       {unpricedCheckedItems > 0 && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/25 px-2.5 py-1 text-xs font-medium tabular-nums">
+        <span className="inline-flex items-center gap-1 rounded-full bg-warning/30 px-2.5 py-1 text-xs font-medium tabular-nums">
           <AlertCircle className="size-3.5" />
           {unpricedCheckedItems} sem preço
         </span>

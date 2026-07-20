@@ -29,9 +29,9 @@ async function HomeContent() {
 function HomeLanding() {
   return (
     <Container className="py-10 sm:py-16">
-      <section className="mx-auto flex max-w-2xl flex-col items-center space-y-6 text-center">
+      <section className="mx-auto flex max-w-2xl animate-fade-up flex-col items-center space-y-6 text-center">
         <AppLogo size="xl" />
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           A compra da casa em um só lugar: lista, gastos e despensa
         </h1>
         <p className="text-base text-muted-foreground sm:text-lg">
@@ -39,9 +39,9 @@ function HomeLanding() {
           os preços que você pagou, acompanha o orçamento do mês e mantém a despensa em dia.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <LinkButton size="lg" href="/dashboard">
+          <LinkButton size="lg" href="/dashboard" className="group">
             Começar agora
-            <ArrowRight className="size-4" />
+            <ArrowRight className="size-4 transition-transform duration-[var(--duration-fast)] group-hover:translate-x-0.5" />
           </LinkButton>
           <LinkButton size="lg" variant="outline" href="/login">
             Entrar
@@ -49,7 +49,7 @@ function HomeLanding() {
         </div>
       </section>
 
-      <section className="mt-12 grid gap-4 sm:grid-cols-2">
+      <section className="stagger-children mt-12 grid gap-4 motion-reduce:[&>*]:animate-none sm:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

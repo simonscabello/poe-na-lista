@@ -16,7 +16,10 @@ export function Header({ showAuthActions = true }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Container className="flex h-14 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-heading font-semibold tracking-tight"
+        >
           <AppLogo size="md" />
           <span>Põe na Lista</span>
         </Link>
