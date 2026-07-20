@@ -11,9 +11,9 @@ type MarketModeFooterProps = {
 }
 
 /**
- * Resumo financeiro do modo mercado: progresso da compra, total já no carrinho,
- * estimativa do que falta e total previsto ao fim (baseados nos últimos preços
- * pagos — por isso o "~").
+ * Resumo do modo mercado em formato compacto: renderizado dentro da barra de
+ * adicionar produtos (ao lado do botão), então precisa caber em ~2,5rem para
+ * não roubar espaço da lista em telas pequenas.
  */
 export function MarketModeFooter({
   checkedCount,
@@ -24,23 +24,11 @@ export function MarketModeFooter({
 }: MarketModeFooterProps) {
   const allChecked = totalCount > 0 && checkedCount === totalCount
   const progressPercent = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0
-  const projectedTotal = checkedTotal + remainingEstimate
 
   return (
-    <div className="space-y-2 rounded-2xl bg-card px-4 py-2.5 text-sm ring-1 ring-border/70">
-      <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground tabular-nums">
-        <span>
-          {checkedCount} de {totalCount} {totalCount === 1 ? "item" : "itens"} no carrinho
-        </span>
-        {!allChecked && projectedTotal > 0 && (
-          <span>
-            Previsto ~<span className="text-foreground">{formatCurrency(projectedTotal)}</span>
-          </span>
-        )}
-      </div>
-
+    <div className="relative min-w-0">
       <div
-        className="h-1.5 overflow-hidden rounded-full bg-muted"
+        className="absolute inset-x-0 top-0 h-0.5 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-valuenow={progressPercent}
         aria-valuemin={0}
@@ -53,27 +41,20 @@ export function MarketModeFooter({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-muted-foreground">
-          No carrinho{" "}
-          <strong className="font-semibold text-foreground tabular-nums">
-            {formatCurrency(checkedTotal)}
-          </strong>
+      <p className="flex items-center justify-between gap-2 pt-1.5 text-xs leading-tight text-muted-foreground tabular-nums">
+        <span className="shrink-0">
+          {checkedCount}/{totalCount} ·{" "}
+          <strong className="font-semibold text-foreground">{formatCurrency(checkedTotal)}</strong>
         </span>
         {allChecked ? (
-          <span className="text-right font-medium text-primary">Tudo no carrinho 🎉</span>
+          <span className="truncate font-medium text-primary">Tudo no carrinho 🎉</span>
         ) : (
-          <span className="text-right text-muted-foreground">
-            Falta ~<span className="tabular-nums">{formatCurrency(remainingEstimate)}</span>
-            {remainingUnknownCount > 0 && (
-              <span className="block text-xs">
-                {remainingUnknownCount} {remainingUnknownCount === 1 ? "item" : "itens"} sem
-                estimativa
-              </span>
-            )}
+          <span className="truncate text-right">
+            Falta ~{formatCurrency(remainingEstimate)}
+            {remainingUnknownCount > 0 && ` · ${remainingUnknownCount} sem preço`}
           </span>
         )}
-      </div>
+      </p>
     </div>
   )
 }

@@ -499,7 +499,7 @@ export function ListView({
           frequent={frequent}
           categories={categories}
           inList={inList}
-          topSlot={
+          inlineSlot={
             marketMode && items.length > 0 ? (
               <MarketModeFooter
                 checkedCount={checkedCount}

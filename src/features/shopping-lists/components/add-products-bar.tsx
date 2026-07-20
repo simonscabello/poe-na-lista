@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react"
 import { Container } from "@/components/layout/container"
 import { Button } from "@/components/ui/button"
 import { ProductCatalogSheet } from "@/features/products/components/product-catalog-sheet"
+import { cn } from "@/lib/utils"
 import type { CategoryDTO, ProductDTO } from "@/types/domain"
 
 type AddProductsBarProps = {
@@ -14,8 +15,12 @@ type AddProductsBarProps = {
   categories: CategoryDTO[]
   /** productId → quantity currently in the list, for live badges in the sheet. */
   inList: Map<string, number>
-  /** Rendered inside the sticky bar, above the button (e.g. market mode totals). */
-  topSlot?: ReactNode
+  /**
+   * Conteúdo renderizado ao lado do botão (ex.: totais do modo mercado). Com
+   * ele presente a barra vira uma linha compacta — botão quadrado no lugar do
+   * largo — para roubar o mínimo de altura da lista em telas pequenas.
+   */
+  inlineSlot?: ReactNode
   onAdd: (product: ProductDTO) => void
   onAddOne: (product: ProductDTO) => void
   onRemoveOne: (product: ProductDTO) => void
@@ -27,7 +32,7 @@ export function AddProductsBar({
   frequent,
   categories,
   inList,
-  topSlot,
+  inlineSlot,
   onAdd,
   onAddOne,
   onRemoveOne,
@@ -43,17 +48,37 @@ export function AddProductsBar({
         keep the button clear of it. On sm+ the nav is hidden, so it drops to the
         bottom edge with the device safe area.
       */}
-      <div className="sticky bottom-[calc(4rem_+_env(safe-area-inset-bottom))] z-30 border-t bg-background/85 pt-3 pb-3 backdrop-blur-xl sm:bottom-0 sm:pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]">
+      <div
+        className={cn(
+          "sticky bottom-[calc(4rem_+_env(safe-area-inset-bottom))] z-30 border-t bg-background/85 backdrop-blur-xl sm:bottom-0",
+          inlineSlot != null
+            ? "py-1.5 sm:pb-[calc(0.375rem_+_env(safe-area-inset-bottom))]"
+            : "pt-3 pb-3 sm:pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]",
+        )}
+      >
         <Container size="wide">
-          {topSlot != null && <div className="mb-2">{topSlot}</div>}
-          <Button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="h-13 w-full rounded-2xl text-base font-semibold shadow-sm active:scale-[0.99]"
-          >
-            <Plus className="size-5" />
-            Adicionar produtos
-          </Button>
+          {inlineSlot != null ? (
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">{inlineSlot}</div>
+              <Button
+                type="button"
+                onClick={() => setOpen(true)}
+                aria-label="Adicionar produtos"
+                className="size-11 shrink-0 rounded-xl p-0 shadow-sm active:scale-[0.99]"
+              >
+                <Plus className="size-5" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="h-13 w-full rounded-2xl text-base font-semibold shadow-sm active:scale-[0.99]"
+            >
+              <Plus className="size-5" />
+              Adicionar produtos
+            </Button>
+          )}
         </Container>
       </div>
 

@@ -14,7 +14,8 @@
         "run",
         "dev"
       ],
-      "port": 3000
+      "port": 3000,
+      "autoPort": true
     },
     {
       "name": "prod",
@@ -29,7 +30,8 @@
         "run",
         "start"
       ],
-      "port": 3000
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

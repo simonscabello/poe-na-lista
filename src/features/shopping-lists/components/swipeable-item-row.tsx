@@ -2,12 +2,13 @@
 
 import { useAtomValue } from "jotai"
 import { Check, RotateCcw, Trash2 } from "lucide-react"
-import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ItemPriceFields } from "@/features/shopping-lists/components/item-price-fields"
 import { marketModeAtom } from "@/lib/atoms"
+import { formatCurrency } from "@/lib/format-currency"
 import { haptic } from "@/lib/haptics"
 import {
   formatQuantity,
@@ -15,6 +16,7 @@ import {
   nextQuantityDown,
   nextQuantityUp,
 } from "@/lib/measure"
+import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
 import type { LastPriceDTO, PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
@@ -26,6 +28,8 @@ type SwipeableItemRowProps = {
   product?: ProductDTO
   autoFilledPrice?: boolean
   lastPrice?: LastPriceDTO | null
+  priceExpanded?: boolean
+  onTogglePriceExpanded?: () => void
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -38,6 +42,8 @@ export function SwipeableItemRow({
   product,
   autoFilledPrice = false,
   lastPrice = null,
+  priceExpanded = false,
+  onTogglePriceExpanded,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -49,10 +55,17 @@ export function SwipeableItemRow({
   const [dragging, setDragging] = useState(false)
   const gesture = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null)
   const crossed = useRef(false)
+  const priceInputRef = useRef<HTMLInputElement | null>(null)
 
   const measure = getMeasureConfigForItem(product, item.unit)
   const unitLabel = item.unit || "un"
   const priceLabel = item.priceMode === "TOTAL" ? "valor total" : measure.pricePlaceholder
+  const showPriceEditor = !marketMode || priceExpanded
+
+  useEffect(() => {
+    if (!marketMode || !priceExpanded) return
+    priceInputRef.current?.focus()
+  }, [marketMode, priceExpanded])
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse") return
@@ -102,7 +115,9 @@ export function SwipeableItemRow({
     if (axis !== "x") return
     if (committed <= -THRESHOLD) {
       onRemove(item.id)
-    } else if (committed >= THRESHOLD) {
+      return
+    }
+    if (committed >= THRESHOLD) {
       onToggle(item)
     }
   }
@@ -147,7 +162,6 @@ export function SwipeableItemRow({
       <div
         className={cn(
           "relative flex touch-pan-y flex-col gap-2 bg-card px-3 py-3",
-          marketMode && "py-4",
           !dragging && "transition-transform duration-200 ease-out",
         )}
         style={{ transform: `translate3d(${dx}px, 0, 0)` }}
@@ -188,6 +202,16 @@ export function SwipeableItemRow({
             )}
           </button>
 
+          {marketMode && (
+            <PriceChip
+              item={item}
+              lastPrice={lastPrice}
+              unitLabel={unitLabel}
+              expanded={priceExpanded}
+              onToggle={onTogglePriceExpanded}
+            />
+          )}
+
           {item.checked ? (
             <>
               <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
@@ -216,18 +240,77 @@ export function SwipeableItemRow({
           )}
         </div>
 
-        <ItemPriceFields
-          item={item}
-          unitLabel={unitLabel}
-          priceLabel={priceLabel}
-          autoFilled={autoFilledPrice}
-          lastPrice={lastPrice}
-          onChangePrice={onChangePrice}
-          onChangePriceMode={onChangePriceMode}
-          onPointerDown={(event) => event.stopPropagation()}
-          className="pl-9"
-        />
+        {showPriceEditor && (
+          <ItemPriceFields
+            item={item}
+            unitLabel={unitLabel}
+            priceLabel={priceLabel}
+            autoFilled={autoFilledPrice}
+            lastPrice={lastPrice}
+            onChangePrice={onChangePrice}
+            onChangePriceMode={onChangePriceMode}
+            priceInputRef={priceInputRef}
+            onPointerDown={(event) => event.stopPropagation()}
+            className="pl-9"
+          />
+        )}
       </div>
     </li>
+  )
+}
+
+type PriceChipProps = {
+  item: ShoppingListItemDTO
+  lastPrice: LastPriceDTO | null
+  unitLabel: string
+  expanded: boolean
+  onToggle?: () => void
+}
+
+function PriceChip({ item, lastPrice, unitLabel, expanded, onToggle }: PriceChipProps) {
+  const suggestedPrice = item.priceMode === "UNIT" ? (lastPrice?.unitPrice ?? null) : null
+  const displayValue = item.price ?? suggestedPrice ?? null
+  const isSuggestion = item.price == null && suggestedPrice != null
+  const lineTotal = computeLineTotal(displayValue, item.quantity, item.priceMode)
+
+  let label = "Preço"
+  if (displayValue != null) {
+    const showLineTotal =
+      item.priceMode === "UNIT" && item.quantity !== 1 && lineTotal != null && lineTotal > 0
+    if (showLineTotal) {
+      label = formatCurrency(lineTotal)
+    }
+    if (!showLineTotal) {
+      label = formatCurrency(displayValue)
+      if (item.priceMode === "UNIT") {
+        label = `${label}/${unitLabel}`
+      }
+    }
+  }
+
+  const chipTone = expanded
+    ? "bg-primary/10 font-medium text-primary"
+    : displayValue == null
+      ? "bg-muted text-muted-foreground"
+      : isSuggestion
+        ? "bg-muted italic text-muted-foreground"
+        : "bg-muted font-medium text-foreground"
+
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      aria-label={
+        expanded ? `Fechar preço de ${item.productName}` : `Editar preço de ${item.productName}`
+      }
+      onClick={onToggle}
+      onPointerDown={(event) => event.stopPropagation()}
+      className={cn(
+        "shrink-0 rounded-lg px-2 py-1 text-xs tabular-nums transition-colors",
+        chipTone,
+      )}
+    >
+      {label}
+    </button>
   )
 }
