@@ -2,7 +2,7 @@
 
 import { useAtom } from "jotai"
 import { Check, ChevronDown, ListChecks } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useMemo } from "react"
 import { EmptyState } from "@/components/common/empty-state"
 import { ItemPriceFields } from "@/features/shopping-lists/components/item-price-fields"
 import { ListItemsSortBar } from "@/features/shopping-lists/components/list-items-sort-bar"
@@ -53,30 +53,10 @@ export function ListItems({
   const [hideChecked, setHideChecked] = useAtom(hideCheckedItemsAtom)
   const [storedSortMode] = useAtom(listItemsSortModeAtom)
   const [marketMode] = useAtom(marketModeAtom)
-  const [expandedPriceItemId, setExpandedPriceItemId] = useState<string | null>(null)
 
   // Modo mercado só vale na lista interativa e força o agrupamento por categoria.
   const marketActive = marketMode && !readOnly && !priceOnly
   const sortMode = marketActive ? "category" : storedSortMode
-
-  useEffect(() => {
-    if (!marketActive) setExpandedPriceItemId(null)
-  }, [marketActive])
-
-  const handleToggle = useCallback(
-    (item: ShoppingListItemDTO) => {
-      const checking = !item.checked
-      onToggle(item)
-      if (marketActive && checking && item.price == null) {
-        setExpandedPriceItemId(item.id)
-      }
-    },
-    [marketActive, onToggle],
-  )
-
-  const handleTogglePriceExpanded = useCallback((itemId: string) => {
-    setExpandedPriceItemId((current) => (current === itemId ? null : itemId))
-  }, [])
 
   const pending = useMemo(() => items.filter((item) => !item.checked), [items])
   const checked = useMemo(() => items.filter((item) => item.checked), [items])
@@ -141,9 +121,7 @@ export function ListItems({
           productsById={productsById}
           autoFilledIds={autoFilledIds}
           lastPrices={lastPrices}
-          expandedPriceItemId={expandedPriceItemId}
-          onTogglePriceExpanded={handleTogglePriceExpanded}
-          onToggle={handleToggle}
+          onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}
           onChangePrice={onChangePrice}
@@ -172,9 +150,7 @@ export function ListItems({
                 productsById={productsById}
                 autoFilledIds={autoFilledIds}
                 lastPrices={lastPrices}
-                expandedPriceItemId={expandedPriceItemId}
-                onTogglePriceExpanded={handleTogglePriceExpanded}
-                onToggle={handleToggle}
+                onToggle={onToggle}
                 onRemove={onRemove}
                 onChangeQuantity={onChangeQuantity}
                 onChangePrice={onChangePrice}
@@ -192,8 +168,6 @@ type ItemHandlers = {
   productsById: Map<string, ProductDTO>
   autoFilledIds: Set<string>
   lastPrices: Record<string, LastPriceDTO>
-  expandedPriceItemId: string | null
-  onTogglePriceExpanded: (itemId: string) => void
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -212,8 +186,6 @@ function PendingItemsList({
   productsById,
   autoFilledIds,
   lastPrices,
-  expandedPriceItemId,
-  onTogglePriceExpanded,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -235,8 +207,6 @@ function PendingItemsList({
         productsById={productsById}
         autoFilledIds={autoFilledIds}
         lastPrices={lastPrices}
-        expandedPriceItemId={expandedPriceItemId}
-        onTogglePriceExpanded={onTogglePriceExpanded}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -264,8 +234,6 @@ function PendingItemsList({
             productsById={productsById}
             autoFilledIds={autoFilledIds}
             lastPrices={lastPrices}
-            expandedPriceItemId={expandedPriceItemId}
-            onTogglePriceExpanded={onTogglePriceExpanded}
             onToggle={onToggle}
             onRemove={onRemove}
             onChangeQuantity={onChangeQuantity}
@@ -284,8 +252,6 @@ function CheckedItemsList({
   productsById,
   autoFilledIds,
   lastPrices,
-  expandedPriceItemId,
-  onTogglePriceExpanded,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -299,8 +265,6 @@ function CheckedItemsList({
         productsById={productsById}
         autoFilledIds={autoFilledIds}
         lastPrices={lastPrices}
-        expandedPriceItemId={expandedPriceItemId}
-        onTogglePriceExpanded={onTogglePriceExpanded}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -318,8 +282,6 @@ function CheckedItemsList({
         productsById={productsById}
         autoFilledIds={autoFilledIds}
         lastPrices={lastPrices}
-        expandedPriceItemId={expandedPriceItemId}
-        onTogglePriceExpanded={onTogglePriceExpanded}
         onToggle={onToggle}
         onRemove={onRemove}
         onChangeQuantity={onChangeQuantity}
@@ -338,8 +300,6 @@ function CheckedItemsList({
             productsById={productsById}
             autoFilledIds={autoFilledIds}
             lastPrices={lastPrices}
-            expandedPriceItemId={expandedPriceItemId}
-            onTogglePriceExpanded={onTogglePriceExpanded}
             onToggle={onToggle}
             onRemove={onRemove}
             onChangeQuantity={onChangeQuantity}
@@ -474,8 +434,6 @@ function ItemRowList({
   productsById,
   autoFilledIds,
   lastPrices,
-  expandedPriceItemId,
-  onTogglePriceExpanded,
   onToggle,
   onRemove,
   onChangeQuantity,
@@ -491,8 +449,6 @@ function ItemRowList({
           product={productsById.get(item.productId)}
           autoFilledPrice={autoFilledIds.has(item.id)}
           lastPrice={lastPrices[item.productId] ?? null}
-          priceExpanded={expandedPriceItemId === item.id}
-          onTogglePriceExpanded={() => onTogglePriceExpanded(item.id)}
           onToggle={onToggle}
           onRemove={onRemove}
           onChangeQuantity={onChangeQuantity}
