@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Container } from "@/components/layout/container"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { JoinHouseholdForm } from "@/features/households/components/join-household-form"
+import { DonatePixCard } from "@/features/profile/components/donate-pix-card"
 import { HelpFaqSection } from "@/features/profile/components/help-faq-section"
 import { ProfileHeader } from "@/features/profile/components/profile-header"
 import { PushSettingsCard } from "@/features/profile/components/push-settings-card"
@@ -65,6 +66,8 @@ export function ProfileView({ name, email, image }: ProfileViewProps) {
       </Card>
 
       <RecommendFriendSheet />
+
+      <DonatePixCard />
 
       <SignOutButton />
     </Container>
