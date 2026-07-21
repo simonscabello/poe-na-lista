@@ -1,14 +1,13 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeft, Copy, Megaphone, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react"
+import { ArrowLeft, Megaphone, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import {
   deleteListAction,
-  duplicateListAction,
   nudgeListAction,
   renameListAction,
 } from "@/actions/shopping-list.actions"
@@ -77,18 +76,6 @@ export function ListHeader({ listId, name, canNudge = false, onShare }: ListHead
     })
   }
 
-  function handleDuplicate() {
-    startTransition(async () => {
-      const result = await duplicateListAction(listId)
-      if (!result.success) {
-        toast.error(result.error)
-        return
-      }
-      toast.success("Lista duplicada")
-      router.push(`/dashboard/lists/${result.data.id}`)
-    })
-  }
-
   function handleNudge() {
     startTransition(async () => {
       const result = await nudgeListAction(listId)
@@ -137,10 +124,6 @@ export function ListHeader({ listId, name, canNudge = false, onShare }: ListHead
             <DropdownMenuItem onClick={() => setRenameOpen(true)}>
               <Pencil className="size-4" />
               Renomear
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={isPending} onClick={handleDuplicate}>
-              <Copy className="size-4" />
-              Duplicar
             </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"
