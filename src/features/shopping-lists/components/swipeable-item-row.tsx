@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ItemPriceFields } from "@/features/shopping-lists/components/item-price-fields"
 import { marketModeAtom } from "@/lib/atoms"
+import { productEmoji } from "@/lib/categories"
 import { haptic } from "@/lib/haptics"
 import {
   formatQuantity,
@@ -167,6 +168,16 @@ export function SwipeableItemRow({
               item.checked ? `Desmarcar ${item.productName}` : `Marcar ${item.productName}`
             }
           />
+          <span
+            aria-hidden
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg leading-none transition-opacity duration-200",
+              marketMode && "size-9 text-xl",
+              item.checked && "opacity-40",
+            )}
+          >
+            {productEmoji(item.productName, item.category)}
+          </span>
           <button
             type="button"
             className="min-w-0 flex-1 py-1 text-left"

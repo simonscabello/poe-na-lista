@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { calendarDateFromStored, localDateString } from "@/lib/calendar-date"
-import { categoryEmoji } from "@/lib/categories"
+import { categoryEmoji, productEmoji } from "@/lib/categories"
 import { formatQuantity, getMeasureConfigForItem } from "@/lib/measure"
 import { cn } from "@/lib/utils"
 import type { PantryItemDTO } from "@/types/domain"
@@ -359,6 +359,12 @@ function PantryItemRow({
               !expanded && "-rotate-90",
             )}
           />
+          <span
+            aria-hidden
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg leading-none"
+          >
+            {productEmoji(item.productName, item.category)}
+          </span>
           <span className="min-w-0">
             <span className="block truncate text-[0.95rem]">{item.productName}</span>
             {(item.belowMinimum || badge) && (

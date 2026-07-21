@@ -20,6 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { pendingHandlingAtom } from "@/lib/atoms"
 import { localDateString } from "@/lib/calendar-date"
+import { productEmoji } from "@/lib/categories"
 import { formatCurrency } from "@/lib/format-currency"
 import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
@@ -186,8 +187,14 @@ export function FinalizePurchaseSheet({
             <>
               <ul className="max-h-36 space-y-1 overflow-y-auto rounded-xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
                 {pendingItems.map((item) => (
-                  <li key={item.id} className="truncate text-sm text-muted-foreground">
-                    {item.productName}
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <span aria-hidden className="text-base leading-none">
+                      {productEmoji(item.productName, item.category)}
+                    </span>
+                    <span className="truncate">{item.productName}</span>
                   </li>
                 ))}
               </ul>

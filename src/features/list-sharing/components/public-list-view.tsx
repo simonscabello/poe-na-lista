@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { getPublicListVersionAction, togglePublicItemAction } from "@/actions/list-share.actions"
 import { AppLogo } from "@/components/common/app-logo"
 import { useListSync } from "@/hooks/use-list-sync"
-import { categoryEmoji } from "@/lib/categories"
+import { categoryEmoji, productEmoji } from "@/lib/categories"
 import { haptic } from "@/lib/haptics"
 import { cn } from "@/lib/utils"
 import type { PublicListDTO, PublicListItemDTO } from "@/types/domain"
@@ -110,6 +110,15 @@ export function PublicListView({ list, token }: { list: PublicListDTO; token: st
                       )}
                     >
                       {item.checked && <Check className="size-3.5" />}
+                    </span>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-base leading-none transition-opacity",
+                        item.checked && "opacity-40",
+                      )}
+                    >
+                      {productEmoji(item.productName, item.category)}
                     </span>
                     <span
                       className={cn(
