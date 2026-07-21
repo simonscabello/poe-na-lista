@@ -1,4 +1,3 @@
-import { useId } from "react"
 import { cn } from "@/lib/utils"
 
 const sizeMap = {
@@ -20,7 +19,9 @@ type AppLogoProps = {
  */
 export function AppLogo({ size = "md", className }: AppLogoProps) {
   const px = sizeMap[size]
-  const gradientId = useId()
+  // ID determinístico (sem useId/hooks): o logo é RSC-safe e pode aparecer
+  // várias vezes na página com tamanhos diferentes sem colidir o fill url().
+  const gradientId = `pnl-logo-grad-${size}`
 
   return (
     <svg

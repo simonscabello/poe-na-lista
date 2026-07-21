@@ -9,6 +9,7 @@ import { PendingInvitations } from "@/features/households/components/pending-inv
 import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
+import { requireOnboardingCompleted } from "@/lib/onboarding"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getPendingInvitations } from "@/services/invitation.service"
 
@@ -25,6 +26,7 @@ async function HouseholdContent() {
   if (!session?.user) {
     redirect("/login?callbackUrl=/dashboard/household")
   }
+  await requireOnboardingCompleted(session.user.id)
 
   const households = await getUserHouseholds(session.user.id)
   const active = await resolveActiveHousehold(households)

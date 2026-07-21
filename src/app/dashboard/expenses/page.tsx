@@ -16,6 +16,7 @@ import { OnboardingView } from "@/features/households/components/onboarding-view
 import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
+import { requireOnboardingCompleted } from "@/lib/onboarding"
 import { getBudgetStatus } from "@/services/budget.service"
 import { getExpenseEstimate, getExpenseMetrics } from "@/services/expense-metrics.service"
 import { getUserHouseholds } from "@/services/household.service"
@@ -35,6 +36,7 @@ async function ExpensesContent() {
   if (!session?.user) {
     redirect("/login?callbackUrl=/dashboard/expenses")
   }
+  await requireOnboardingCompleted(session.user.id)
 
   const households = await getUserHouseholds(session.user.id)
   const active = await resolveActiveHousehold(households)

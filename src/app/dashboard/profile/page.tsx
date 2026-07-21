@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { ProfileSkeleton } from "@/features/profile/components/profile-skeleton"
 import { ProfileView } from "@/features/profile/components/profile-view"
 import { auth } from "@/lib/auth"
+import { requireOnboardingCompleted } from "@/lib/onboarding"
 
 export default function ProfilePage() {
   return (
@@ -17,6 +18,7 @@ async function ProfileContent() {
   if (!session?.user) {
     redirect("/login?callbackUrl=/dashboard/profile")
   }
+  await requireOnboardingCompleted(session.user.id)
 
   const { name, email, image } = session.user
 

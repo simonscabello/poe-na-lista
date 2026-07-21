@@ -62,7 +62,8 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
   const [createdListId, setCreatedListId] = useState<string | null>(null)
   const form = useForm<ShoppingListNameValues>({
     resolver: zodResolver(shoppingListNameSchema),
-    defaultValues: { name: getDefaultListName() },
+    // Nome padrão com Date só no open — evita mismatch de hidratação SSR/cliente.
+    defaultValues: { name: "" },
   })
 
   const isProject = mode === "project"
@@ -138,81 +139,85 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent>
-          {step === "form" ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>{isProject ? "Novo projeto" : "Nova lista"}</DialogTitle>
-                <DialogDescription>
-                  {isProject
-                    ? "Uma compra pontual, como uma reforma ou o enxoval do bebê."
-                    : "Dê um nome para sua lista de compras."}
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder={isProject ? "Reforma da cozinha" : "Compras da semana"}
-                            autoFocus
-                            {...field}
-                            onFocus={(event) => event.target.select()}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+      {/* Monta o Dialog só quando aberto: Root fechado no SSR/client gera useIds
+          diferentes no Base UI e quebra a hidratação dos triggers seguintes. */}
+      {open ? (
+        <Dialog open onOpenChange={handleOpenChange}>
+          <DialogContent>
+            {step === "form" ? (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{isProject ? "Novo projeto" : "Nova lista"}</DialogTitle>
+                  <DialogDescription>
+                    {isProject
+                      ? "Uma compra pontual, como uma reforma ou o enxoval do bebê."
+                      : "Dê um nome para sua lista de compras."}
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={isProject ? "Reforma da cozinha" : "Compras da semana"}
+                              autoFocus
+                              {...field}
+                              onFocus={(event) => event.target.select()}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {isProject && (
+                      <div className="space-y-2">
+                        <Label htmlFor="project-budget">Teto de gasto (opcional)</Label>
+                        <CurrencyInput
+                          id="project-budget"
+                          variant="full"
+                          value={budgetCap}
+                          onCommit={setBudgetCap}
+                          onValueChange={setBudgetCap}
+                          placeholder="0,00"
+                          aria-label="Teto de gasto do projeto"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Projetos ficam à parte: não entram no orçamento do mês nem na despensa.
+                        </p>
+                      </div>
                     )}
-                  />
 
-                  {isProject && (
-                    <div className="space-y-2">
-                      <Label htmlFor="project-budget">Teto de gasto (opcional)</Label>
-                      <CurrencyInput
-                        id="project-budget"
-                        variant="full"
-                        value={budgetCap}
-                        onCommit={setBudgetCap}
-                        onValueChange={setBudgetCap}
-                        placeholder="0,00"
-                        aria-label="Teto de gasto do projeto"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Projetos ficam à parte: não entram no orçamento do mês nem na despensa.
-                      </p>
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-                    {isProject ? "Criar projeto" : "Criar lista"}
+                    <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
+                      {isProject ? "Criar projeto" : "Criar lista"}
+                    </Button>
+                  </form>
+                </Form>
+              </>
+            ) : (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{isProject ? "Projeto criado!" : "Lista criada!"}</DialogTitle>
+                  <DialogDescription>
+                    Chame quem mora com você — tudo fica sincronizado para o grupo.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <GenerateInviteLink householdId={householdId} />
+                  <Button className="w-full" onClick={goToCreatedList}>
+                    {isProject ? "Ir para o projeto" : "Ir para a lista"}
                   </Button>
-                </form>
-              </Form>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>{isProject ? "Projeto criado!" : "Lista criada!"}</DialogTitle>
-                <DialogDescription>
-                  Chame quem mora com você — tudo fica sincronizado para o grupo.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <GenerateInviteLink householdId={householdId} />
-                <Button className="w-full" onClick={goToCreatedList}>
-                  {isProject ? "Ir para o projeto" : "Ir para a lista"}
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </>
   )
 }

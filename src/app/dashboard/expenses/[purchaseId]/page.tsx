@@ -8,6 +8,7 @@ import { BuyAgainButton } from "@/features/expenses/components/buy-again-button"
 import { auth } from "@/lib/auth"
 import { formatCalendarDateLong } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
+import { requireOnboardingCompleted } from "@/lib/onboarding"
 import { prisma } from "@/lib/prisma"
 import { getPurchaseDetail, getPurchaseHouseholdId } from "@/services/purchase.service"
 
@@ -30,6 +31,7 @@ async function PurchaseDetailContent({ purchaseId }: { purchaseId: string }) {
   if (!session?.user) {
     redirect(`/login?callbackUrl=/dashboard/expenses/${purchaseId}`)
   }
+  await requireOnboardingCompleted(session.user.id)
 
   const householdId = await getPurchaseHouseholdId(purchaseId)
   if (!householdId) {

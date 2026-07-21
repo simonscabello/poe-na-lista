@@ -12,8 +12,12 @@ const DISMISS_DAYS = 7
 export function PushBanner() {
   const { isReady, supported, permission, isSubscribed, isBusy, subscribe } = usePushSubscription()
   const [dismissed, setDismissed] = useState(true)
+  // Só decide exibir após mount: evita inserir nós (e useIds do Base UI) entre
+  // o HTML do SSR e a primeira pintura do client.
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
+    setHydrated(true)
     const raw = localStorage.getItem(DISMISS_KEY)
     if (!raw) {
       setDismissed(false)
@@ -28,7 +32,14 @@ export function PushBanner() {
     setDismissed(elapsedDays < DISMISS_DAYS)
   }, [])
 
-  if (!isReady || !supported || dismissed || isSubscribed || permission !== "default") {
+  if (
+    !hydrated ||
+    !isReady ||
+    !supported ||
+    dismissed ||
+    isSubscribed ||
+    permission !== "default"
+  ) {
     return null
   }
 

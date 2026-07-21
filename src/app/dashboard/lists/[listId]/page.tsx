@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { ListDetailSkeleton } from "@/features/shopping-lists/components/list-detail-skeleton"
 import { ListView } from "@/features/shopping-lists/components/list-view"
 import { auth } from "@/lib/auth"
+import { requireOnboardingCompleted } from "@/lib/onboarding"
 import { prisma } from "@/lib/prisma"
 import { getActiveShareForList } from "@/services/list-share.service"
 import { getCategories, getFrequentProducts, getProductCatalog } from "@/services/product.service"
@@ -33,6 +34,7 @@ async function ListDetailContent({ listId }: { listId: string }) {
   if (!session?.user) {
     redirect(`/login?callbackUrl=/dashboard/lists/${listId}`)
   }
+  await requireOnboardingCompleted(session.user.id)
 
   const list = await getListDetail(listId)
   if (!list) {

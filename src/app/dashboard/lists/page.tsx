@@ -1,9 +1,12 @@
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { Container } from "@/components/layout/container"
 import { PushBanner } from "@/components/notifications/push-banner"
 import { OverviewCards } from "@/features/dashboard/components/overview-cards"
 import { OnboardingView } from "@/features/households/components/onboarding-view"
+import { OnboardingChecklist } from "@/features/onboarding/components/onboarding-checklist"
+import { OnboardingWizard } from "@/features/onboarding/components/onboarding-wizard"
 import { PantryRestockCard } from "@/features/pantry/components/pantry-restock-card"
 import { CreateListDialog } from "@/features/shopping-lists/components/create-list-dialog"
 import { ListsGrid } from "@/features/shopping-lists/components/lists-grid"
@@ -12,12 +15,14 @@ import { SuggestedListCard } from "@/features/shopping-lists/components/suggeste
 import { HouseholdRole } from "@/generated/prisma/enums"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
+import { ONBOARDING_CHECKLIST_DISMISS_COOKIE } from "@/lib/onboarding"
 import { getCurrentMonthSpent, getMonthlyBudget } from "@/services/budget.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getLowStockPantryItemsNeedingRestock } from "@/services/pantry.service"
 import { getActiveListEstimates } from "@/services/purchase.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
 import { getSuggestedListPreview } from "@/services/suggestion.service"
+import { getOnboardingCompletedAt } from "@/services/user.service"
 
 export default function ListsPage() {
   return (
@@ -33,8 +38,15 @@ async function ListsContent() {
     redirect("/login?callbackUrl=/dashboard/lists")
   }
 
-  const households = await getUserHouseholds(session.user.id)
+  const [households, onboardingCompletedAt] = await Promise.all([
+    getUserHouseholds(session.user.id),
+    getOnboardingCompletedAt(session.user.id),
+  ])
   const active = await resolveActiveHousehold(households)
+
+  if (!onboardingCompletedAt) {
+    return <OnboardingWizard hasHousehold={active != null} />
+  }
 
   if (!active) {
     return <OnboardingView />
@@ -49,6 +61,7 @@ async function ListsContent() {
     monthlyBudget,
     lowStockItems,
     listEstimates,
+    cookieStore,
   ] = await Promise.all([
     getListsByHousehold(active.id),
     getHouseholdMembers(active.id),
@@ -57,10 +70,19 @@ async function ListsContent() {
     getMonthlyBudget(active.id),
     getLowStockPantryItemsNeedingRestock(active.id),
     getActiveListEstimates(active.id),
+    cookies(),
   ])
 
-  // Primeira lista de um grupo ainda solo: vale convidar quem mora junto.
   const showInviteStep = lists.length === 0 && members.length === 1 && canInvite
+  const checklistDismissed = cookieStore.get(ONBOARDING_CHECKLIST_DISMISS_COOKIE)?.value === "1"
+
+  const onboardingProgress = {
+    hasHousehold: true,
+    hasInvited: members.length > 1,
+    hasList: lists.length > 0,
+    hasProduct: lists.some((list) => list.totalItems > 0),
+    hasPurchase: lists.some((list) => list.purchaseCount > 0),
+  }
 
   return (
     <Container size="wide" className="space-y-6 py-6">
@@ -73,6 +95,8 @@ async function ListsContent() {
       </div>
 
       <PushBanner />
+
+      <OnboardingChecklist progress={onboardingProgress} dismissed={checklistDismissed} />
 
       <OverviewCards currentMonthTotal={currentMonthTotal} monthlyBudget={monthlyBudget} />
 

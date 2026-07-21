@@ -71,6 +71,9 @@ model User {
   notifications    Notification[]
   pushSubscriptions PushSubscription[]
 
+  // Marca a conclusão do onboarding guiado (wizard de boas-vindas visto uma vez).
+  onboardingCompletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

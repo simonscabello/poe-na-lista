@@ -5,6 +5,7 @@ import { PantrySkeleton } from "@/features/pantry/components/pantry-skeleton"
 import { PantryView } from "@/features/pantry/components/pantry-view"
 import { resolveActiveHousehold } from "@/lib/active-household"
 import { auth } from "@/lib/auth"
+import { requireOnboardingCompleted } from "@/lib/onboarding"
 import { getUserHouseholds } from "@/services/household.service"
 import { getLowStockPantryItemsNeedingRestock, getPantryItems } from "@/services/pantry.service"
 
@@ -21,6 +22,7 @@ async function PantryContent() {
   if (!session?.user) {
     redirect("/login?callbackUrl=/dashboard/pantry")
   }
+  await requireOnboardingCompleted(session.user.id)
 
   const households = await getUserHouseholds(session.user.id)
   const active = await resolveActiveHousehold(households)
