@@ -1,9 +1,14 @@
-import { ShoppingListStatus } from "@/generated/prisma/enums"
+import { ListKind, ShoppingListStatus } from "@/generated/prisma/enums"
 import { computeLineTotal, type EstimatableItem, estimateItemsTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
 import { addPurchaseToPantry } from "@/services/pantry.service"
 import { findOrCreateStore } from "@/services/store.service"
-import type { LastPriceDTO, PurchaseDetailDTO, PurchaseSummaryDTO } from "@/types/domain"
+import type {
+  LastPriceDTO,
+  ProjectBudgetStatusDTO,
+  PurchaseDetailDTO,
+  PurchaseSummaryDTO,
+} from "@/types/domain"
 
 export type PurchaseItemInput = {
   productId?: string | null
@@ -45,6 +50,17 @@ export async function finalizePurchase(input: {
       ? await findOrCreateStore(tx, input.householdId, trimmedStoreName)
       : null
 
+    // O tipo da lista é copiado para a compra: mantém o relatório correto mesmo
+    // depois de a lista ser apagada, e separa gasto de mercado de gasto de projeto.
+    const listKind: ListKind = input.shoppingListId
+      ? ((
+          await tx.shoppingList.findUnique({
+            where: { id: input.shoppingListId },
+            select: { kind: true },
+          })
+        )?.kind ?? ListKind.GROCERY)
+      : ListKind.GROCERY
+
     const created = await tx.purchase.create({
       data: {
         householdId: input.householdId,
@@ -55,6 +71,7 @@ export async function finalizePurchase(input: {
         purchasedAt: input.purchasedAt,
         storeName: store?.name ?? null,
         notes: input.notes ?? null,
+        kind: listKind,
         items: {
           create: input.items.map((item) => ({
             productId: item.productId ?? null,
@@ -68,18 +85,21 @@ export async function finalizePurchase(input: {
       },
     })
 
-    // Despensa automática: tudo que foi comprado entra no estoque da casa.
-    await addPurchaseToPantry(tx, {
-      householdId: input.householdId,
-      updatedById: input.createdById,
-      items: input.items
-        .filter((item) => item.productId != null)
-        .map((item) => ({
-          productId: item.productId as string,
-          quantity: item.quantity,
-          unit: item.unit ?? null,
-        })),
-    })
+    // Despensa automática só para lista de mercado: um projeto (reforma, enxoval)
+    // não vira estoque da casa.
+    if (listKind === ListKind.GROCERY) {
+      await addPurchaseToPantry(tx, {
+        householdId: input.householdId,
+        updatedById: input.createdById,
+        items: input.items
+          .filter((item) => item.productId != null)
+          .map((item) => ({
+            productId: item.productId as string,
+            quantity: item.quantity,
+            unit: item.unit ?? null,
+          })),
+      })
+    }
 
     let pendingListId: string | undefined
 
@@ -200,7 +220,7 @@ export async function syncPurchaseItemFromListItem(itemId: string): Promise<stri
 
 export async function getPurchaseHistory(householdId: string): Promise<PurchaseSummaryDTO[]> {
   const purchases = await prisma.purchase.findMany({
-    where: { householdId },
+    where: { householdId, kind: ListKind.GROCERY },
     orderBy: { purchasedAt: "desc" },
     include: {
       shoppingList: { select: { name: true } },
@@ -269,10 +289,10 @@ export async function getLastPurchaseStoreName(householdId: string): Promise<str
   return purchase?.storeName ?? null
 }
 
-/** Totais das últimas compras da família (mais recentes primeiro), para a estimativa. */
+/** Totais das últimas compras de mercado (mais recentes primeiro), para a estimativa. */
 export async function getRecentPurchaseTotals(householdId: string, limit = 5): Promise<number[]> {
   const purchases = await prisma.purchase.findMany({
-    where: { householdId },
+    where: { householdId, kind: ListKind.GROCERY },
     orderBy: { purchasedAt: "desc" },
     take: limit,
     select: { totalAmount: true },
@@ -384,4 +404,67 @@ export async function getActiveListEstimates(householdId: string): Promise<Map<s
   }
 
   return estimates
+}
+
+/**
+ * Situação de gasto de uma lista-projeto: soma o que já foi comprado, estima o
+ * que falta (itens não marcados, pelos últimos preços pagos) e compara com o
+ * teto. Retorna null quando a lista não é um projeto.
+ */
+export async function getProjectBudgetStatus(
+  listId: string,
+): Promise<ProjectBudgetStatusDTO | null> {
+  const list = await prisma.shoppingList.findUnique({
+    where: { id: listId },
+    select: {
+      kind: true,
+      budgetCap: true,
+      householdId: true,
+      items: {
+        where: { checked: false },
+        select: { productId: true, quantity: true, price: true, priceMode: true },
+      },
+    },
+  })
+
+  if (!list || list.kind !== ListKind.PROJECT) {
+    return null
+  }
+
+  const spentAgg = await prisma.purchase.aggregate({
+    where: { shoppingListId: listId },
+    _sum: { totalAmount: true },
+  })
+  const realizedSpent = round(Number(spentAgg._sum.totalAmount ?? 0))
+
+  const prices = await getLastPaidPrices(
+    list.householdId,
+    list.items.map((item) => item.productId),
+  )
+  const estimate = estimateItemsTotal(
+    list.items.map((item) => ({
+      productId: item.productId,
+      quantity: Number(item.quantity),
+      price: item.price != null ? Number(item.price) : null,
+      priceMode: item.priceMode,
+    })),
+    (productId) => prices.get(productId)?.unitPrice,
+  )
+
+  const budgetCap = list.budgetCap != null ? Number(list.budgetCap) : null
+
+  return {
+    budgetCap,
+    realizedSpent,
+    estimatedRemaining: round(estimate.total),
+    projectedTotal: round(realizedSpent + estimate.total),
+    remaining: budgetCap != null ? round(budgetCap - realizedSpent) : null,
+    percentUsed:
+      budgetCap != null && budgetCap > 0 ? round((realizedSpent / budgetCap) * 100) : null,
+    unknownCount: estimate.unknownCount,
+  }
+}
+
+function round(value: number): number {
+  return Math.round(value * 100) / 100
 }

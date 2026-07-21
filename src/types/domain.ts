@@ -26,6 +26,8 @@ export type InvitationDTO = {
   createdAt: string
 }
 
+export type ListKindDTO = "GROCERY" | "PROJECT"
+
 export type ShoppingListSummary = {
   id: string
   name: string
@@ -34,6 +36,11 @@ export type ShoppingListSummary = {
   unpricedCheckedItems: number
   purchaseCount: number
   status: ShoppingListStatusDTO
+  kind: ListKindDTO
+  /** Teto do projeto; null quando não há teto ou não é projeto. */
+  budgetCap: number | null
+  /** Soma das compras já registradas nesta lista. */
+  spent: number
   updatedAt: string
   lastPurchaseStoreName: string | null
   lastPurchaseTotal: number | null
@@ -99,10 +106,39 @@ export type ShoppingListDetail = {
   name: string
   householdId: string
   status: ShoppingListStatusDTO
+  kind: ListKindDTO
+  /** Teto do projeto; null quando não há teto ou não é projeto. */
+  budgetCap: number | null
   completedAt: string | null
   items: ShoppingListItemDTO[]
   /** Compra mais recente registrada a partir desta lista (contexto da lista finalizada). */
   latestPurchase: ListPurchaseInfoDTO | null
+}
+
+/** Situação de gasto de uma lista-projeto: já gasto vs. teto vs. projeção. */
+export type ProjectBudgetStatusDTO = {
+  /** Teto definido; null quando o projeto não tem teto. */
+  budgetCap: number | null
+  /** Já gasto: soma das compras finalizadas da lista. */
+  realizedSpent: number
+  /** Estimativa do que falta comprar (itens não marcados), pelos últimos preços pagos. */
+  estimatedRemaining: number
+  /** realizedSpent + estimatedRemaining. */
+  projectedTotal: number
+  /** budgetCap - realizedSpent; null sem teto. Negativo quando estourou. */
+  remaining: number | null
+  /** Uso do teto pelo já gasto; pode passar de 100. null sem teto. */
+  percentUsed: number | null
+  /** Itens sem preço nem referência, fora da estimativa. */
+  unknownCount: number
+}
+
+/** Resumo de um projeto para a seção de Gastos. */
+export type ProjectSummaryDTO = {
+  id: string
+  name: string
+  budgetCap: number | null
+  spent: number
 }
 
 export type ShoppingListShareDTO = {
@@ -244,6 +280,7 @@ export type NotificationTypeDTO =
   | "BUDGET_ALERT"
   | "PANTRY_EXPIRING"
   | "LIST_NUDGE"
+  | "PROJECT_BUDGET_ALERT"
 
 export type NotificationDTO = {
   id: string

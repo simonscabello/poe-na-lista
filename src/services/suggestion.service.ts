@@ -1,3 +1,4 @@
+import { ListKind } from "@/generated/prisma/enums"
 import { prisma } from "@/lib/prisma"
 import type { SuggestedProductDTO } from "@/types/domain"
 
@@ -15,7 +16,7 @@ export async function getFrequentlyPurchasedProducts(
   householdId: string,
 ): Promise<SuggestedProductDTO[]> {
   const purchases = await prisma.purchase.findMany({
-    where: { householdId },
+    where: { householdId, kind: ListKind.GROCERY },
     orderBy: { purchasedAt: "desc" },
     take: PURCHASE_WINDOW,
     select: {

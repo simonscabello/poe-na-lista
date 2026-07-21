@@ -24,6 +24,13 @@ enum ShoppingListStatus {
   COMPLETED
 }
 
+enum ListKind {
+  // Lista de mercado: entra no fluxo recorrente (despensa, orçamento mensal, recompra).
+  GROCERY
+  // Projeto pontual (reforma, enxoval): teto próprio, isolado do mercado.
+  PROJECT
+}
+
 enum MeasureKind {
   UNIT
   WEIGHT
@@ -42,6 +49,7 @@ enum NotificationType {
   BUDGET_ALERT
   PANTRY_EXPIRING
   LIST_NUDGE
+  PROJECT_BUDGET_ALERT
 }
 
 model User {
@@ -219,6 +227,9 @@ model ShoppingList {
   householdId String
   createdById String
   status      ShoppingListStatus @default(ACTIVE)
+  kind        ListKind           @default(GROCERY)
+  // Teto de gasto do projeto; null = sem teto (relevante só em kind = PROJECT).
+  budgetCap   Decimal?           @db.Decimal(10, 2)
   completedAt DateTime?
 
   household Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
@@ -233,6 +244,7 @@ model ShoppingList {
   @@index([householdId])
   @@index([createdById])
   @@index([householdId, status])
+  @@index([householdId, kind])
 }
 
 model ShoppingListItem {
@@ -307,6 +319,9 @@ model Purchase {
   storeName      String?
   notes          String?
   createdById    String
+  // Copiado da lista ao finalizar. Desnormalizado para o relatório filtrar por
+  // tipo mesmo depois de a lista ser apagada (shoppingListId vira null).
+  kind           ListKind @default(GROCERY)
 
   household    Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   shoppingList ShoppingList?  @relation(fields: [shoppingListId], references: [id], onDelete: SetNull)
@@ -318,6 +333,7 @@ model Purchase {
   updatedAt DateTime @updatedAt
 
   @@index([householdId, purchasedAt])
+  @@index([householdId, kind, purchasedAt])
   @@index([shoppingListId])
   @@index([storeId])
   @@index([createdById])

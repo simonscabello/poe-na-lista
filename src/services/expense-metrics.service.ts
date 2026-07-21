@@ -1,3 +1,4 @@
+import { ListKind } from "@/generated/prisma/enums"
 import { calendarMonthKey, currentCalendarMonthKey } from "@/lib/calendar-date"
 import { buildExpenseEstimate } from "@/lib/expense-estimate"
 import { estimateItemsTotal } from "@/lib/pricing"
@@ -21,7 +22,7 @@ function monthLabel(date: Date): string {
 
 export async function getExpenseMetrics(householdId: string): Promise<ExpenseMetricsDTO> {
   const purchases = await prisma.purchase.findMany({
-    where: { householdId },
+    where: { householdId, kind: ListKind.GROCERY },
     orderBy: { purchasedAt: "desc" },
     select: { totalAmount: true, purchasedAt: true, storeName: true },
   })
@@ -115,7 +116,7 @@ export async function getExpenseMetrics(householdId: string): Promise<ExpenseMet
 
 async function getCategoryBreakdown(householdId: string): Promise<CategoryExpenseDTO[]> {
   const items = await prisma.purchaseItem.findMany({
-    where: { purchase: { householdId }, totalPrice: { not: null } },
+    where: { purchase: { householdId, kind: ListKind.GROCERY }, totalPrice: { not: null } },
     select: {
       totalPrice: true,
       product: { select: { category: { select: { name: true } } } },

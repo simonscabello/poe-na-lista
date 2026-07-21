@@ -1,12 +1,13 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Plus } from "lucide-react"
+import { ChevronDown, Plus, ShoppingCart, Target } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { createListAction } from "@/actions/shopping-list.actions"
+import { CurrencyInput } from "@/components/common/currency-input"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,8 +15,13 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Form,
   FormControl,
@@ -25,6 +31,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { GenerateInviteLink } from "@/features/households/components/generate-invite-link"
 import {
   type ShoppingListNameValues,
@@ -37,6 +44,8 @@ type CreateListDialogProps = {
   showInviteStep?: boolean
 }
 
+type Mode = "grocery" | "project"
+
 function getDefaultListName(): string {
   const today = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(
     new Date(),
@@ -47,6 +56,8 @@ function getDefaultListName(): string {
 export function CreateListDialog({ householdId, showInviteStep = false }: CreateListDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<Mode>("grocery")
+  const [budgetCap, setBudgetCap] = useState<number | null>(null)
   const [step, setStep] = useState<"form" | "invite">("form")
   const [createdListId, setCreatedListId] = useState<string | null>(null)
   const form = useForm<ShoppingListNameValues>({
@@ -54,13 +65,26 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
     defaultValues: { name: getDefaultListName() },
   })
 
+  const isProject = mode === "project"
+
+  function startCreate(nextMode: Mode) {
+    setMode(nextMode)
+    setBudgetCap(null)
+    setStep("form")
+    form.reset({ name: nextMode === "grocery" ? getDefaultListName() : "" })
+    setOpen(true)
+  }
+
   async function onSubmit(values: ShoppingListNameValues) {
-    const result = await createListAction(householdId, values)
+    const result = await createListAction(householdId, {
+      name: values.name,
+      kind: isProject ? "PROJECT" : "GROCERY",
+      budgetCap: isProject ? budgetCap : null,
+    })
     if (!result.success) {
       toast.error(result.error)
       return
     }
-    form.reset({ name: getDefaultListName() })
     if (showInviteStep) {
       setCreatedListId(result.data.id)
       setStep("invite")
@@ -91,65 +115,104 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          <Button>
-            <Plus className="size-4" />
-            Nova lista
-          </Button>
-        }
-      />
-      <DialogContent>
-        {step === "form" ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Nova lista</DialogTitle>
-              <DialogDescription>Dê um nome para sua lista de compras.</DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Compras da semana"
-                          autoFocus
-                          {...field}
-                          onFocus={(event) => event.target.select()}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button>
+              <Plus className="size-4" />
+              Nova lista
+              <ChevronDown className="size-4 opacity-80" />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => startCreate("grocery")}>
+            <ShoppingCart className="size-4" />
+            Lista de compras
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => startCreate("project")}>
+            <Target className="size-4" />
+            Projeto com teto
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          {step === "form" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{isProject ? "Novo projeto" : "Nova lista"}</DialogTitle>
+                <DialogDescription>
+                  {isProject
+                    ? "Uma compra pontual, como uma reforma ou o enxoval do bebê."
+                    : "Dê um nome para sua lista de compras."}
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={isProject ? "Reforma da cozinha" : "Compras da semana"}
+                            autoFocus
+                            {...field}
+                            onFocus={(event) => event.target.select()}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {isProject && (
+                    <div className="space-y-2">
+                      <Label htmlFor="project-budget">Teto de gasto (opcional)</Label>
+                      <CurrencyInput
+                        id="project-budget"
+                        variant="full"
+                        value={budgetCap}
+                        onCommit={setBudgetCap}
+                        onValueChange={setBudgetCap}
+                        placeholder="0,00"
+                        aria-label="Teto de gasto do projeto"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Projetos ficam à parte: não entram no orçamento do mês nem na despensa.
+                      </p>
+                    </div>
                   )}
-                />
-                <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
-                  Criar lista
+
+                  <Button type="submit" className="w-full" loading={form.formState.isSubmitting}>
+                    {isProject ? "Criar projeto" : "Criar lista"}
+                  </Button>
+                </form>
+              </Form>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>{isProject ? "Projeto criado!" : "Lista criada!"}</DialogTitle>
+                <DialogDescription>
+                  Chame quem mora com você — tudo fica sincronizado para o grupo.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <GenerateInviteLink householdId={householdId} />
+                <Button className="w-full" onClick={goToCreatedList}>
+                  {isProject ? "Ir para o projeto" : "Ir para a lista"}
                 </Button>
-              </form>
-            </Form>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Lista criada!</DialogTitle>
-              <DialogDescription>
-                Chame quem mora com você — a lista fica sincronizada para todos.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <GenerateInviteLink householdId={householdId} />
-              <Button className="w-full" onClick={goToCreatedList}>
-                Ir para a lista
-              </Button>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

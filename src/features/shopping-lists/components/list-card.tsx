@@ -1,6 +1,15 @@
 "use client"
 
-import { AlertCircle, Calculator, Check, Copy, MoreVertical, Store, Trash2 } from "lucide-react"
+import {
+  AlertCircle,
+  Calculator,
+  Check,
+  Copy,
+  MoreVertical,
+  Store,
+  Target,
+  Trash2,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -45,7 +54,10 @@ export function ListCard({
   const isCompleted = list.status === "COMPLETED"
   const progressPercent =
     list.totalItems > 0 ? Math.round((list.checkedItems / list.totalItems) * 100) : 0
-  const showProgress = !isCompleted && list.totalItems > 0
+  const isProject = list.kind === "PROJECT"
+  const hasCap = isProject && list.budgetCap != null
+  // Projeto com teto troca a barra de progresso de itens pela barra de gasto.
+  const showProgress = !isCompleted && list.totalItems > 0 && !hasCap
 
   function openList() {
     router.push(`/dashboard/lists/${list.id}`)
@@ -126,6 +138,12 @@ export function ListCard({
       </div>
 
       <div className="pointer-events-none relative z-[1] mt-2 flex flex-wrap items-center gap-2">
+        {isProject && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium">
+            <Target className="size-3.5" />
+            Projeto
+          </span>
+        )}
         <StatusBadge
           allDone={allDone}
           totalItems={list.totalItems}
@@ -136,10 +154,21 @@ export function ListCard({
         />
       </div>
 
-      {!isCompleted && estimatedTotal != null && (
+      {!isProject && !isCompleted && estimatedTotal != null && (
         <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">
           <Calculator className="size-3.5 shrink-0" />~{formatCurrency(estimatedTotal)} estimados
         </p>
+      )}
+
+      {isProject && !hasCap && !isCompleted && list.spent > 0 && (
+        <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">
+          <Target className="size-3.5 shrink-0" />
+          {formatCurrency(list.spent)} gastos
+        </p>
+      )}
+
+      {isProject && list.budgetCap != null && !isCompleted && (
+        <ProjectBudgetBar spent={list.spent} cap={list.budgetCap} name={list.name} />
       )}
 
       {isCompleted && (list.lastPurchaseStoreName || list.lastPurchaseTotal != null) && (
@@ -243,6 +272,40 @@ function StatusBadge({
           <AlertCircle className="size-3.5" />
           {unpricedCheckedItems} sem preço
         </span>
+      )}
+    </div>
+  )
+}
+
+function ProjectBudgetBar({ spent, cap, name }: { spent: number; cap: number; name: string }) {
+  const percent = cap > 0 ? Math.round((spent / cap) * 100) : 0
+  const over = spent > cap
+
+  return (
+    <div className="pointer-events-none relative z-[1] mt-3 space-y-1.5">
+      <div className="flex items-center justify-between text-xs font-medium tabular-nums">
+        <span>
+          {formatCurrency(spent)} de {formatCurrency(cap)}
+        </span>
+        <span className="opacity-90">{percent}%</span>
+      </div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-primary-foreground/20"
+        role="progressbar"
+        aria-valuenow={Math.min(percent, 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Uso do teto do projeto ${name}`}
+      >
+        <div
+          className="h-full rounded-full bg-primary-foreground transition-[width] duration-[var(--duration-fast)]"
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        />
+      </div>
+      {over && (
+        <p className="text-xs font-medium tabular-nums">
+          {formatCurrency(spent - cap)} acima do teto
+        </p>
       )}
     </div>
   )

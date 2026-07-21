@@ -1,5 +1,6 @@
+import { ListKind } from "@/generated/prisma/enums"
 import { prisma } from "@/lib/prisma"
-import type { ShoppingListDetail, ShoppingListSummary } from "@/types/domain"
+import type { ProjectSummaryDTO, ShoppingListDetail, ShoppingListSummary } from "@/types/domain"
 
 export async function getListsByHousehold(householdId: string): Promise<ShoppingListSummary[]> {
   const lists = await prisma.shoppingList.findMany({
@@ -9,7 +10,6 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
       items: { select: { checked: true, price: true } },
       purchases: {
         orderBy: { purchasedAt: "desc" },
-        take: 1,
         select: { storeName: true, totalAmount: true },
       },
       _count: { select: { purchases: true } },
@@ -18,6 +18,7 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
 
   return lists.map((list) => {
     const lastPurchase = list.purchases[0] ?? null
+    const spent = list.purchases.reduce((sum, purchase) => sum + Number(purchase.totalAmount), 0)
     return {
       id: list.id,
       name: list.name,
@@ -26,6 +27,9 @@ export async function getListsByHousehold(householdId: string): Promise<Shopping
       unpricedCheckedItems: list.items.filter((item) => item.checked && item.price == null).length,
       purchaseCount: list._count.purchases,
       status: list.status,
+      kind: list.kind,
+      budgetCap: list.budgetCap != null ? Number(list.budgetCap) : null,
+      spent: Math.round(spent * 100) / 100,
       updatedAt: list.updatedAt.toISOString(),
       lastPurchaseStoreName: lastPurchase?.storeName ?? null,
       lastPurchaseTotal: lastPurchase != null ? Number(lastPurchase.totalAmount) : null,
@@ -60,6 +64,8 @@ export async function getListDetail(listId: string): Promise<ShoppingListDetail 
     name: list.name,
     householdId: list.householdId,
     status: list.status,
+    kind: list.kind,
+    budgetCap: list.budgetCap != null ? Number(list.budgetCap) : null,
     completedAt: list.completedAt?.toISOString() ?? null,
     latestPurchase: latestPurchase
       ? {
@@ -136,9 +142,18 @@ export async function createShoppingList(
   householdId: string,
   createdById: string,
   name: string,
+  options?: { kind?: ListKind; budgetCap?: number | null },
 ): Promise<string> {
+  const kind = options?.kind ?? ListKind.GROCERY
   const list = await prisma.shoppingList.create({
-    data: { householdId, createdById, name },
+    data: {
+      householdId,
+      createdById,
+      name,
+      kind,
+      // Teto só faz sentido em projeto; lista de mercado ignora qualquer valor.
+      budgetCap: kind === ListKind.PROJECT ? (options?.budgetCap ?? null) : null,
+    },
   })
 
   return list.id
@@ -146,6 +161,37 @@ export async function createShoppingList(
 
 export async function renameShoppingList(listId: string, name: string): Promise<void> {
   await prisma.shoppingList.update({ where: { id: listId }, data: { name } })
+}
+
+/** Define ou remove (null) o teto de gasto de uma lista-projeto. */
+export async function setListBudgetCap(listId: string, budgetCap: number | null): Promise<void> {
+  await prisma.shoppingList.update({ where: { id: listId }, data: { budgetCap } })
+}
+
+/** Projetos da família (com gasto ou teto), para a seção de Gastos. */
+export async function getHouseholdProjects(householdId: string): Promise<ProjectSummaryDTO[]> {
+  const lists = await prisma.shoppingList.findMany({
+    where: { householdId, kind: ListKind.PROJECT },
+    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+    select: {
+      id: true,
+      name: true,
+      budgetCap: true,
+      purchases: { select: { totalAmount: true } },
+    },
+  })
+
+  return lists
+    .map((list) => ({
+      id: list.id,
+      name: list.name,
+      budgetCap: list.budgetCap != null ? Number(list.budgetCap) : null,
+      spent:
+        Math.round(
+          list.purchases.reduce((sum, purchase) => sum + Number(purchase.totalAmount), 0) * 100,
+        ) / 100,
+    }))
+    .filter((project) => project.spent > 0 || project.budgetCap != null)
 }
 
 export async function deleteShoppingList(listId: string): Promise<void> {

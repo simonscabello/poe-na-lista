@@ -9,6 +9,7 @@ import {
   PackagePlus,
   PiggyBank,
   ShoppingBag,
+  Target,
   UserPlus,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -48,6 +49,7 @@ const ICONS: Record<NotificationTypeDTO, typeof Bell> = {
   BUDGET_ALERT: PiggyBank,
   PANTRY_EXPIRING: CalendarClock,
   LIST_NUDGE: Megaphone,
+  PROJECT_BUDGET_ALERT: Target,
 }
 
 export function NotificationBell({

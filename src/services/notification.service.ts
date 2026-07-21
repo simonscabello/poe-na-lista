@@ -189,6 +189,74 @@ export async function notifyBudgetProjectionAlert(householdId: string): Promise<
 }
 
 /**
+ * Alerta quando o gasto realizado de um projeto passa do teto. Dispara no
+ * máximo uma vez por projeto (guard atômico via SentAlert com periodKey
+ * "project:<listId>") e vai para TODOS os membros — o teto é coletivo.
+ */
+export async function notifyProjectBudgetAlert(listId: string): Promise<void> {
+  const list = await prisma.shoppingList.findUnique({
+    where: { id: listId },
+    select: { name: true, householdId: true, kind: true, budgetCap: true },
+  })
+  if (list?.kind !== "PROJECT" || list.budgetCap == null) {
+    return
+  }
+
+  const cap = Number(list.budgetCap)
+  const spentAgg = await prisma.purchase.aggregate({
+    where: { shoppingListId: listId },
+    _sum: { totalAmount: true },
+  })
+  const realizedSpent = Math.round(Number(spentAgg._sum.totalAmount ?? 0) * 100) / 100
+  if (realizedSpent <= cap) {
+    return
+  }
+
+  const members = await getHouseholdMembers(list.householdId)
+  if (members.length === 0) {
+    return
+  }
+
+  // Guard atômico: 1 alerta por projeto (periodKey "project:<listId>").
+  if (!(await claimAlert(list.householdId, "PROJECT_BUDGET_ALERT", `project:${listId}`))) {
+    return
+  }
+
+  const entityLabel = list.name
+  const link = `/dashboard/lists/${listId}`
+
+  await prisma.notification.createMany({
+    data: members.map((member) => ({
+      householdId: list.householdId,
+      userId: member.userId,
+      type: "PROJECT_BUDGET_ALERT" as const,
+      actorName: "Projeto",
+      entityLabel,
+      amount: realizedSpent,
+      link,
+    })),
+  })
+
+  const body = getNotificationMessage({
+    id: "push",
+    type: "PROJECT_BUDGET_ALERT",
+    actorName: "Projeto",
+    entityLabel,
+    amount: realizedSpent,
+    link,
+    read: false,
+    createdAt: new Date().toISOString(),
+  })
+
+  after(() =>
+    sendPushToUsers(
+      members.map((member) => member.userId),
+      { title: "Põe na Lista", body, link },
+    ),
+  )
+}
+
+/**
  * Alerta de validade da despensa. Sem infraestrutura de cron, o gatilho é o
  * polling do sino (a cada 30s por aba aberta): esta função roda com guard de
  * no máximo 1 alerta por dia por household, então o custo por poll é uma

@@ -6,7 +6,11 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { getActiveShareForList } from "@/services/list-share.service"
 import { getCategories, getFrequentProducts, getProductCatalog } from "@/services/product.service"
-import { getLastPaidPrices, getLastPurchaseStoreName } from "@/services/purchase.service"
+import {
+  getLastPaidPrices,
+  getLastPurchaseStoreName,
+  getProjectBudgetStatus,
+} from "@/services/purchase.service"
 import { getListDetail } from "@/services/shopping-list.service"
 import { getHouseholdStores } from "@/services/store.service"
 
@@ -44,19 +48,28 @@ async function ListDetailContent({ listId }: { listId: string }) {
     notFound()
   }
 
-  const [catalog, frequent, categories, initialShare, stores, lastPricesMap, lastStoreName] =
-    await Promise.all([
-      getProductCatalog(list.householdId),
-      getFrequentProducts(list.householdId),
-      getCategories(),
-      getActiveShareForList(list.id),
-      getHouseholdStores(list.householdId),
-      getLastPaidPrices(
-        list.householdId,
-        list.items.map((item) => item.productId),
-      ),
-      getLastPurchaseStoreName(list.householdId),
-    ])
+  const [
+    catalog,
+    frequent,
+    categories,
+    initialShare,
+    stores,
+    lastPricesMap,
+    lastStoreName,
+    projectStatus,
+  ] = await Promise.all([
+    getProductCatalog(list.householdId),
+    getFrequentProducts(list.householdId),
+    getCategories(),
+    getActiveShareForList(list.id),
+    getHouseholdStores(list.householdId),
+    getLastPaidPrices(
+      list.householdId,
+      list.items.map((item) => item.productId),
+    ),
+    getLastPurchaseStoreName(list.householdId),
+    list.kind === "PROJECT" ? getProjectBudgetStatus(list.id) : Promise.resolve(null),
+  ])
 
   return (
     <ListView
@@ -68,6 +81,7 @@ async function ListDetailContent({ listId }: { listId: string }) {
       stores={stores}
       lastPrices={Object.fromEntries(lastPricesMap)}
       lastStoreName={lastStoreName}
+      realizedSpent={projectStatus?.realizedSpent ?? 0}
     />
   )
 }

@@ -7,7 +7,11 @@ import { getActionErrorMessage } from "@/lib/errors"
 import { formatCurrency } from "@/lib/format-currency"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { computeLineTotal } from "@/lib/pricing"
-import { notifyBudgetProjectionAlert, notifyHousehold } from "@/services/notification.service"
+import {
+  notifyBudgetProjectionAlert,
+  notifyHousehold,
+  notifyProjectBudgetAlert,
+} from "@/services/notification.service"
 import { finalizePurchase, type PendingHandling } from "@/services/purchase.service"
 import { getListDetail, getListHouseholdId } from "@/services/shopping-list.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
@@ -116,7 +120,12 @@ export async function finalizePurchaseAction(
       amount: totalAmount,
       link: `/dashboard/expenses/${result.purchaseId}`,
     })
-    await notifyBudgetProjectionAlert(householdId)
+    // Projeto acompanha o próprio teto; mercado, o orçamento mensal.
+    if (list.kind === "PROJECT") {
+      await notifyProjectBudgetAlert(listId)
+    } else {
+      await notifyBudgetProjectionAlert(householdId)
+    }
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/lists")

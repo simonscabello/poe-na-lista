@@ -23,6 +23,7 @@ import { AddProductsBar } from "@/features/shopping-lists/components/add-product
 import { ListHeader } from "@/features/shopping-lists/components/list-header"
 import { ListItems } from "@/features/shopping-lists/components/list-items"
 import { MarketModeFooter } from "@/features/shopping-lists/components/market-mode-footer"
+import { ProjectBudgetHeader } from "@/features/shopping-lists/components/project-budget-header"
 import { useListSync } from "@/hooks/use-list-sync"
 import { marketModeAtom } from "@/lib/atoms"
 import { formatCalendarDate } from "@/lib/calendar-date"
@@ -119,6 +120,8 @@ type ListViewProps = {
   stores: StoreDTO[]
   lastPrices: Record<string, LastPriceDTO>
   lastStoreName: string | null
+  /** Soma das compras do projeto (só usado quando a lista é um projeto). */
+  realizedSpent?: number
 }
 
 export function ListView({
@@ -130,6 +133,7 @@ export function ListView({
   stores,
   lastPrices,
   lastStoreName,
+  realizedSpent = 0,
 }: ListViewProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -154,6 +158,7 @@ export function ListView({
   )
 
   const isCompleted = list.status === "COMPLETED"
+  const isProject = list.kind === "PROJECT"
   const checkedCount = items.filter((item) => item.checked).length
   const unpricedCheckedCount = items.filter((item) => item.checked && item.price == null).length
   const allChecked = items.length > 0 && checkedCount === items.length
@@ -398,6 +403,16 @@ export function ListView({
           onShare={() => setShareOpen(true)}
         />
 
+        {isProject && (!isCompleted || list.budgetCap != null) && (
+          <ProjectBudgetHeader
+            listId={list.id}
+            budgetCap={list.budgetCap}
+            realizedSpent={realizedSpent}
+            estimatedRemaining={remaining.total}
+            unknownCount={remaining.unknownCount}
+          />
+        )}
+
         {isCompleted && (
           <div className="space-y-1.5 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
             <div className="flex items-center gap-2">
@@ -539,6 +554,7 @@ export function ListView({
         items={items}
         stores={stores}
         lastStoreName={lastStoreName}
+        isProject={isProject}
         open={finalizeOpen}
         onOpenChange={setFinalizeOpen}
       />

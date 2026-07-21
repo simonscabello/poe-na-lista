@@ -33,6 +33,8 @@ type FinalizePurchaseSheetProps = {
   items: ShoppingListItemDTO[]
   stores: StoreDTO[]
   lastStoreName?: string | null
+  /** Projeto: ajusta a linguagem (loja em vez de mercado). */
+  isProject?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -43,6 +45,7 @@ export function FinalizePurchaseSheet({
   items,
   stores,
   lastStoreName = null,
+  isProject = false,
   open,
   onOpenChange,
 }: FinalizePurchaseSheetProps) {
@@ -225,7 +228,8 @@ export function FinalizePurchaseSheet({
                   <span>
                     <span className="block text-sm font-medium">Manter na lista atual</span>
                     <span className="mt-0.5 block text-xs text-muted-foreground">
-                      Compra parcial — os pendentes ficam para a próxima ida ao mercado.
+                      Compra parcial — os pendentes ficam para a próxima{" "}
+                      {isProject ? "compra" : "ida ao mercado"}.
                     </span>
                   </span>
                 </button>
@@ -310,7 +314,9 @@ export function FinalizePurchaseSheet({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="store">Mercado (opcional)</Label>
+                <Label htmlFor="store">
+                  {isProject ? "Loja (opcional)" : "Mercado (opcional)"}
+                </Label>
                 {stores.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {stores.map((store) => {

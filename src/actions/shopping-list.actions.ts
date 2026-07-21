@@ -1,7 +1,11 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { shoppingListNameSchema } from "@/features/shopping-lists/schemas"
+import {
+  createListSchema,
+  listBudgetSchema,
+  shoppingListNameSchema,
+} from "@/features/shopping-lists/schemas"
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { notifyHousehold, notifyListNudge } from "@/services/notification.service"
@@ -15,6 +19,7 @@ import {
   getListHouseholdId,
   getListVersion,
   renameShoppingList,
+  setListBudgetCap,
 } from "@/services/shopping-list.service"
 import { getFrequentlyPurchasedProducts } from "@/services/suggestion.service"
 import { type ActionResult, actionError, actionOk } from "@/types/action"
@@ -27,8 +32,11 @@ export async function createListAction(
 ): Promise<ActionResult<{ id: string }>> {
   try {
     const { user } = await requireHouseholdMember(householdId)
-    const { name } = shoppingListNameSchema.parse(input)
-    const id = await createShoppingList(householdId, user.id, name)
+    const { name, kind, budgetCap } = createListSchema.parse(input)
+    const id = await createShoppingList(householdId, user.id, name, {
+      kind,
+      budgetCap: budgetCap ?? null,
+    })
     await notifyHousehold({
       householdId,
       excludeUserId: user.id,
@@ -39,6 +47,22 @@ export async function createListAction(
     })
     revalidatePath("/dashboard")
     return actionOk({ id })
+  } catch (error) {
+    return actionError(getActionErrorMessage(error))
+  }
+}
+
+/** Define ou remove o teto de gasto de uma lista-projeto. */
+export async function setListBudgetAction(listId: string, input: unknown): Promise<ActionResult> {
+  try {
+    await requireListAccess(listId)
+    const { budgetCap } = listBudgetSchema.parse(input)
+    // Zero ou vazio remove o teto.
+    await setListBudgetCap(listId, budgetCap != null && budgetCap > 0 ? budgetCap : null)
+    revalidatePath(`/dashboard/lists/${listId}`)
+    revalidatePath("/dashboard")
+    revalidatePath("/dashboard/expenses")
+    return actionOk(undefined)
   } catch (error) {
     return actionError(getActionErrorMessage(error))
   }

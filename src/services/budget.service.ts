@@ -1,3 +1,4 @@
+import { ListKind } from "@/generated/prisma/enums"
 import { calendarMonthKey, currentCalendarMonthKey } from "@/lib/calendar-date"
 import { prisma } from "@/lib/prisma"
 import type { BudgetStatusDTO } from "@/types/domain"
@@ -35,7 +36,7 @@ export async function getCurrentMonthSpent(householdId: string): Promise<number>
   const rangeEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1) + dayMs)
 
   const purchases = await prisma.purchase.findMany({
-    where: { householdId, purchasedAt: { gte: rangeStart, lt: rangeEnd } },
+    where: { householdId, kind: ListKind.GROCERY, purchasedAt: { gte: rangeStart, lt: rangeEnd } },
     select: { totalAmount: true, purchasedAt: true },
   })
 

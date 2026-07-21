@@ -26,5 +26,8 @@ export function getNotificationMessage(notification: NotificationDTO): string {
     }
     case "LIST_NUDGE":
       return `${notification.actorName} está montando a lista "${notification.entityLabel}" — dá uma olhada e adicione o que precisar`
+    case "PROJECT_BUDGET_ALERT":
+      // amount = já gasto no projeto; entityLabel = nome do projeto.
+      return `O projeto "${notification.entityLabel}" passou do teto de gasto — já são ${formatCurrency(notification.amount ?? 0)}`
   }
 }
