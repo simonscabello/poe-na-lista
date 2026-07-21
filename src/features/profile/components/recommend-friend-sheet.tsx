@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 const SHARE_TITLE = "Põe na Lista"
 
 function buildMessage(url: string) {
-  return `Estou usando o Põe na Lista para organizar as compras em grupo. Experimente você também: ${url}`
+  return `Chega de lista no papel e mensagem perdida no zap. Uso o Põe na Lista pra organizar as compras da casa com todo mundo — entra aí: ${url}`
 }
 
 export function RecommendFriendSheet() {
@@ -45,7 +45,8 @@ export function RecommendFriendSheet() {
 
   async function share() {
     try {
-      await navigator.share({ title: SHARE_TITLE, text: message, url })
+      // Não passar `url` junto: a mensagem já inclui o link e apps concatenam os dois.
+      await navigator.share({ title: SHARE_TITLE, text: message })
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return
