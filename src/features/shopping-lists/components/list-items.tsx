@@ -497,7 +497,7 @@ function PriceOnlyItemRow({
         </span>
         <span
           className={cn(
-            "min-w-0 flex-1 truncate text-[0.95rem]",
+            "min-w-0 flex-1 break-words text-[0.95rem]",
             item.checked && "text-muted-foreground line-through",
           )}
         >
@@ -538,7 +538,7 @@ function ReadOnlyItemRow({ item }: { item: ShoppingListItemDTO }) {
       </span>
       <span
         className={cn(
-          "min-w-0 flex-1 truncate text-[0.95rem]",
+          "min-w-0 flex-1 break-words text-[0.95rem]",
           item.checked && "text-muted-foreground line-through",
         )}
       >

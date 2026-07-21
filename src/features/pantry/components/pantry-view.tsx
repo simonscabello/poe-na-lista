@@ -366,7 +366,7 @@ function PantryItemRow({
             {productEmoji(item.productName, item.category)}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[0.95rem]">{item.productName}</span>
+            <span className="block break-words text-[0.95rem]">{item.productName}</span>
             {(item.belowMinimum || badge) && (
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 {item.belowMinimum && (

@@ -194,7 +194,7 @@ export function FinalizePurchaseSheet({
                     <span aria-hidden className="text-base leading-none">
                       {productEmoji(item.productName, item.category)}
                     </span>
-                    <span className="truncate">{item.productName}</span>
+                    <span className="min-w-0 break-words">{item.productName}</span>
                   </li>
                 ))}
               </ul>

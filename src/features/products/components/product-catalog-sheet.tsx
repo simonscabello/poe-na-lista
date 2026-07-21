@@ -554,7 +554,7 @@ function ProductCard({
           {productEmoji(product.name, product.categoryName)}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[0.875rem] font-medium leading-tight">
+          <span className="block break-words text-[0.875rem] font-medium leading-tight">
             {product.name}
           </span>
           {showCategory && product.categoryName && (

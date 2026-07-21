@@ -185,7 +185,7 @@ export function SwipeableItemRow({
           >
             <span
               className={cn(
-                "block truncate text-[0.95rem] transition-colors duration-200",
+                "block break-words text-[0.95rem] transition-colors duration-200",
                 marketMode && "text-[1.05rem]",
                 item.checked && "text-muted-foreground line-through decoration-muted-foreground/50",
               )}
