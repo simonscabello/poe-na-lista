@@ -4,6 +4,7 @@ import { ProfileSkeleton } from "@/features/profile/components/profile-skeleton"
 import { ProfileView } from "@/features/profile/components/profile-view"
 import { auth } from "@/lib/auth"
 import { requireOnboardingCompleted } from "@/lib/onboarding"
+import { getFeedbackForUser } from "@/services/feedback.service"
 
 export default function ProfilePage() {
   return (
@@ -21,6 +22,14 @@ async function ProfileContent() {
   await requireOnboardingCompleted(session.user.id)
 
   const { name, email, image } = session.user
+  const feedback = await getFeedbackForUser(session.user.id)
 
-  return <ProfileView name={name ?? null} email={email ?? null} image={image ?? null} />
+  return (
+    <ProfileView
+      name={name ?? null}
+      email={email ?? null}
+      image={image ?? null}
+      feedback={feedback}
+    />
+  )
 }

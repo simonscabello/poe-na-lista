@@ -26,6 +26,12 @@ export type InvitationDTO = {
   createdAt: string
 }
 
+export type FeedbackDTO = {
+  rating: number
+  comment: string | null
+  updatedAt: string
+}
+
 export type ListKindDTO = "GROCERY" | "PROJECT"
 
 export type ShoppingListSummary = {
@@ -335,6 +341,31 @@ export type AdminUsersPageDTO = {
   total: number
   page: number
   pageSize: number
+}
+
+export type AdminFeedbackSummaryDTO = {
+  id: string
+  rating: number
+  comment: string | null
+  updatedAt: string
+  userName: string | null
+  userEmail: string | null
+  userImage: string | null
+}
+
+export type AdminFeedbackDistributionDTO = {
+  rating: number
+  count: number
+}
+
+export type AdminFeedbackPageDTO = {
+  feedback: AdminFeedbackSummaryDTO[]
+  total: number
+  page: number
+  pageSize: number
+  averageRating: number
+  // Distribuição por nota, de 5 a 1 estrelas.
+  distribution: AdminFeedbackDistributionDTO[]
 }
 
 export type AdminCategoryDTO = {

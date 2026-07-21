@@ -4,19 +4,22 @@ import { Container } from "@/components/layout/container"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { JoinHouseholdForm } from "@/features/households/components/join-household-form"
 import { DonatePixCard } from "@/features/profile/components/donate-pix-card"
+import { FeedbackCard } from "@/features/profile/components/feedback-card"
 import { HelpFaqSection } from "@/features/profile/components/help-faq-section"
 import { ProfileHeader } from "@/features/profile/components/profile-header"
 import { PushSettingsCard } from "@/features/profile/components/push-settings-card"
 import { RecommendFriendSheet } from "@/features/profile/components/recommend-friend-sheet"
 import { SignOutButton } from "@/features/profile/components/sign-out-button"
+import type { FeedbackDTO } from "@/types/domain"
 
 type ProfileViewProps = {
   name: string | null
   email: string | null
   image: string | null
+  feedback: FeedbackDTO | null
 }
 
-export function ProfileView({ name, email, image }: ProfileViewProps) {
+export function ProfileView({ name, email, image, feedback }: ProfileViewProps) {
   return (
     <Container size="narrow" className="space-y-6 py-6">
       <ProfileHeader name={name} email={email} image={image} />
@@ -64,6 +67,8 @@ export function ProfileView({ name, email, image }: ProfileViewProps) {
           <HelpFaqSection />
         </CardContent>
       </Card>
+
+      <FeedbackCard initialFeedback={feedback} />
 
       <RecommendFriendSheet />
 

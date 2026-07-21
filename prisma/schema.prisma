@@ -70,12 +70,28 @@ model User {
   createdPurchases Purchase[]            @relation("PurchaseCreator")
   notifications    Notification[]
   pushSubscriptions PushSubscription[]
+  feedback          Feedback?
 
   // Marca a conclusão do onboarding guiado (wizard de boas-vindas visto uma vez).
   onboardingCompletedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Avaliação do app pelo usuário: 1 registro por usuário (editável via upsert).
+model Feedback {
+  id      String  @id @default(cuid())
+  userId  String  @unique
+  rating  Int // 1..5 estrelas
+  comment String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([rating])
 }
 
 model Account {
