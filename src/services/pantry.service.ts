@@ -62,12 +62,34 @@ export async function addPurchaseToPantry(
   }
 }
 
-export async function getPantryItems(householdId: string): Promise<PantryItemDTO[]> {
-  const items = await prisma.pantryItem.findMany({
-    where: { householdId },
-    include: { product: { include: { category: true } } },
-    orderBy: { createdAt: "asc" },
+/**
+ * Produtos presentes (ainda não riscados) na lista ativa mais recente. Serve
+ * para sinalizar na despensa que um item já foi parar numa lista — evita que o
+ * usuário adicione o mesmo produto várias vezes.
+ */
+async function getActiveListProductIds(householdId: string): Promise<Set<string>> {
+  const listId = await getMostRecentActiveListId(householdId)
+  if (!listId) {
+    return new Set()
+  }
+
+  const listItems = await prisma.shoppingListItem.findMany({
+    where: { shoppingListId: listId, checked: false },
+    select: { productId: true },
   })
+
+  return new Set(listItems.map((item) => item.productId))
+}
+
+export async function getPantryItems(householdId: string): Promise<PantryItemDTO[]> {
+  const [items, activeListProductIds] = await Promise.all([
+    prisma.pantryItem.findMany({
+      where: { householdId },
+      include: { product: { include: { category: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    getActiveListProductIds(householdId),
+  ])
 
   return items
     .map((item) => ({
@@ -80,6 +102,7 @@ export async function getPantryItems(householdId: string): Promise<PantryItemDTO
       unit: item.unit,
       expirationDate: item.expirationDate?.toISOString() ?? null,
       belowMinimum: Number(item.quantity) < Number(item.minimumQuantity),
+      inActiveList: activeListProductIds.has(item.productId),
     }))
     .sort((a, b) => a.productName.localeCompare(b.productName, "pt-BR"))
 }

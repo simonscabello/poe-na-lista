@@ -266,6 +266,8 @@ export type PantryItemDTO = {
   unit: string | null
   expirationDate: string | null
   belowMinimum: boolean
+  /** Produto já está (não riscado) na lista ativa mais recente do household. */
+  inActiveList: boolean
 }
 
 export type SuggestedProductDTO = {

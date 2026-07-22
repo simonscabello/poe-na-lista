@@ -1,6 +1,15 @@
 "use client"
 
-import { Archive, CalendarClock, ChevronDown, ListPlus, PackageX, Trash2, X } from "lucide-react"
+import {
+  Archive,
+  CalendarClock,
+  ChevronDown,
+  ListChecks,
+  ListPlus,
+  PackageX,
+  Trash2,
+  X,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useOptimistic, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -53,6 +62,7 @@ function isExpiring(item: PantryItemDTO): boolean {
 type OptimisticAction =
   | { type: "setQty"; id: string; quantity: number }
   | { type: "remove"; id: string }
+  | { type: "markInList"; id: string }
 
 function reducer(state: PantryItemDTO[], action: OptimisticAction): PantryItemDTO[] {
   switch (action.type) {
@@ -68,6 +78,8 @@ function reducer(state: PantryItemDTO[], action: OptimisticAction): PantryItemDT
       )
     case "remove":
       return state.filter((item) => item.id !== action.id)
+    case "markInList":
+      return state.map((item) => (item.id === action.id ? { ...item, inActiveList: true } : item))
   }
 }
 
@@ -75,10 +87,12 @@ export function PantryView({
   householdId,
   items: initialItems,
   restockCount,
+  activeListId,
 }: {
   householdId: string
   items: PantryItemDTO[]
   restockCount: number
+  activeListId: string | null
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -153,13 +167,20 @@ export function PantryView({
 
   function addToList(item: PantryItemDTO) {
     startTransition(async () => {
+      applyOptimistic({ type: "markInList", id: item.id })
       const result = await addPantryItemToListAction(item.id)
       if (!result.success) {
         toast.error(result.error)
         return
       }
       toast.success(`${item.productName} adicionado à lista`)
+      router.refresh()
     })
+  }
+
+  function openList() {
+    // Sem o id em mãos (ex.: lista recém-criada), cai na visão geral de listas.
+    router.push(activeListId ? `/dashboard/lists/${activeListId}` : "/dashboard/lists")
   }
 
   function remove(item: PantryItemDTO) {
@@ -276,6 +297,7 @@ export function PantryView({
                     onChangeExpiration={changeExpiration}
                     onRemove={remove}
                     onAddToList={addToList}
+                    onOpenList={openList}
                     isPending={isPending}
                   />
                 ))}
@@ -323,6 +345,7 @@ function PantryItemRow({
   onChangeExpiration,
   onRemove,
   onAddToList,
+  onOpenList,
   isPending,
 }: {
   item: PantryItemDTO
@@ -333,6 +356,7 @@ function PantryItemRow({
   onChangeExpiration: (item: PantryItemDTO, value: string | null) => void
   onRemove: (item: PantryItemDTO) => void
   onAddToList: (item: PantryItemDTO) => void
+  onOpenList: () => void
   isPending: boolean
 }) {
   const measure = getMeasureConfigForItem(undefined, item.unit)
@@ -367,11 +391,17 @@ function PantryItemRow({
           </span>
           <span className="min-w-0">
             <span className="block break-words text-[0.95rem]">{item.productName}</span>
-            {(item.belowMinimum || badge) && (
+            {(item.belowMinimum || item.inActiveList || badge) && (
               <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 {item.belowMinimum && (
                   <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[0.7rem] font-medium text-warning">
                     Em falta
+                  </span>
+                )}
+                {item.inActiveList && (
+                  <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.7rem] font-medium text-primary">
+                    <ListChecks className="size-3" />
+                    Na lista
                   </span>
                 )}
                 {badge && (
@@ -392,16 +422,28 @@ function PantryItemRow({
         </button>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onAddToList(item)}
-            disabled={isPending}
-            aria-label={`Adicionar ${item.productName} à lista`}
-            className="text-muted-foreground"
-          >
-            <ListPlus className="size-4" />
-          </Button>
+          {item.inActiveList ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onOpenList}
+              aria-label={`${item.productName} já está na lista — abrir lista`}
+              className="text-primary"
+            >
+              <ListChecks className="size-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onAddToList(item)}
+              disabled={isPending}
+              aria-label={`Adicionar ${item.productName} à lista`}
+              className="text-muted-foreground"
+            >
+              <ListPlus className="size-4" />
+            </Button>
+          )}
           <QuantityStepper
             count={item.quantity}
             name={item.productName}
