@@ -1,11 +1,12 @@
 "use client"
 
-import { Sparkles } from "lucide-react"
+import { Sparkles, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTransition } from "react"
 import { toast } from "sonner"
 import { createSuggestedListAction } from "@/actions/shopping-list.actions"
 import { Button } from "@/components/ui/button"
+import { useDismissibleBanner } from "@/hooks/use-dismissible-banner"
 import type { SuggestedProductDTO } from "@/types/domain"
 
 type SuggestedListCardProps = {
@@ -18,6 +19,9 @@ const PREVIEW_COUNT = 4
 export function SuggestedListCard({ householdId, items }: SuggestedListCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const { visible, dismiss } = useDismissibleBanner(
+    `poe_na_lista:suggested-list-dismissed:${householdId}`,
+  )
 
   const previewNames = items.slice(0, PREVIEW_COUNT).map((item) => item.productName)
   const restCount = items.length - previewNames.length
@@ -32,6 +36,10 @@ export function SuggestedListCard({ householdId, items }: SuggestedListCardProps
       toast.success("Lista da semana criada")
       router.push(`/dashboard/lists/${result.data.id}`)
     })
+  }
+
+  if (!visible) {
+    return null
   }
 
   return (
@@ -51,6 +59,14 @@ export function SuggestedListCard({ householdId, items }: SuggestedListCardProps
           Criar lista
         </Button>
       </div>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dispensar"
+        className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <X className="size-4" />
+      </button>
     </div>
   )
 }

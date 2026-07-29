@@ -1,12 +1,13 @@
 "use client"
 
-import { Archive } from "lucide-react"
+import { Archive, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTransition } from "react"
 import { toast } from "sonner"
 import { restockPantryAction } from "@/actions/pantry.actions"
 import { Button } from "@/components/ui/button"
+import { useDismissibleBanner } from "@/hooks/use-dismissible-banner"
 
 const PREVIEW_COUNT = 4
 
@@ -19,6 +20,9 @@ type PantryRestockCardProps = {
 export function PantryRestockCard({ householdId, productNames }: PantryRestockCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const { visible, dismiss } = useDismissibleBanner(
+    `poe_na_lista:pantry-restock-dismissed:${householdId}`,
+  )
 
   const previewNames = productNames.slice(0, PREVIEW_COUNT)
   const restCount = productNames.length - previewNames.length
@@ -35,6 +39,10 @@ export function PantryRestockCard({ householdId, productNames }: PantryRestockCa
       )
       router.push(`/dashboard/lists/${result.data.listId}`)
     })
+  }
+
+  if (!visible) {
+    return null
   }
 
   return (
@@ -66,6 +74,14 @@ export function PantryRestockCard({ householdId, productNames }: PantryRestockCa
           </Link>
         </div>
       </div>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dispensar"
+        className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <X className="size-4" />
+      </button>
     </div>
   )
 }
