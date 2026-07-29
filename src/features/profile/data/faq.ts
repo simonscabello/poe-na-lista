@@ -137,15 +137,9 @@ export const faqItems: FaqItem[] = [
   // No mercado
   {
     category: "mercado",
-    question: "O que é o modo mercado?",
-    answer:
-      'Na tela da lista, ative "Modo mercado" para focar na compra: os itens ficam agrupados por categoria, os já comprados recolhem e aparece um resumo com o total no carrinho e quanto ainda falta.',
-  },
-  {
-    category: "mercado",
     question: "Como registro os preços enquanto compro?",
     answer:
-      "Ao marcar um item no modo mercado, você pode informar o preço pago. O app soma tudo em tempo real e ainda sugere o último preço pago pelo grupo como referência.",
+      "Em cada item da lista você pode informar o preço pago (por unidade ou valor total). O app soma o total dos itens marcados no botão de finalizar compra.",
   },
   {
     category: "mercado",

@@ -67,13 +67,12 @@ function HomeLanding() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="size-4 text-primary" />
-              Modo mercado
+              Lista no mercado
             </CardTitle>
-            <CardDescription>Feito para a mão que empurra o carrinho.</CardDescription>
+            <CardDescription>Feita para marcar rápido enquanto compra.</CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Itens agrupados por categoria, total do carrinho e estimativa do que falta — com os
-            últimos preços que você pagou.
+            Itens agrupados por categoria, quantidade na mão e preço quando você quiser informar.
           </CardContent>
         </Card>
         <Card>

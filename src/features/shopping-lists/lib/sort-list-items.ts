@@ -31,10 +31,6 @@ function categorySortOrder(
   return Number.POSITIVE_INFINITY - 1
 }
 
-export function sortAlphabetically(items: ShoppingListItemDTO[]): ShoppingListItemDTO[] {
-  return [...items].sort(compareByName)
-}
-
 export function groupByCategory(
   items: ShoppingListItemDTO[],
   productsById: Map<string, ProductDTO>,

@@ -1,21 +1,16 @@
 "use client"
 
-import { type PointerEvent, type RefObject, useEffect, useState } from "react"
+import type { PointerEvent, RefObject } from "react"
 import { CurrencyInput } from "@/components/common/currency-input"
 import { CurrencyText } from "@/components/common/currency-text"
-import { formatRelativeCalendarDate } from "@/lib/calendar-date"
-import { formatCurrency } from "@/lib/format-currency"
 import { computeLineTotal } from "@/lib/pricing"
 import { cn } from "@/lib/utils"
-import type { LastPriceDTO, PriceModeDTO, ShoppingListItemDTO } from "@/types/domain"
+import type { PriceModeDTO, ShoppingListItemDTO } from "@/types/domain"
 
 type ItemPriceFieldsProps = {
   item: ShoppingListItemDTO
   unitLabel: string
   priceLabel: string
-  autoFilled?: boolean
-  /** Último preço pago pelo household — vira sugestão editável e hint com mercado e data. */
-  lastPrice?: LastPriceDTO | null
   onChangePrice: (item: ShoppingListItemDTO, nextPrice: number | null) => void
   onChangePriceMode: (item: ShoppingListItemDTO, nextPriceMode: PriceModeDTO) => void
   priceInputRef?: RefObject<HTMLInputElement | null>
@@ -27,46 +22,20 @@ export function ItemPriceFields({
   item,
   unitLabel,
   priceLabel,
-  autoFilled = false,
-  lastPrice = null,
   onChangePrice,
   onChangePriceMode,
   priceInputRef,
   onPointerDown,
   className,
 }: ItemPriceFieldsProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Em modo UNIT a sugestão preenche o campo; em TOTAL o valor digitado é o da
-  // pesagem inteira, então a referência R$/unidade aparece só como hint.
-  const suggestedPrice = item.priceMode === "UNIT" ? (lastPrice?.unitPrice ?? null) : null
-
-  // Sem preço próprio, exibe o último preço pago como sugestão (só persiste
-  // quando o usuário edita ou marca o item).
-  const showingSuggestion = item.price == null && suggestedPrice != null
-  const displayValue = item.price ?? suggestedPrice ?? null
-  const lineTotal = computeLineTotal(displayValue, item.quantity, item.priceMode)
-  const showLastPriceHint = (autoFilled || showingSuggestion) && displayValue != null
-  const showTotalReference = item.priceMode === "TOTAL" && item.price == null && lastPrice != null
+  const lineTotal = computeLineTotal(item.price, item.quantity, item.priceMode)
   const showLineTotal =
-    item.priceMode === "UNIT" &&
-    lineTotal != null &&
-    lineTotal > 0 &&
-    (item.price != null || mounted)
-
-  const lastPriceHint = ["último preço", lastPrice?.storeName ?? null]
-    .filter(Boolean)
-    .concat(lastPrice ? [formatRelativeCalendarDate(lastPrice.purchasedAt)] : [])
-    .join(" · ")
+    item.priceMode === "UNIT" && item.price != null && lineTotal != null && lineTotal > 0
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <CurrencyInput
-        value={displayValue}
+        value={item.price}
         onCommit={(nextPrice) => onChangePrice(item, nextPrice)}
         placeholder={priceLabel}
         aria-label={`${priceLabel} de ${item.productName}`}
@@ -109,17 +78,6 @@ export function ItemPriceFields({
       {showLineTotal && (
         <span className="text-xs text-muted-foreground">
           = <CurrencyText value={lineTotal} />
-        </span>
-      )}
-
-      {showLastPriceHint && (
-        <span className="text-xs text-muted-foreground italic">{lastPriceHint}</span>
-      )}
-
-      {showTotalReference && lastPrice && (
-        <span className="text-xs text-muted-foreground italic">
-          última vez {formatCurrency(lastPrice.unitPrice)}/{unitLabel}
-          {lastPrice.storeName ? ` · ${lastPrice.storeName}` : ""}
         </span>
       )}
     </div>

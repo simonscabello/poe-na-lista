@@ -25,12 +25,9 @@ export function ListDetailSkeleton() {
           ))}
         </ul>
       </Container>
-      <div className="sticky bottom-[calc(4rem_+_env(safe-area-inset-bottom))] border-t border-border/60 bg-background/85 py-1.5 backdrop-blur-xl sm:bottom-0 sm:pb-[calc(0.375rem_+_env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-[calc(4rem_+_env(safe-area-inset-bottom))] border-t border-border/60 bg-background/85 pt-3 pb-3 backdrop-blur-xl sm:bottom-0 sm:pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]">
         <Container size="wide">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-5 min-w-0 flex-1 rounded-md" />
-            <Skeleton className="size-11 shrink-0 rounded-xl" />
-          </div>
+          <Skeleton className="h-11 w-full rounded-xl" />
         </Container>
       </div>
     </div>

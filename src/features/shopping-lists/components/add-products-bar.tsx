@@ -16,9 +16,9 @@ type AddProductsBarProps = {
   /** productId → quantity currently in the list, for live badges in the sheet. */
   inList: Map<string, number>
   /**
-   * Conteúdo renderizado ao lado do botão (ex.: totais do modo mercado). Com
-   * ele presente a barra vira uma linha compacta — botão quadrado no lugar do
-   * largo — para roubar o mínimo de altura da lista em telas pequenas.
+   * Conteúdo renderizado ao lado do botão. Com ele presente a barra vira uma
+   * linha compacta — botão quadrado no lugar do largo — para roubar o mínimo
+   * de altura da lista em telas pequenas.
    */
   inlineSlot?: ReactNode
   onAdd: (product: ProductDTO) => void
@@ -73,9 +73,9 @@ export function AddProductsBar({
             <Button
               type="button"
               onClick={() => setOpen(true)}
-              className="h-13 w-full rounded-2xl text-base font-semibold shadow-sm active:scale-[0.99]"
+              className="h-11 w-full rounded-xl text-sm font-medium shadow-sm active:scale-[0.99]"
             >
-              <Plus className="size-5" />
+              <Plus className="size-4" />
               Adicionar produtos
             </Button>
           )}

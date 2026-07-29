@@ -5,11 +5,7 @@ import { addItemSchema, itemPriceSchema } from "@/features/shopping-lists/schema
 import { getActionErrorMessage } from "@/lib/errors"
 import { requireHouseholdMember } from "@/lib/permissions"
 import { notifyBudgetProjectionAlert } from "@/services/notification.service"
-import {
-  getLastPaidPrices,
-  getPurchaseHouseholdId,
-  syncPurchaseItemFromListItem,
-} from "@/services/purchase.service"
+import { getPurchaseHouseholdId, syncPurchaseItemFromListItem } from "@/services/purchase.service"
 import { getListHouseholdId } from "@/services/shopping-list.service"
 import {
   addShoppingListItem,
@@ -51,16 +47,6 @@ export async function toggleItemAction(itemId: string, checked: boolean): Promis
     }
     await requireHouseholdMember(item.householdId)
     await setItemChecked(itemId, checked)
-    // Ao marcar um item sem preço, semeia o último preço unitário pago pelo
-    // household — itens TOTAL (pesados) ficam de fora porque o valor digitado
-    // ali é o total da pesagem, não um preço por unidade.
-    if (checked && item.price == null && item.priceMode === "UNIT") {
-      const lastPrices = await getLastPaidPrices(item.householdId, [item.productId])
-      const lastPrice = lastPrices.get(item.productId)?.unitPrice
-      if (lastPrice != null) {
-        await setItemPrice(itemId, lastPrice, "UNIT")
-      }
-    }
     revalidatePath(`/dashboard/lists/${item.listId}`)
     return actionOk(undefined)
   } catch (error) {

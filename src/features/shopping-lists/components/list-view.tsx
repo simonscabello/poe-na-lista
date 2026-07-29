@@ -1,7 +1,6 @@
 "use client"
 
-import { useAtomValue } from "jotai"
-import { Calculator, CheckCircle2, ShoppingBag } from "lucide-react"
+import { CheckCircle2, ShoppingBag } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useMemo, useOptimistic, useState, useTransition } from "react"
@@ -22,10 +21,8 @@ import { AddMeasurableProductSheet } from "@/features/shopping-lists/components/
 import { AddProductsBar } from "@/features/shopping-lists/components/add-products-bar"
 import { ListHeader } from "@/features/shopping-lists/components/list-header"
 import { ListItems } from "@/features/shopping-lists/components/list-items"
-import { MarketModeFooter } from "@/features/shopping-lists/components/market-mode-footer"
 import { ProjectBudgetHeader } from "@/features/shopping-lists/components/project-budget-header"
 import { useListSync } from "@/hooks/use-list-sync"
-import { marketModeAtom } from "@/lib/atoms"
 import { formatCalendarDate } from "@/lib/calendar-date"
 import { formatCurrency } from "@/lib/format-currency"
 import { haptic } from "@/lib/haptics"
@@ -40,7 +37,6 @@ import {
 import { computeLineTotal, estimateItemsTotal } from "@/lib/pricing"
 import type {
   CategoryDTO,
-  LastPriceDTO,
   PriceModeDTO,
   ProductDTO,
   ShoppingListDetail,
@@ -118,7 +114,6 @@ type ListViewProps = {
   categories: CategoryDTO[]
   initialShare: ShoppingListShareDTO | null
   stores: StoreDTO[]
-  lastPrices: Record<string, LastPriceDTO>
   lastStoreName: string | null
   /** Soma das compras do projeto (só usado quando a lista é um projeto). */
   realizedSpent?: number
@@ -131,7 +126,6 @@ export function ListView({
   categories,
   initialShare,
   stores,
-  lastPrices,
   lastStoreName,
   realizedSpent = 0,
 }: ListViewProps) {
@@ -142,7 +136,6 @@ export function ListView({
   const [shareOpen, setShareOpen] = useState(false)
   const [finalizeOpen, setFinalizeOpen] = useState(false)
   const [measurableProduct, setMeasurableProduct] = useState<ProductDTO | null>(null)
-  const [autoFilledIds, setAutoFilledIds] = useState<Set<string>>(new Set())
 
   const productsById = useMemo(
     () => new Map(catalog.map((product) => [product.id, product])),
@@ -169,17 +162,10 @@ export function ListView({
       0,
     )
 
-  const marketMode = useAtomValue(marketModeAtom)
-  const lastUnitPriceOf = useCallback(
-    (productId: string) => lastPrices[productId]?.unitPrice,
-    [lastPrices],
-  )
-  // Estimativas pelos preços informados + últimos preços pagos: da lista toda
-  // (planejamento antes do mercado) e do que ainda falta (modo mercado).
-  const listEstimate = estimateItemsTotal(items, lastUnitPriceOf)
+  // Orçamento de projeto: só preços já informados na lista (sem último preço pago).
   const remaining = estimateItemsTotal(
     items.filter((item) => !item.checked),
-    lastUnitPriceOf,
+    () => null,
   )
 
   const inList = new Map<string, number>()
@@ -189,18 +175,9 @@ export function ListView({
 
   function toggle(item: ShoppingListItemDTO) {
     const willCheck = !item.checked
-    // Espelha o prefill do último preço feito pelo servidor no toggleItemAction.
-    const prefillPrice =
-      willCheck && item.price == null && item.priceMode === "UNIT"
-        ? (lastPrices[item.productId]?.unitPrice ?? null)
-        : null
     startTransition(async () => {
       haptic("tap")
       applyOptimistic({ type: "toggle", id: item.id, checked: willCheck })
-      if (prefillPrice != null) {
-        applyOptimistic({ type: "setPrice", id: item.id, price: prefillPrice })
-        setAutoFilledIds((prev) => new Set(prev).add(item.id))
-      }
       const result = await toggleItemAction(item.id, willCheck)
       if (!result.success) {
         toast.error(result.error)
@@ -339,12 +316,6 @@ export function ListView({
   }
 
   function changePrice(item: ShoppingListItemDTO, nextPrice: number | null) {
-    setAutoFilledIds((prev) => {
-      if (!prev.has(item.id)) return prev
-      const next = new Set(prev)
-      next.delete(item.id)
-      return next
-    })
     startTransition(async () => {
       applyOptimistic({ type: "setPrice", id: item.id, price: nextPrice })
       const result = await updateItemPriceAction(item.id, {
@@ -452,34 +423,9 @@ export function ListView({
           </div>
         )}
 
-        {!isCompleted && items.length > 0 && !marketMode && listEstimate.total > 0 && (
-          <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-border/70">
-            <span className="flex items-center gap-2.5 text-sm text-muted-foreground">
-              <Calculator className="size-4 shrink-0 text-primary" />
-              <span>
-                Estimativa da compra
-                <span className="block text-xs">pelos últimos preços que você pagou</span>
-              </span>
-            </span>
-            <span className="shrink-0 text-right">
-              <span className="font-heading text-base font-semibold tabular-nums">
-                ~{formatCurrency(listEstimate.total)}
-              </span>
-              {listEstimate.unknownCount > 0 && (
-                <span className="block text-xs text-muted-foreground tabular-nums">
-                  {listEstimate.unknownCount}{" "}
-                  {listEstimate.unknownCount === 1 ? "item sem referência" : "itens sem referência"}
-                </span>
-              )}
-            </span>
-          </div>
-        )}
-
         <ListItems
           items={items}
           productsById={productsById}
-          autoFilledIds={autoFilledIds}
-          lastPrices={lastPrices}
           onToggle={toggle}
           onRemove={remove}
           onChangeQuantity={changeQuantity}
@@ -514,17 +460,6 @@ export function ListView({
           frequent={frequent}
           categories={categories}
           inList={inList}
-          inlineSlot={
-            marketMode && items.length > 0 ? (
-              <MarketModeFooter
-                checkedCount={checkedCount}
-                totalCount={items.length}
-                checkedTotal={checkedItemsTotal}
-                remainingEstimate={remaining.total}
-                remainingUnknownCount={remaining.unknownCount}
-              />
-            ) : null
-          }
           onAdd={requestAdd}
           onAddOne={addOne}
           onRemoveOne={removeOne}

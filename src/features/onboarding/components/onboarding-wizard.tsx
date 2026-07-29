@@ -61,7 +61,7 @@ const SLIDES: Slide[] = [
     icon: PiggyBank,
     title: "No mercado e nos gastos",
     description:
-      "Use o modo mercado para anotar preços enquanto compra, finalize a compra e acompanhe para onde vai o dinheiro.",
+      "Anote preços enquanto compra, finalize a compra e acompanhe para onde vai o dinheiro.",
     points: [
       "Total do carrinho somado em tempo real",
       "Despensa avisa quando algo está acabando",

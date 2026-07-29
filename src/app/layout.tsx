@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s | Põe na Lista",
   },
   description:
-    "Lista de compras compartilhada com modo mercado, controle de gastos e despensa automática — para a família ou qualquer grupo",
+    "Lista de compras compartilhada com controle de gastos e despensa — para a família ou qualquer grupo",
   applicationName: "Põe na Lista",
   appleWebApp: {
     capable: true,
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Põe na Lista",
     description:
-      "Lista de compras compartilhada com modo mercado, controle de gastos e despensa automática — para a família ou qualquer grupo",
+      "Lista de compras compartilhada com controle de gastos e despensa — para a família ou qualquer grupo",
     type: "website",
     locale: "pt_BR",
     siteName: "Põe na Lista",
@@ -52,8 +52,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Põe na Lista",
-    description:
-      "Lista de compras compartilhada com modo mercado, controle de gastos e despensa automática",
+    description: "Lista de compras compartilhada com controle de gastos e despensa",
     images: ["/og-image.png"],
   },
 }

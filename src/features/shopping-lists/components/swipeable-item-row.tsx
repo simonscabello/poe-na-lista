@@ -1,13 +1,11 @@
 "use client"
 
-import { useAtomValue } from "jotai"
 import { Check, RotateCcw, Trash2 } from "lucide-react"
 import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
 import { QuantityStepper } from "@/components/common/quantity-stepper"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ItemPriceFields } from "@/features/shopping-lists/components/item-price-fields"
-import { marketModeAtom } from "@/lib/atoms"
 import { productEmoji } from "@/lib/categories"
 import { haptic } from "@/lib/haptics"
 import {
@@ -17,7 +15,7 @@ import {
   nextQuantityUp,
 } from "@/lib/measure"
 import { cn } from "@/lib/utils"
-import type { LastPriceDTO, PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
+import type { PriceModeDTO, ProductDTO, ShoppingListItemDTO } from "@/types/domain"
 
 const THRESHOLD = 72
 const MAX_TRAVEL = 100
@@ -25,8 +23,6 @@ const MAX_TRAVEL = 100
 type SwipeableItemRowProps = {
   item: ShoppingListItemDTO
   product?: ProductDTO
-  autoFilledPrice?: boolean
-  lastPrice?: LastPriceDTO | null
   onToggle: (item: ShoppingListItemDTO) => void
   onRemove: (itemId: string) => void
   onChangeQuantity: (item: ShoppingListItemDTO, nextQuantity: number) => void
@@ -37,15 +33,12 @@ type SwipeableItemRowProps = {
 export function SwipeableItemRow({
   item,
   product,
-  autoFilledPrice = false,
-  lastPrice = null,
   onToggle,
   onRemove,
   onChangeQuantity,
   onChangePrice,
   onChangePriceMode,
 }: SwipeableItemRowProps) {
-  const marketMode = useAtomValue(marketModeAtom)
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
   const gesture = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null)
@@ -150,7 +143,6 @@ export function SwipeableItemRow({
       <div
         className={cn(
           "relative flex touch-pan-y flex-col gap-2 bg-card px-3 py-3",
-          marketMode && "py-3.5",
           !dragging && "transition-transform duration-200 ease-out",
         )}
         style={{ transform: `translate3d(${dx}px, 0, 0)` }}
@@ -163,7 +155,7 @@ export function SwipeableItemRow({
           <Checkbox
             checked={item.checked}
             onCheckedChange={() => onToggle(item)}
-            className={cn("size-6 rounded-full", marketMode && "size-7")}
+            className="size-6 rounded-full"
             aria-label={
               item.checked ? `Desmarcar ${item.productName}` : `Marcar ${item.productName}`
             }
@@ -172,7 +164,6 @@ export function SwipeableItemRow({
             aria-hidden
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg leading-none transition-opacity duration-200",
-              marketMode && "size-9 text-xl",
               item.checked && "opacity-40",
             )}
           >
@@ -186,19 +177,11 @@ export function SwipeableItemRow({
             <span
               className={cn(
                 "block break-words text-[0.95rem] transition-colors duration-200",
-                marketMode && "text-[1.05rem]",
                 item.checked && "text-muted-foreground line-through decoration-muted-foreground/50",
               )}
             >
               {item.productName}
             </span>
-            {(item.unit || item.category) && (
-              <span className="mt-0.5 block truncate text-sm text-muted-foreground">
-                {item.unit ? item.unit : ""}
-                {item.unit && item.category ? " · " : ""}
-                {item.category ?? ""}
-              </span>
-            )}
           </button>
 
           {item.checked ? (
@@ -233,8 +216,6 @@ export function SwipeableItemRow({
           item={item}
           unitLabel={unitLabel}
           priceLabel={priceLabel}
-          autoFilled={autoFilledPrice}
-          lastPrice={lastPrice}
           onChangePrice={onChangePrice}
           onChangePriceMode={onChangePriceMode}
           onPointerDown={(event) => event.stopPropagation()}
