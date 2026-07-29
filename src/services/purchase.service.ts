@@ -1,5 +1,5 @@
 import { ListKind, ShoppingListStatus } from "@/generated/prisma/enums"
-import { computeLineTotal, type EstimatableItem, estimateItemsTotal } from "@/lib/pricing"
+import { computeLineTotal, estimateItemsTotal } from "@/lib/pricing"
 import { prisma } from "@/lib/prisma"
 import { addPurchaseToPantry } from "@/services/pantry.service"
 import { findOrCreateStore } from "@/services/store.service"
@@ -355,59 +355,7 @@ export async function getLastPaidPrices(
   return prices
 }
 
-/** Cobertura mínima de preços para o card da lista exibir uma estimativa honesta. */
-const ESTIMATE_MIN_COVERAGE = 0.5
-
-/**
- * Estimativa de total por lista ativa do household, para os cards da grade.
- * Só inclui listas em que ao menos metade dos itens tem preço ou referência.
- */
-export async function getActiveListEstimates(householdId: string): Promise<Map<string, number>> {
-  const items = await prisma.shoppingListItem.findMany({
-    where: { shoppingList: { householdId, status: ShoppingListStatus.ACTIVE } },
-    select: {
-      shoppingListId: true,
-      productId: true,
-      quantity: true,
-      price: true,
-      priceMode: true,
-    },
-  })
-
-  if (items.length === 0) {
-    return new Map()
-  }
-
-  const lastPrices = await getLastPaidPrices(householdId, [
-    ...new Set(items.map((item) => item.productId)),
-  ])
-
-  const byList = new Map<string, EstimatableItem[]>()
-  for (const item of items) {
-    const group = byList.get(item.shoppingListId) ?? []
-    group.push({
-      productId: item.productId,
-      quantity: Number(item.quantity),
-      price: item.price != null ? Number(item.price) : null,
-      priceMode: item.priceMode,
-    })
-    byList.set(item.shoppingListId, group)
-  }
-
-  const estimates = new Map<string, number>()
-  for (const [listId, listItems] of byList) {
-    const estimate = estimateItemsTotal(listItems, (id) => lastPrices.get(id)?.unitPrice)
-    const coverage = (estimate.pricedCount + estimate.referencedCount) / listItems.length
-    if (estimate.total > 0 && coverage >= ESTIMATE_MIN_COVERAGE) {
-      estimates.set(listId, estimate.total)
-    }
-  }
-
-  return estimates
-}
-
-/**
- * Situação de gasto de uma lista-projeto: soma o que já foi comprado, estima o
+/** Situação de gasto de uma lista-projeto: soma o que já foi comprado, estima o
  * que falta (itens não marcados, pelos últimos preços pagos) e compara com o
  * teto. Retorna null quando a lista não é um projeto.
  */

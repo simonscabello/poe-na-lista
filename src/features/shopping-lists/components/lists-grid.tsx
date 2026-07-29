@@ -4,28 +4,17 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { CreateListDialog } from "@/features/shopping-lists/components/create-list-dialog"
 import { ListCard } from "@/features/shopping-lists/components/list-card"
-import type { HouseholdMemberDTO, ShoppingListSummary } from "@/types/domain"
+import type { ShoppingListSummary } from "@/types/domain"
 
 type ListsGridProps = {
   lists: ShoppingListSummary[]
-  members: HouseholdMemberDTO[]
   householdId: string
-  canInvite: boolean
   showInviteStep?: boolean
-  /** Estimativa de total por lista ativa (id → valor), pelos últimos preços pagos. */
-  estimates?: Record<string, number>
 }
 
 const PAGE_SIZE = 5
 
-export function ListsGrid({
-  lists,
-  members,
-  householdId,
-  canInvite,
-  showInviteStep = false,
-  estimates = {},
-}: ListsGridProps) {
+export function ListsGrid({ lists, householdId, showInviteStep = false }: ListsGridProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   if (lists.length === 0) {
@@ -38,14 +27,7 @@ export function ListsGrid({
   return (
     <div className="stagger-children mx-auto flex w-full max-w-xl flex-col gap-4 motion-reduce:[&>*]:animate-none">
       {visibleLists.map((list) => (
-        <ListCard
-          key={list.id}
-          list={list}
-          members={members}
-          householdId={householdId}
-          canInvite={canInvite}
-          estimatedTotal={estimates[list.id] ?? null}
-        />
+        <ListCard key={list.id} list={list} />
       ))}
 
       {hasMore && (

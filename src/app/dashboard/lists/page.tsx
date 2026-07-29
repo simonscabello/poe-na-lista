@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { Container } from "@/components/layout/container"
 import { PushBanner } from "@/components/notifications/push-banner"
 import { OverviewCards } from "@/features/dashboard/components/overview-cards"
+import { HouseholdMembersAvatars } from "@/features/households/components/household-members-avatars"
 import { OnboardingView } from "@/features/households/components/onboarding-view"
 import { OnboardingChecklist } from "@/features/onboarding/components/onboarding-checklist"
 import { OnboardingWizard } from "@/features/onboarding/components/onboarding-wizard"
@@ -19,7 +20,6 @@ import { ONBOARDING_CHECKLIST_DISMISS_COOKIE } from "@/lib/onboarding"
 import { getCurrentMonthSpent, getMonthlyBudget } from "@/services/budget.service"
 import { getHouseholdMembers, getUserHouseholds } from "@/services/household.service"
 import { getLowStockPantryItemsNeedingRestock } from "@/services/pantry.service"
-import { getActiveListEstimates } from "@/services/purchase.service"
 import { getListsByHousehold } from "@/services/shopping-list.service"
 import { getSuggestedListPreview } from "@/services/suggestion.service"
 import { getOnboardingCompletedAt } from "@/services/user.service"
@@ -60,7 +60,6 @@ async function ListsContent() {
     suggestedPreview,
     monthlyBudget,
     lowStockItems,
-    listEstimates,
     cookieStore,
   ] = await Promise.all([
     getListsByHousehold(active.id),
@@ -69,7 +68,6 @@ async function ListsContent() {
     getSuggestedListPreview(active.id),
     getMonthlyBudget(active.id),
     getLowStockPantryItemsNeedingRestock(active.id),
-    getActiveListEstimates(active.id),
     cookies(),
   ])
 
@@ -87,9 +85,12 @@ async function ListsContent() {
   return (
     <Container size="wide" className="space-y-6 py-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <h1 className="text-page-title">Olá, {firstName(session.user.name)}</h1>
-          <p className="text-sm text-muted-foreground">Listas de {active.name}</p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="text-sm text-muted-foreground">Listas de {active.name}</p>
+            <HouseholdMembersAvatars members={members} />
+          </div>
         </div>
         <CreateListDialog householdId={active.id} showInviteStep={showInviteStep} />
       </div>
@@ -111,14 +112,7 @@ async function ListsContent() {
         <SuggestedListCard householdId={active.id} items={suggestedPreview.items} />
       )}
 
-      <ListsGrid
-        lists={lists}
-        members={members}
-        householdId={active.id}
-        canInvite={canInvite}
-        showInviteStep={showInviteStep}
-        estimates={Object.fromEntries(listEstimates)}
-      />
+      <ListsGrid lists={lists} householdId={active.id} showInviteStep={showInviteStep} />
     </Container>
   )
 }

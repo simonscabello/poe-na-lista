@@ -1,16 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  AlertCircle,
-  Calculator,
-  Check,
-  MoreVertical,
-  Pencil,
-  Store,
-  Target,
-  Trash2,
-} from "lucide-react"
+import { AlertCircle, Check, MoreVertical, Pencil, Store, Target, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
@@ -35,32 +26,19 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { ListCardIllustration } from "@/features/shopping-lists/components/list-card-illustration"
-import { ListCardInviteButton } from "@/features/shopping-lists/components/list-card-invite-button"
-import { ListCardMembers } from "@/features/shopping-lists/components/list-card-members"
 import {
   type ShoppingListNameValues,
   shoppingListNameSchema,
 } from "@/features/shopping-lists/schemas"
 import { formatCurrency } from "@/lib/format-currency"
 import { cn } from "@/lib/utils"
-import type { HouseholdMemberDTO, ShoppingListSummary } from "@/types/domain"
+import type { ShoppingListSummary } from "@/types/domain"
 
 type ListCardProps = {
   list: ShoppingListSummary
-  members: HouseholdMemberDTO[]
-  householdId: string
-  canInvite: boolean
-  /** Estimativa de total pelos últimos preços pagos; null quando não há referência suficiente. */
-  estimatedTotal?: number | null
 }
 
-export function ListCard({
-  list,
-  members,
-  householdId,
-  canInvite,
-  estimatedTotal = null,
-}: ListCardProps) {
+export function ListCard({ list }: ListCardProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -73,12 +51,8 @@ export function ListCard({
   const pendingItems = list.totalItems - list.checkedItems
   const allDone = list.totalItems > 0 && pendingItems === 0
   const isCompleted = list.status === "COMPLETED"
-  const progressPercent =
-    list.totalItems > 0 ? Math.round((list.checkedItems / list.totalItems) * 100) : 0
   const isProject = list.kind === "PROJECT"
   const hasCap = isProject && list.budgetCap != null
-  // Projeto com teto troca a barra de progresso de itens pela barra de gasto.
-  const showProgress = !isCompleted && list.totalItems > 0 && !hasCap
 
   function openList() {
     router.push(`/dashboard/lists/${list.id}`)
@@ -206,13 +180,12 @@ export function ListCard({
           unpricedCheckedItems={list.unpricedCheckedItems}
           purchaseCount={list.purchaseCount}
         />
+        {!isCompleted && list.totalItems > 0 && !allDone && (
+          <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-2.5 py-1 text-xs font-medium tabular-nums">
+            {list.totalItems} {list.totalItems === 1 ? "item" : "itens"}
+          </span>
+        )}
       </div>
-
-      {!isProject && !isCompleted && estimatedTotal != null && (
-        <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">
-          <Calculator className="size-3.5 shrink-0" />~{formatCurrency(estimatedTotal)} estimados
-        </p>
-      )}
 
       {isProject && !hasCap && !isCompleted && list.spent > 0 && (
         <p className="pointer-events-none relative z-[1] mt-2 flex items-center gap-1.5 truncate text-xs font-medium opacity-90 tabular-nums">
@@ -236,37 +209,6 @@ export function ListCard({
             .join(" · ")}
         </p>
       )}
-
-      {showProgress && (
-        <div className="pointer-events-none relative z-[1] mt-3 space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-medium tabular-nums">
-            <span>
-              {list.checkedItems} de {list.totalItems} {list.totalItems === 1 ? "item" : "itens"}
-            </span>
-            <span className="opacity-90">{progressPercent}%</span>
-          </div>
-          <div
-            className="h-1.5 overflow-hidden rounded-full bg-primary-foreground/20"
-            role="progressbar"
-            aria-valuenow={progressPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Progresso da compra da lista ${list.name}`}
-          >
-            <div
-              className="h-full rounded-full bg-primary-foreground transition-[width] duration-[var(--duration-fast)]"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="relative z-[1] mt-4 flex items-center justify-between gap-2">
-        <div className="pointer-events-none">
-          <ListCardMembers members={members} />
-        </div>
-        {canInvite && <ListCardInviteButton householdId={householdId} />}
-      </div>
 
       <ConfirmDialog
         open={confirmOpen}
