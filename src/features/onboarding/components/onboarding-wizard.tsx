@@ -52,7 +52,7 @@ const SLIDES: Slide[] = [
     description:
       "Crie listas de compras e adicione produtos do catálogo do grupo. Não achou o item? Crie na hora.",
     points: [
-      "Lista de compras do dia a dia ou projeto com teto de gasto",
+      "Lista de compras do dia a dia ou projeto com teto de gasto opcional",
       "Catálogo compartilhado que cresce com o uso",
       "Marque itens como comprados com um toque ou deslizando",
     ],

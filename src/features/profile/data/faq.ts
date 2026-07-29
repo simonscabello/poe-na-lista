@@ -107,7 +107,7 @@ export const faqItems: FaqItem[] = [
     category: "listas",
     question: "Como crio e organizo minhas listas?",
     answer:
-      'Use o botão "Nova lista" na tela inicial. Ao criar, escolha entre uma lista de compras comum ou um projeto com teto de gasto. Dentro da lista, o menu permite renomear ou excluir.',
+      'Use o botão "Nova lista" na tela inicial. Ao criar, escolha entre uma lista de compras comum ou um projeto (com teto de gasto opcional). Dentro da lista, o menu permite renomear ou excluir.',
   },
   {
     category: "listas",

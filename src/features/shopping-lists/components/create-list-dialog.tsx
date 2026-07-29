@@ -37,6 +37,7 @@ import {
   type ShoppingListNameValues,
   shoppingListNameSchema,
 } from "@/features/shopping-lists/schemas"
+import { cn } from "@/lib/utils"
 
 type CreateListDialogProps = {
   householdId: string
@@ -45,6 +46,8 @@ type CreateListDialogProps = {
 }
 
 type Mode = "grocery" | "project"
+
+const GROCERY_NAME_SUGGESTIONS = ["Semana", "Extra", "Feira", "Prioridades"] as const
 
 function getDefaultListName(): string {
   const today = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(
@@ -127,14 +130,14 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
             </Button>
           }
         />
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => startCreate("grocery")}>
+        <DropdownMenuContent align="end" className="min-w-44">
+          <DropdownMenuItem onClick={() => startCreate("grocery")} className="whitespace-nowrap">
             <ShoppingCart className="size-4" />
             Lista de compras
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => startCreate("project")}>
+          <DropdownMenuItem onClick={() => startCreate("project")} className="whitespace-nowrap">
             <Target className="size-4" />
-            Projeto com teto
+            Projeto
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -170,6 +173,25 @@ export function CreateListDialog({ householdId, showInviteStep = false }: Create
                               onFocus={(event) => event.target.select()}
                             />
                           </FormControl>
+                          {!isProject && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {GROCERY_NAME_SUGGESTIONS.map((suggestion) => (
+                                <button
+                                  key={suggestion}
+                                  type="button"
+                                  onClick={() => field.onChange(suggestion)}
+                                  className={cn(
+                                    "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                                    field.value === suggestion
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-border bg-card hover:bg-muted/50",
+                                  )}
+                                >
+                                  {suggestion}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
